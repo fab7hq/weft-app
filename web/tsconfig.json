@@ -9,5 +9,5 @@
     "jsxImportSource": "preact",
     "lib": ["es2022", "dom", "dom.iterable"]
   },
-  "include": ["src", "test"]
+  "include": ["src"]
 }

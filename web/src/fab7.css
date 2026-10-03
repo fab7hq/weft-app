@@ -1,0 +1,60 @@
+/* The Fab7 design system (https://claude.ai/artifact/5W3p2W5EYHCzyp1NYhbBtd):
+   its tokens as CSS variables, then its component classes as they are. */
+@font-face { font-family: 'Sora'; src: url('/fonts/sora-variable.woff2') format('woff2'); font-weight: 100 800; font-style: normal; font-display: swap; }
+:root {
+  color-scheme: dark;
+  --fab7-canvas: #090d16; --fab7-panel: #0b111d; --fab7-surface: #101726; --fab7-line: #253550;
+  --fab7-text: #f1f3f7; --fab7-muted: #a2adbd; --fab7-faint: #6e7b8f;
+  --fab7-accent: #58a6ff; --fab7-button: #388bfd; --fab7-on-button: var(--fab7-canvas);
+  --fab7-teal: #39c5bb; --fab7-amber: #d29922; --fab7-amber-text: #edbb5b; --fab7-selection: #2e4c76;
+  --font-sans: 'Sora', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
+  --fab7-space-1: 4px; --fab7-space-2: 8px; --fab7-space-3: 12px; --fab7-space-4: 16px; --fab7-space-6: 24px; --fab7-space-8: 32px;
+  --fab7-touch: 44px; --fab7-header: 72px; --fab7-list: 360px;
+  --fab7-radius-xs: 3px; --fab7-radius-sm: 4px; --fab7-radius-md: 5px; --fab7-radius-lg: 7px; --fab7-radius-xl: 8px; --fab7-radius-pill: 999px;
+  --fab7-shadow-key: inset 0 -3px 0 #25355080; --fab7-shadow-float: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+/* Fab7 components: plain CSS over the tokens. No script. */
+.fab7 { font-family: var(--font-sans); color: var(--fab7-text); background: var(--fab7-canvas); -webkit-font-smoothing: antialiased; }
+.fab7 :focus-visible { outline: 2px solid var(--fab7-accent); outline-offset: 3px; }
+
+/* Button */
+.fab7-button { display: inline-flex; align-items: center; justify-content: center; gap: var(--fab7-space-3); min-height: var(--fab7-touch); padding: 0 18px; border: 1px solid var(--fab7-accent); border-radius: var(--fab7-radius-md); background: var(--fab7-button); color: var(--fab7-on-button); font: 600 14px/1 var(--font-sans); cursor: pointer; transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease; }
+.fab7-button:hover { background: var(--fab7-accent); }
+.fab7-button--secondary { background: transparent; border-color: var(--fab7-line); color: var(--fab7-muted); font-weight: 500; }
+.fab7-button--secondary:hover { background: transparent; border-color: var(--fab7-accent); color: var(--fab7-text); }
+.fab7-button:disabled { opacity: .45; cursor: default; }
+
+/* Pill */
+.fab7-pill { display: inline-flex; align-items: center; gap: var(--fab7-space-1); padding: 3px var(--fab7-space-3); border: 1px solid var(--fab7-line); border-radius: var(--fab7-radius-pill); color: var(--fab7-muted); font: 500 11px/1.5 var(--font-sans); letter-spacing: 1px; text-transform: uppercase; white-space: nowrap; }
+.fab7-pill--needs-you { border-color: var(--fab7-amber); color: var(--fab7-amber); }
+.fab7-pill--live { border-color: var(--fab7-teal); color: var(--fab7-teal); }
+.fab7-pill--count { min-width: 22px; justify-content: center; border: 0; background: var(--fab7-amber); color: var(--fab7-on-button); font-weight: 700; }
+
+/* Row */
+.fab7-row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: var(--fab7-space-1) var(--fab7-space-3); min-height: 64px; padding: var(--fab7-space-2) var(--fab7-space-4); border-bottom: 1px solid var(--fab7-line); color: var(--fab7-text); }
+.fab7-row__title { font: 500 15px/1.4 var(--font-sans); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fab7-row__meta { grid-column: 1; font: 400 12px/1.5 var(--font-sans); color: var(--fab7-muted); }
+.fab7-row__since { grid-column: 2; grid-row: 1 / span 2; font: 400 12px/1.5 var(--font-sans); color: var(--fab7-muted); text-align: right; display: grid; gap: var(--fab7-space-1); justify-items: end; }
+.fab7-row--open { background: var(--fab7-surface); box-shadow: inset 2px 0 0 var(--fab7-accent); }
+.fab7-group { padding: var(--fab7-space-6) var(--fab7-space-4) var(--fab7-space-2); font: 500 12px/1.5 var(--font-sans); letter-spacing: 1.5px; text-transform: uppercase; color: var(--fab7-muted); }
+.fab7-group--needs-you { color: var(--fab7-amber); }
+
+/* Sheet */
+.fab7-sheet { display: grid; gap: var(--fab7-space-4); padding: var(--fab7-space-6) var(--fab7-space-4) var(--fab7-space-4); border: 1px solid var(--fab7-line); border-radius: var(--fab7-radius-xl) var(--fab7-radius-xl) 0 0; background: var(--fab7-surface); box-shadow: var(--fab7-shadow-float); }
+.fab7-sheet__title { margin: 0; font: 400 22px/1.25 var(--font-sans); letter-spacing: -0.03em; }
+.fab7-sheet__why { margin: 0; font: 400 14px/1.6 var(--font-sans); color: var(--fab7-muted); }
+.fab7-sheet__text { margin: 0; padding: var(--fab7-space-3); border: 1px solid var(--fab7-line); border-radius: var(--fab7-radius-sm); background: var(--fab7-canvas); font: 400 13px/1.6 var(--font-mono); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 40vh; overflow: auto; }
+.fab7-sheet__actions { display: grid; grid-template-columns: 1fr 1fr; gap: var(--fab7-space-3); }
+
+/* Key */
+.fab7-key { display: inline-grid; place-items: center; min-width: var(--fab7-touch); height: var(--fab7-touch); padding: 0 var(--fab7-space-3); border: 1px solid var(--fab7-line); border-radius: var(--fab7-radius-xl); background: var(--fab7-canvas); color: var(--fab7-text); font: 600 15px/1 var(--font-sans); box-shadow: var(--fab7-shadow-key); cursor: pointer; }
+.fab7-key:active { transform: translateY(2px); box-shadow: inset 0 -1px 0 #25355080; }
+.fab7-keybar { display: flex; gap: var(--fab7-space-2); padding: var(--fab7-space-2) var(--fab7-space-4); border-top: 1px solid var(--fab7-line); background: var(--fab7-surface); overflow-x: auto; }
+
+/* Terminal frame */
+.fab7-term { border: 1px solid var(--fab7-line); border-radius: var(--fab7-radius-lg); overflow: hidden; background: var(--fab7-canvas); }
+.fab7-term__bar { display: flex; align-items: center; gap: var(--fab7-space-3); padding: var(--fab7-space-2) var(--fab7-space-3); border-bottom: 1px solid var(--fab7-line); background: var(--fab7-surface); font: 400 12px/1.5 var(--font-sans); color: var(--fab7-muted); }
+.fab7-term__who { margin-left: auto; color: var(--fab7-teal); }
+.fab7-term__screen { margin: 0; padding: var(--fab7-space-3); font: 400 13px/1.22 var(--font-mono); color: var(--fab7-text); white-space: pre; overflow-x: auto; }
+.fab7-term__note { padding: var(--fab7-space-1) var(--fab7-space-3); border-top: 1px solid var(--fab7-line); font: 400 12px/1.5 var(--font-sans); color: var(--fab7-muted); }

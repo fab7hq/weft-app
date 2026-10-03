@@ -1,0 +1,17 @@
+/* The app's own layout, over the system's classes. */
+html, body { height: 100%; margin: 0; background: var(--fab7-canvas); }
+body { font-family: var(--font-sans); color: var(--fab7-text); -webkit-font-smoothing: antialiased; }
+::selection { background: var(--fab7-selection); color: #fff; }
+#app { height: 100%; }
+.app { height: 100%; display: flex; flex-direction: column; padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px); box-sizing: border-box; }
+.appbar { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 0 16px; border-bottom: 1px solid var(--fab7-line); flex: none; }
+.appbar h1 { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+.spacer { flex: 1; }
+.back { color: var(--fab7-accent); font: inherit; font-size: 15px; background: none; border: 0; padding: 0; min-height: 44px; cursor: pointer; }
+.page { flex: 1; display: flex; flex-direction: column; gap: 24px; padding: 32px 24px; overflow: auto; }
+.page h2 { margin: 0; font-size: 28px; line-height: 1.18; font-weight: 400; letter-spacing: -0.04em; }
+.lede { margin: 0; font-size: 16px; line-height: 1.75; color: var(--fab7-muted); }
+.note { margin: 0; font-size: 12px; line-height: 1.7; color: var(--fab7-muted); }
+.label { font-size: 12px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase; color: var(--fab7-muted); }
+a { color: var(--fab7-accent); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }

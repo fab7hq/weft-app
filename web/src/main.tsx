@@ -1,3 +1,9 @@
 import { render } from 'preact';
+import { App } from './app';
+import './fab7.css';
+import './app.css';
 
-render(<main>Weft</main>, document.getElementById('app')!);
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
+render(<App />, document.getElementById('app')!);

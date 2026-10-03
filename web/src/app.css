@@ -27,3 +27,5 @@ a { color: var(--fab7-accent); }
 .keys-on-keyboard { flex: none; padding: 8px 0 0; border-top: 1px solid var(--fab7-line); }
 .answer-strip { display: flex; align-items: center; gap: 8px; padding: 8px 16px 0; flex: none; overflow-x: auto; }
 .answer-strip .label { color: var(--fab7-amber-text); margin-right: auto; white-space: nowrap; }
+.cue { display: flex; align-items: center; gap: 8px; padding: 8px 16px 0; flex: none; }
+.cue-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: var(--fab7-muted); }

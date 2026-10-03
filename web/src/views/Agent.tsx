@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Machine } from '../api';
 import * as m from '../machine';
 import { back, go } from '../nav';
-import { BarSheet } from './Bar';
+import { BarSheet, Label } from './Bar';
 import { KeyBar, mods, press } from './Keys';
 import { ANSWER, sent, typed } from '../keys';
 import { NeedsYou } from './Agents';
@@ -127,6 +127,20 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
           <button class="fab7-button fab7-button--secondary" type="button" style={{ margin: '8px' }} onClick={() => setHistory(null)}>
             Back to the screen
           </button>
+        </div>
+      )}
+      {a?.unit && a.turn === 'ended' && (
+        // On cue (§7): the Ask on the board, once its turn has ended.
+        <div class="cue" role="group" aria-label="On cue">
+          <span class="cue-text">{a.unit.title} · {a.unit.eval == null ? 'ASKED' : 'EVALED'}</span>
+          {a.unit.eval == null ? (
+            <button class="fab7-button fab7-button--secondary" type="button" aria-label="Eval" disabled={!live} onClick={() => void act('eval')}><Label word="eval" /></button>
+          ) : (
+            <>
+              <button class="fab7-button fab7-button--secondary" type="button" aria-label="Seal" disabled={!live} onClick={() => void act('seal')}><Label word="seal" /></button>
+              <button class="fab7-button fab7-button--secondary" type="button" aria-label="Ask" disabled={!live} onClick={() => setAsking(true)}><Label word="ask" /></button>
+            </>
+          )}
         </div>
       )}
       {a?.turn === 'waiting' && (

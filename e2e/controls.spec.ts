@@ -164,3 +164,41 @@ test('step 48: while the agent waits, the answer strip offers 1 2 3 Esc ⏎', as
   await expect(strip).toHaveCount(0);
   await machine.close();
 });
+
+test('step 49: Eval on cue when the Ask\'s turn has ended; Seal or Ask after an Eval', async ({ page, context }, info) => {
+  test.skip(info.project.name !== 'iphone', 'the phone layout');
+  const machine = await FakeMachine.start();
+  const unit = { id: 'ask_1', title: 'health endpoint', eval: null as unknown };
+  machine.agents = [{ ...agent(0, 'weft', 'claude-code', 'working'), unit }];
+  machine.onAct = (m) => [
+    { type: 'pending', id: `pnd_${m.act}`, agent: m.agent, what: `Ready to ${m.act}`, why: 'why', text: `/rf:${m.act} ask_1` },
+    { type: 'ok', req: m.req, pending: `pnd_${m.act}` },
+  ];
+  await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
+  await opened(page, machine);
+  const cue = page.getByRole('group', { name: 'On cue' });
+  await expect(cue).toHaveCount(0); // still working
+
+  machine.agents = [{ ...agent(0, 'weft', 'claude-code', 'ended'), unit }];
+  machine.send({ type: 'agents', agents: machine.agents });
+  await expect(cue).toContainText('health endpoint · ASKED');
+  await cue.getByRole('button', { name: 'Eval', exact: true }).click();
+  await expect.poll(() => machine.of('act').map((a) => a.act)).toEqual(['eval']);
+  await page.getByRole('dialog', { name: 'Ready to eval' }).getByRole('button', { name: 'No', exact: true }).click();
+
+  machine.agents = [{ ...agent(0, 'weft', 'claude-code', 'ended'), unit: { ...unit, eval: { status: 'aligned' } } }];
+  machine.send({ type: 'agents', agents: machine.agents });
+  await expect(cue).toContainText('health endpoint · EVALED');
+  await expect(cue.getByRole('button', { name: 'Eval', exact: true })).toHaveCount(0);
+  await cue.getByRole('button', { name: 'Seal', exact: true }).click();
+  await expect.poll(() => machine.of('act').map((a) => a.act)).toEqual(['eval', 'seal']);
+  await page.getByRole('dialog', { name: 'Ready to seal' }).getByRole('button', { name: 'No', exact: true }).click();
+  await cue.getByRole('button', { name: 'Ask', exact: true }).click();
+  await expect(page.getByLabel('What do you want done?')).toBeVisible();
+
+  // No Ask on the board: no cue.
+  machine.agents = [agent(0, 'weft', 'claude-code', 'ended')];
+  machine.send({ type: 'agents', agents: machine.agents });
+  await expect(cue).toHaveCount(0);
+  await machine.close();
+});

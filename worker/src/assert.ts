@@ -1,7 +1,7 @@
 // Assertions (account.md §7): Fab7's word, for 60 seconds, that a device is
-// asked for by the same GitHub user who owns a Mac. Ed25519 through
+// asked for by the same GitHub user who owns a machine. Ed25519 through
 // WebCrypto; the wire form is `base64url(json) "." base64url(signature)`,
-// signed over the first part as sent. The Mac checks it with the public key
+// signed over the first part as sent. The machine checks it with the public key
 // built into Weft; the service never admits a device itself.
 
 import { base64url, unbase64url } from './crypto';
@@ -40,7 +40,7 @@ export async function assertion(request: Request, me: Who, env: Env): Promise<Re
     return refuse(400, 'bad_request', 'An assertion is for a machine and a device.');
   }
   const owner = await env.DB.prepare(SQL.machineOwner).bind(machine).first<{ userId: string }>();
-  if (!owner || owner.userId !== me.userId) return refuse(404, 'not_found', 'No such Mac on your account.');
+  if (!owner || owner.userId !== me.userId) return refuse(404, 'not_found', 'No such machine on your account.');
   // Ten a minute, counted in the session's own row: one write.
   const minute = Math.floor(Date.now() / 60_000);
   const count = me.minute === minute ? me.asserted + 1 : 1;

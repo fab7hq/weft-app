@@ -1,6 +1,6 @@
-// The account service (account.md): who is signed in, which Macs are theirs,
+// The account service (account.md): who is signed in, which machines are theirs,
 // where each can be reached, and a short-lived proof that a device belongs to
-// a Mac's owner. No screen, key, record or push passes through it.
+// a machine's owner. No screen, key, record or push passes through it.
 
 import { assertion } from './assert';
 import { begin, finish } from './github';
@@ -40,7 +40,7 @@ async function route(request: Request, env: Env): Promise<Response> {
       return finish(request, env);
   }
   if (!url.pathname.startsWith('/api/')) return refuse(404, 'not_found', 'There is nothing here.');
-  // A Mac's own calls, with its machine token.
+  // A machine's own calls, with its machine token.
   switch (`${request.method} ${url.pathname}`) {
     case 'POST /api/machine/enrol':
       return machines.enrol(request, env);

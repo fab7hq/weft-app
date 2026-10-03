@@ -1,6 +1,6 @@
-// A person's Macs (account.md §5): a Mac enrols once with the GitHub token
+// A person's machines (account.md §5): a machine enrols once with the GitHub token
 // its device flow got, then tells only a new address with its own token.
-// There is no heartbeat: the app finds out a Mac is online by reaching it.
+// There is no heartbeat: the app finds out a machine is online by reaching it.
 
 import { random, sha256Hex } from './crypto';
 import { upsertUser, whoIs } from './github';
@@ -54,7 +54,7 @@ export async function address(request: Request, env: Env): Promise<Response> {
   return new Response(null, { status: 204 });
 }
 
-/** DELETE /api/machine: the Mac leaves the account. */
+/** DELETE /api/machine: the machine leaves the account. */
 export async function leave(request: Request, env: Env): Promise<Response> {
   const machine = await machineOf(request, env);
   if (!machine) return noMachine();
@@ -71,5 +71,5 @@ export async function list(me: Who, env: Env): Promise<Response> {
 /** DELETE /api/machines/:id */
 export async function remove(me: Who, id: string, env: Env): Promise<Response> {
   const done = await env.DB.prepare(SQL.removeMachine).bind(id, me.userId).run();
-  return done.meta.changes ? new Response(null, { status: 204 }) : refuse(404, 'not_found', 'No such Mac on your account.');
+  return done.meta.changes ? new Response(null, { status: 204 }) : refuse(404, 'not_found', 'No such machine on your account.');
 }

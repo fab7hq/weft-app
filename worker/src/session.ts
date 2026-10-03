@@ -64,7 +64,7 @@ export async function signOut(me: Who, everywhere: boolean, env: Env): Promise<R
   return new Response(null, { status: 204, headers: { 'set-cookie': ENDED } });
 }
 
-/** DELETE /api/me: the user, their sessions and their Macs, all at once. */
+/** DELETE /api/me: the user, their sessions and their machines, all at once. */
 export async function forget(me: Who, env: Env): Promise<Response> {
   await env.DB.batch([
     env.DB.prepare(SQL.signOutEverywhere).bind(me.userId),

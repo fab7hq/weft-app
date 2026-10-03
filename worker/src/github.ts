@@ -1,5 +1,5 @@
 // Sign-in with GitHub (account.md §3): the web flow with PKCE in the browser,
-// and the check of a token a Mac got through the device flow. GitHub's token
+// and the check of a token a machine got through the device flow. GitHub's token
 // is used to read who the person is, once, and never stored.
 
 import { base64url, random, sha256 } from './crypto';

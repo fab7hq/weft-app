@@ -46,4 +46,6 @@ export async function device(): Promise<{ id: string; name: string }> {
 export interface Kept {
   address?: string;
   token?: string;
+  /** Pushes are on for this machine. */
+  push?: boolean;
 }

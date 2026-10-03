@@ -17,6 +17,7 @@ export class FakeMachine {
   readonly server: WebSocketServer;
   readonly heard: Record<string, unknown>[] = [];
   epoch = 'e1';
+  vapid: string | null = null;
   agents: Agent[] = [];
   pendings: Record<string, unknown>[] = [];
   /** Refuse new connections at the upgrade. */
@@ -83,7 +84,7 @@ export class FakeMachine {
       v: 1,
       epoch: this.epoch,
       machine: { id: 'm_fake', name: 'studio' },
-      vapid: null,
+      vapid: this.vapid,
       agents: this.agents,
       pendings: this.pendings,
     };

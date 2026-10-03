@@ -7,6 +7,7 @@ import { AddMachine } from './views/AddMachine';
 import { Agent } from './views/Agent';
 import { Agents } from './views/Agents';
 import { Machines } from './views/Machines';
+import { Settings } from './views/Settings';
 import { SignIn } from './views/SignIn';
 
 /** What the app knows about who is here and their machines. */
@@ -116,10 +117,21 @@ export function App() {
       if (view.name === 'agents') queueMicrotask(() => openWanted(m.id));
       return view.name === 'agent' ? <Agent machine={m} agent={view.agent} /> : <Agents machine={m} />;
     }
+    case 'settings':
+      return <Settings login={a.login} />;
     default:
       return <div class="app" />;
   }
 }
+
+// A notification tapped while the app is open (the service worker says which).
+navigator.serviceWorker?.addEventListener('message', (e) => {
+  const msg = e.data as { type?: string; agent?: string };
+  const m = machine.current.value;
+  if (msg.type !== 'open' || !msg.agent || !m) return;
+  void store.del('open', 'open');
+  go({ name: 'agent', machine: m.id, agent: msg.agent });
+});
 
 void lookWho();
 addEventListener('online', () => void lookWho());

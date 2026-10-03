@@ -46,3 +46,54 @@ self.addEventListener('fetch', (event) => {
       .catch(() => caches.match(event.request)),
   );
 });
+
+// A push from a machine (remote.md §10): shown, one per agent (the tag), and
+// the badge set to how many agents need the person. Safari ignores a
+// notification's data, so the agent travels in the tag.
+self.addEventListener('push', (event) => {
+  let p = {};
+  try {
+    p = event.data ? event.data.json() : {};
+  } catch {
+    return;
+  }
+  if (!p.agent) return;
+  const shown = self.registration.showNotification(p.title || 'Weft', { body: p.body || 'needs your input', tag: p.agent });
+  const badge = 'setAppBadge' in self.navigator ? self.navigator.setAppBadge(p.count || 0).catch(() => {}) : Promise.resolve();
+  event.waitUntil(Promise.all([shown, badge]));
+});
+
+// A tap: remember which agent to open, then bring the app forward. It never
+// answers anything.
+self.addEventListener('notificationclick', (event) => {
+  const agent = event.notification.tag;
+  event.notification.close();
+  event.waitUntil(
+    remember(agent).then(async () => {
+      const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      const open = windows.find((w) => new URL(w.url).origin === self.location.origin);
+      if (open) {
+        open.postMessage({ type: 'open', agent });
+        return open.focus();
+      }
+      return self.clients.openWindow('/');
+    }),
+  );
+});
+
+/** `{open: agent}` in IndexedDB, which the app reads and clears on start. */
+function remember(agent) {
+  return new Promise((done) => {
+    const r = indexedDB.open('weft', 1);
+    r.onupgradeneeded = () => {
+      for (const name of ['devices', 'macs', 'open']) r.result.createObjectStore(name);
+    };
+    r.onsuccess = () => {
+      const t = r.result.transaction('open', 'readwrite');
+      t.objectStore('open').put(agent, 'open');
+      t.oncomplete = () => done();
+      t.onerror = () => done();
+    };
+    r.onerror = () => done();
+  });
+}

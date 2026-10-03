@@ -50,6 +50,9 @@ let onFrame: ((f: Frame) => void) | null = null;
 /** Pendings answered elsewhere, for a sheet that was showing one. */
 export const resolved = signal<{ id: string; yes: boolean } | null>(null);
 
+/** The machine this device has open. */
+export const current = signal<api.Machine | null>(null);
+
 export const needsYou = computed(() => agents.value.filter((a) => a.turn === 'waiting').length);
 
 const REFUSED: Record<string, string> = {
@@ -80,6 +83,7 @@ export function open(m: api.Machine): void {
   if (machine?.id === m.id && socket) return;
   close();
   machine = m;
+  current.value = m;
   wait = 1;
   void connect();
 }

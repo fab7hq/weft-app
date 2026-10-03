@@ -12,6 +12,8 @@
     "not_found_handling": "single-page-application",
     "run_worker_first": ["/api/*", "/auth/*"]
   },
+  // A Custom Domain: the Worker is the origin, DNS and certificate are Cloudflare's.
+  "routes": [{ "pattern": "weft.getfab7.com", "custom_domain": true }],
   "vars": {
     // The Fab7 Weft GitHub App (account.md §3); its client secret is a secret.
     "GITHUB_CLIENT_ID": "Iv23liun7wYzjax5d6p3"
@@ -22,8 +24,7 @@
     {
       "binding": "DB",
       "database_name": "weft",
-      // Made by the owner with `wrangler d1 create weft` at deploy (step 31).
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "11b1e16b-dab0-4c58-a3a4-30dca34a7e09",
       "migrations_dir": "migrations"
     }
   ]

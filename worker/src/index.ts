@@ -2,6 +2,7 @@
 // where each can be reached, and a short-lived proof that a device belongs to
 // a Mac's owner. No screen, key, record or push passes through it.
 
+import { assertion } from './assert';
 import { begin, finish } from './github';
 import * as machines from './machines';
 import { json, refuse } from './respond';
@@ -14,10 +15,12 @@ export interface Env {
   GITHUB_CLIENT_ID: string;
   /** Its client secret: a Worker secret. */
   GITHUB_CLIENT_SECRET: string;
+  /** Fab7's Ed25519 private key for assertions, PKCS#8 PEM: a Worker secret. */
+  ASSERTION_KEY: string;
 }
 
 /** The calls a person makes with their session. */
-const PERSON = ['GET /api/me', 'GET /api/machines', 'DELETE /api/machines/:id'];
+const PERSON = ['GET /api/me', 'GET /api/machines', 'DELETE /api/machines/:id', 'POST /api/assertion'];
 
 const signedOut = () => refuse(401, 'signed_out', 'Sign in with GitHub first.');
 
@@ -50,6 +53,8 @@ async function route(request: Request, env: Env): Promise<Response> {
       return json({ login: me.login, github_id: me.githubId });
     case 'GET /api/machines':
       return machines.list(me, env);
+    case 'POST /api/assertion':
+      return assertion(request, me, env);
     default:
       return machines.remove(me, machine!, env);
   }

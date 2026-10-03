@@ -15,4 +15,6 @@ export const SQL = {
   machines: `SELECT id, name, address, address_at FROM machines WHERE user_id = ? ORDER BY created_at`,
   removeMachine: 'DELETE FROM machines WHERE id = ? AND user_id = ?',
   leave: 'DELETE FROM machines WHERE id = ?',
+  machineOwner: 'SELECT user_id AS userId FROM machines WHERE id = ?',
+  countAssertion: 'UPDATE sessions SET minute = ?, asserted = ? WHERE hash = ?',
 } as const;

@@ -13,6 +13,9 @@ export interface Who {
   userId: string;
   login: string;
   githubId: number;
+  /** Assertions given this minute (account.md §8). */
+  minute: number;
+  asserted: number;
 }
 
 export function readCookie(request: Request, name: string): string | null {
@@ -39,9 +42,10 @@ export async function who(request: Request, env: Env): Promise<Who | null> {
   const hash = await sha256Hex(cookie);
   const row = await env.DB.prepare(SQL.session)
     .bind(hash)
-    .first<{ userId: string; expiresAt: number; login: string; githubId: number }>();
+    .first<{ userId: string; expiresAt: number; login: string; githubId: number; minute: number; asserted: number }>();
   if (!row || row.expiresAt <= Date.now()) return null;
-  return { hash, userId: row.userId, login: row.login, githubId: row.githubId };
+  const { userId, login, githubId, minute, asserted } = row;
+  return { hash, userId, login, githubId, minute, asserted };
 }
 
 /** The daily cron: sessions past their thirty days go. */

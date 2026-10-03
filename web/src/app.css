@@ -25,3 +25,5 @@ a { color: var(--fab7-accent); }
 .key-lit { border-color: var(--fab7-accent); color: var(--fab7-accent); }
 .key-lit[data-lit="locked"] { background: var(--fab7-accent); color: var(--fab7-on-button); }
 .keys-on-keyboard { flex: none; padding: 8px 0 0; border-top: 1px solid var(--fab7-line); }
+.answer-strip { display: flex; align-items: center; gap: 8px; padding: 8px 16px 0; flex: none; overflow-x: auto; }
+.answer-strip .label { color: var(--fab7-amber-text); margin-right: auto; white-space: nowrap; }

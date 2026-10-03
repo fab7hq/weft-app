@@ -92,3 +92,6 @@ export function sent(m: Mods): Mods {
   const keep = (l: Lit): Lit => (l === 'locked' ? 'locked' : 'off');
   return { ctrl: keep(m.ctrl), alt: keep(m.alt), shift: keep(m.shift) };
 }
+
+/** The answer strip while an agent waits: the keys most questions take (§6). */
+export const ANSWER = ['1', '2', '3', 'Esc', 'Enter'].map((name) => BAR.find((k) => k.name === name)!);

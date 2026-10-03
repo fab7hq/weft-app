@@ -140,3 +140,27 @@ test('step 47: the key bar rides on the keyboard while the message box has focus
   await expect(keys).toHaveCount(0);
   await machine.close();
 });
+
+test('step 48: while the agent waits, the answer strip offers 1 2 3 Esc ⏎', async ({ page, context }, info) => {
+  test.skip(info.project.name !== 'iphone', 'the phone layout');
+  const machine = await FakeMachine.start();
+  machine.agents = [agent(0, 'weft', 'claude-code', 'working')];
+  await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
+  await opened(page, machine);
+  const strip = page.getByRole('toolbar', { name: 'Answer' });
+  await expect(strip).toHaveCount(0);
+
+  machine.agents = [agent(0, 'weft', 'claude-code', 'waiting')];
+  machine.send({ type: 'agents', agents: machine.agents });
+  await expect(strip).toBeVisible();
+  await expect(strip.getByText('NEEDS YOU')).toBeVisible();
+  expect(await strip.getByRole('button').allTextContents()).toEqual(['1', '2', '3', 'Esc', '⏎']);
+  await strip.getByRole('button', { name: '1', exact: true }).click();
+  await strip.getByRole('button', { name: 'Enter', exact: true }).click();
+  await expect.poll(() => machine.of('keys').map((k) => hex(k.bytes))).toEqual(['31', '0d']);
+
+  machine.agents = [agent(0, 'weft', 'claude-code', 'working')];
+  machine.send({ type: 'agents', agents: machine.agents });
+  await expect(strip).toHaveCount(0);
+  await machine.close();
+});

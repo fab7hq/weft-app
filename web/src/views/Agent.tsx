@@ -3,8 +3,8 @@ import type { Machine } from '../api';
 import * as m from '../machine';
 import { back, go } from '../nav';
 import { BarSheet } from './Bar';
-import { KeyBar, mods } from './Keys';
-import { sent, typed } from '../keys';
+import { KeyBar, mods, press } from './Keys';
+import { ANSWER, sent, typed } from '../keys';
 import { NeedsYou } from './Agents';
 import { Screen, fit } from './Screen';
 import { ConfirmSheet, RecordSheet, type EvalRecord } from './Sheets';
@@ -127,6 +127,17 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
           <button class="fab7-button fab7-button--secondary" type="button" style={{ margin: '8px' }} onClick={() => setHistory(null)}>
             Back to the screen
           </button>
+        </div>
+      )}
+      {a?.turn === 'waiting' && (
+        // While the agent waits for its person (its hooks say so; the screen is never read).
+        <div class="answer-strip" role="toolbar" aria-label="Answer">
+          <span class="label">NEEDS YOU</span>
+          {ANSWER.map(({ label, name }) => (
+            <button key={name} class="fab7-key" type="button" aria-label={name} disabled={!live} onClick={() => press(name, key)}>
+              {label}
+            </button>
+          ))}
         </div>
       )}
       {typing && (

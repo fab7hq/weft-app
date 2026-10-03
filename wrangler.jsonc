@@ -12,6 +12,12 @@
     "not_found_handling": "single-page-application",
     "run_worker_first": ["/api/*", "/auth/*"]
   },
+  "vars": {
+    // The Fab7 Weft GitHub App (account.md §3); its client secret is a secret.
+    "GITHUB_CLIENT_ID": "Iv23liun7wYzjax5d6p3"
+  },
+  // Expired sessions are deleted once a day.
+  "triggers": { "crons": ["0 3 * * *"] },
   "d1_databases": [
     {
       "binding": "DB",

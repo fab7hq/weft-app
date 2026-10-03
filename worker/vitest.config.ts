@@ -8,6 +8,7 @@ export default defineConfig({
       wrangler: { configPath: path.join(import.meta.dirname, '../wrangler.jsonc') },
       miniflare: {
         bindings: {
+          GITHUB_CLIENT_SECRET: 'test-secret',
           TEST_MIGRATIONS: await readD1Migrations(path.join(import.meta.dirname, '../migrations')),
         },
       },

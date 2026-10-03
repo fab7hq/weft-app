@@ -1,0 +1,52 @@
+// Fab7's own session (account.md §4): a random cookie, kept in D1 only as its
+// SHA-256, thirty days, fixed. Every call reads one row by its key.
+
+import { random, sha256Hex } from './crypto';
+import type { Env } from './index';
+
+export const SESSION_COOKIE = '__Host-session';
+const DAYS_30 = 30 * 24 * 60 * 60;
+
+export interface Who {
+  hash: string;
+  userId: string;
+  login: string;
+  githubId: number;
+}
+
+export function readCookie(request: Request, name: string): string | null {
+  for (const part of (request.headers.get('cookie') ?? '').split(';')) {
+    const at = part.indexOf('=');
+    if (at > 0 && part.slice(0, at).trim() === name) return part.slice(at + 1).trim();
+  }
+  return null;
+}
+
+/** A new session for this user: its Set-Cookie line. */
+export async function startSession(env: Env, userId: string): Promise<string> {
+  const cookie = random(32);
+  await env.DB.prepare('INSERT INTO sessions (hash, user_id, expires_at) VALUES (?, ?, ?)')
+    .bind(await sha256Hex(cookie), userId, Date.now() + DAYS_30 * 1000)
+    .run();
+  return `${SESSION_COOKIE}=${cookie}; Secure; HttpOnly; SameSite=Lax; Path=/; Max-Age=${DAYS_30}`;
+}
+
+/** Who this request is signed in as, or nobody. */
+export async function who(request: Request, env: Env): Promise<Who | null> {
+  const cookie = readCookie(request, SESSION_COOKIE);
+  if (!cookie) return null;
+  const hash = await sha256Hex(cookie);
+  const row = await env.DB.prepare(
+    `SELECT s.user_id AS userId, s.expires_at AS expiresAt, u.login, u.github_id AS githubId
+     FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.hash = ?`,
+  )
+    .bind(hash)
+    .first<{ userId: string; expiresAt: number; login: string; githubId: number }>();
+  if (!row || row.expiresAt <= Date.now()) return null;
+  return { hash, userId: row.userId, login: row.login, githubId: row.githubId };
+}
+
+/** The daily cron: sessions past their thirty days go. */
+export async function sweep(env: Env): Promise<void> {
+  await env.DB.prepare('DELETE FROM sessions WHERE expires_at <= ?').bind(Date.now()).run();
+}

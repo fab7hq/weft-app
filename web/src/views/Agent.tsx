@@ -30,6 +30,7 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
   const [answered, setAnswered] = useState(false);
   const [record, setRecord] = useState<EvalRecord | null>(null);
   const [bar, setBar] = useState(false);
+  const [typing, setTyping] = useState(false);
   const pending = m.pendings.value.find((p) => p.id === shown) ?? null;
   const [kept, setKept] = useState<m.Pending | null>(null);
   if (pending && pending !== kept) setKept(pending);
@@ -128,6 +129,13 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
           </button>
         </div>
       )}
+      {typing && (
+        // On top of the on-screen keyboard while the message box has focus (§6).
+        // A tap on it must not take the focus, or the keyboard would close.
+        <div class="keys-on-keyboard" onPointerDown={(e) => e.preventDefault()} onMouseDown={(e) => e.preventDefault()}>
+          <KeyBar live={live} send={key} />
+        </div>
+      )}
       <form class="message-row" onSubmit={sendText}>
         {asking ? (
           <button class="fab7-key" type="button" aria-label="Cancel" onClick={() => setAsking(false)}>✕</button>
@@ -140,6 +148,8 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
           class="field"
           value={message}
           onInput={(e) => setMessage((e.target as HTMLInputElement).value)}
+          onFocus={() => setTyping(true)}
+          onBlur={() => setTyping(false)}
           onBeforeInput={(e) => {
             // With Ctrl or Alt lit, a typed character is a key for the agent (§6).
             const bytes = e.data ? typed(e.data, mods.value) : null;

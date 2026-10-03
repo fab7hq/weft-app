@@ -115,3 +115,28 @@ test('step 46: sticky modifiers: Ctrl then r sends ^R, a double tap locks, ⇧ t
   await expect.poll(keysSent).toEqual(['12', '0f', '18', '1b 5b 5a', '1b 5b 44']);
   await machine.close();
 });
+
+test('step 47: the key bar rides on the keyboard while the message box has focus', async ({ page, context }, info) => {
+  test.skip(info.project.name !== 'iphone', 'the phone layout');
+  const machine = await FakeMachine.start();
+  machine.agents = [agent(0, 'weft', 'claude-code', 'ready')];
+  await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
+  await opened(page, machine);
+  const keys = page.getByRole('toolbar', { name: 'Keys' });
+  await expect(keys).toHaveCount(0);
+
+  await page.getByLabel('Message').focus();
+  await expect(keys).toBeVisible();
+  // Just above the message row.
+  const bar = (await keys.boundingBox())!;
+  const row = (await page.getByLabel('Message').boundingBox())!;
+  expect(bar.y + bar.height).toBeLessThanOrEqual(row.y + 1);
+  // A key from it reaches the agent and leaves the keyboard up.
+  await keys.getByRole('button', { name: 'Up', exact: true }).click();
+  await expect.poll(() => machine.of('keys').map((k) => hex(k.bytes))).toEqual(['1b 5b 41']);
+  await expect(page.getByLabel('Message')).toBeFocused();
+
+  await page.getByLabel('Message').blur();
+  await expect(keys).toHaveCount(0);
+  await machine.close();
+});

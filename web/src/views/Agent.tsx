@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Machine } from '../api';
 import * as m from '../machine';
-import { back, go } from '../nav';
-import { BarSheet, Label } from './Bar';
+import { back, go, swap } from '../nav';
+import { BarSheet, Label, wideActs, type BarActs } from './Bar';
 import { KeyBar, mods, press } from './Keys';
 import { Tabs } from './Tabs';
 import { ANSWER, sent, typed } from '../keys';
@@ -32,6 +32,7 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
   const [record, setRecord] = useState<EvalRecord | null>(null);
   const [bar, setBar] = useState(false);
   const [typing, setTyping] = useState(false);
+  const input = useRef<HTMLInputElement>(null);
   const pending = m.pendings.value.find((p) => p.id === shown) ?? null;
   const [kept, setKept] = useState<m.Pending | null>(null);
   if (pending && pending !== kept) setKept(pending);
@@ -94,6 +95,52 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
     const answer = await m.request({ type: 'read', agent, what: 'history' });
     if (answer?.type === 'ok') setHistory(String(answer.text ?? ''));
   };
+
+  const acts: BarActs = {
+    live,
+    unit: a?.unit,
+    onAct: (which) => (which === 'ask' ? setAsking(true) : void act(which)),
+    onRecord: () => void openRecord(),
+    onList: embedded ? null : back,
+    onHistory: () => void showHistory(),
+    onWeft: () => go({ name: 'settings' }),
+  };
+  // Wide: the bar under the list and the pane draws these acts.
+  useEffect(() => {
+    if (!embedded) return;
+    wideActs.value = acts;
+  });
+  useEffect(() => () => {
+    if (embedded) wideActs.value = null;
+  }, []);
+  // Ask puts the person in the message box.
+  useEffect(() => {
+    if (asking) input.current?.focus();
+  }, [asking]);
+  // While Weft has the keys (nothing focused that types), the TUI's keys act (§7).
+  useEffect(() => {
+    const keys = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement;
+      if (e.metaKey || e.ctrlKey || e.altKey || t.closest('input, textarea, [tabindex="0"], [role="dialog"]')) return;
+      const k = e.key.toLowerCase();
+      const n = Number(k);
+      const tab = n >= 1 && n <= 9 ? m.agents.value[n - 1] : undefined;
+      const known: Record<string, () => void> = {
+        a: () => acts.onAct('ask'),
+        e: () => a?.unit && acts.onAct('eval'),
+        s: () => a?.unit && acts.onAct('seal'),
+        h: acts.onHistory,
+        w: acts.onWeft,
+        l: () => (acts.onList ? acts.onList() : (document.querySelector('nav[aria-label="Agents"] button') as HTMLElement | null)?.focus()),
+      };
+      const run = tab ? () => tab.agent !== agent && swap({ name: 'agent', machine: machine.id, agent: tab.agent }) : known[k];
+      if (!run) return;
+      e.preventDefault();
+      run();
+    };
+    addEventListener('keydown', keys);
+    return () => removeEventListener('keydown', keys);
+  });
 
   return (
     <div class="app" style={embedded ? { height: '100%' } : undefined}>
@@ -172,6 +219,7 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
         <label for="message" style={{ position: 'absolute', left: '-9999px' }}>{asking ? 'What do you want done?' : 'Message'}</label>
         <input
           id="message"
+          ref={input}
           class="field"
           value={message}
           onInput={(e) => setMessage((e.target as HTMLInputElement).value)}
@@ -194,15 +242,7 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
       {bar && (
         <BarSheet
           onClose={() => setBar(false)}
-          acts={{
-            live,
-            unit: a?.unit,
-            onAct: (which) => (which === 'ask' ? setAsking(true) : void act(which)),
-            onRecord: () => void openRecord(),
-            onList: embedded ? null : back,
-            onHistory: () => void showHistory(),
-            onWeft: () => go({ name: 'settings' }),
-          }}
+          acts={acts}
           keys={<KeyBar live={live} send={key} />}
         />
       )}

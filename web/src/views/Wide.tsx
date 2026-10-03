@@ -5,6 +5,7 @@ import { go } from '../nav';
 import { Agent } from './Agent';
 import { AgentList, NeedsYou } from './Agents';
 import { LinkPill } from './Status';
+import { WideBar } from './Bar';
 
 export function Wide({ machine, agent }: { machine: Machine; agent: string | null }) {
   return (
@@ -31,6 +32,7 @@ export function Wide({ machine, agent }: { machine: Machine; agent: string | nul
           )}
         </main>
       </div>
+      <WideBar />
     </div>
   );
 }

@@ -43,3 +43,51 @@ test('the list beside the agent; typing goes to the agent; Cmd+R stays the brows
   expect(machine.of('keys')).toHaveLength(before);
   await machine.close();
 });
+
+const hex = (b64: unknown) => [...Buffer.from(String(b64), 'base64')].map((b) => b.toString(16).padStart(2, '0')).join(' ');
+
+async function opened(page: import('@playwright/test').Page, machine: FakeMachine) {
+  await page.goto('/');
+  await page.getByText('weft · Claude Code', { exact: true }).click();
+  await expect.poll(() => machine.of('watch').length).toBeGreaterThan(0);
+}
+
+test('step 51: wide, the TUI\'s bar under the list and the pane; Ctrl+] gives the keys to Weft', async ({ page, context }) => {
+  const machine = await FakeMachine.start();
+  machine.agents = [{ ...agent(0, 'weft', 'claude-code', 'ended'), unit: { id: 'ask_1', title: 'health endpoint', eval: null } }];
+  await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
+  await opened(page, machine);
+  const bar = page.getByRole('toolbar', { name: 'Weft' });
+  await expect(bar).toContainText('[A]SK');
+  await expect(bar).toContainText('[E]VAL');
+  await expect(bar).toContainText('[S]EAL');
+  await expect(bar).toContainText('[W]EFT ⌄');
+  // The bar spans the list and the pane.
+  const list = (await page.getByRole('navigation', { name: 'Agents' }).boundingBox())!;
+  const span = (await bar.boundingBox())!;
+  expect(span.x).toBeLessThanOrEqual(list.x + 1);
+
+  // The pane has the keys: everything goes to the agent; the bar says how to leave.
+  await page.getByLabel("The agent's screen").click();
+  await expect(bar).toContainText('Ctrl+]  BACK TO WEFT');
+  await page.keyboard.type('x');
+  await expect.poll(() => machine.of('keys').map((k) => hex(k.bytes))).toEqual(['78']);
+
+  // Ctrl+] gives the keys to Weft: then a is Ask, and nothing reaches the agent.
+  await page.keyboard.press('Control+BracketRight');
+  await expect(bar).toContainText('[A]SK');
+  await page.keyboard.press('a');
+  await expect(page.getByLabel('What do you want done?')).toBeFocused();
+  expect(machine.of('keys').map((k) => hex(k.bytes))).toEqual(['78']);
+  await page.getByRole('button', { name: 'Cancel' }).click();
+
+  // e is Eval, from the keys alone.
+  await page.keyboard.press('e');
+  await expect.poll(() => machine.of('act').map((a) => a.act)).toEqual(['eval']);
+
+  // A click on the pane gives the keys back to the agent.
+  await page.getByLabel("The agent's screen").click();
+  await page.keyboard.type('y');
+  await expect.poll(() => machine.of('keys').map((k) => hex(k.bytes))).toEqual(['78', '79']);
+  await machine.close();
+});

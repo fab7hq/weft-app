@@ -33,3 +33,7 @@ a { color: var(--fab7-accent); }
 .tab { flex: none; min-height: 36px; padding: 0 12px; border: 1px solid var(--fab7-line); border-radius: var(--fab7-radius-pill); background: none; color: var(--fab7-muted); font: 500 13px var(--font-sans); white-space: nowrap; cursor: pointer; }
 .tab[aria-current="page"] { color: var(--fab7-text); border-color: var(--fab7-accent); }
 .tab--needs-you { color: var(--fab7-amber-text); border-color: var(--fab7-amber); }
+.wide-bar { display: flex; align-items: center; gap: 16px; min-height: 44px; padding: 0 16px; border-top: 1px solid var(--fab7-line); flex: none; font-family: var(--font-mono); font-size: 13px; letter-spacing: 1px; }
+.wide-bar-hint { color: var(--fab7-muted); white-space: pre; }
+.bar-word { background: none; border: 0; padding: 8px 4px; min-height: 44px; color: var(--fab7-text); font: inherit; letter-spacing: inherit; cursor: pointer; }
+.bar-word:disabled { color: var(--fab7-faint); cursor: default; }

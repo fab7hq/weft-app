@@ -37,18 +37,8 @@ test('step 45: one row under the pane; the bar is a sheet behind ⌃', async ({ 
   await expect(bar.getByText('Nothing to work on yet.')).toBeVisible();
   await expect(bar.getByRole('toolbar', { name: 'Keys' })).toBeVisible();
 
-  // History from the sheet.
-  machine.onRead = (m) => ({ type: 'ok', req: m.req, text: 'the newest line' });
-  await bar.getByRole('button', { name: 'History', exact: true }).click();
-  await expect(page.getByText('the newest line')).toBeVisible();
-  await expect(bar).toHaveCount(0);
-  await page.getByRole('button', { name: 'Back to the screen' }).click();
-
-  // [W]EFT opens Settings; [L]IST goes back to the list.
-  await page.getByRole('button', { name: 'The bar', exact: true }).click();
-  await page.getByRole('dialog', { name: 'Weft' }).getByRole('button', { name: 'List', exact: true }).click();
-  await expect(page.getByText('weft · Claude Code')).toBeVisible();
-  await expect(page.getByLabel('Message')).toHaveCount(0);
+  // No [L]IST [H]ISTORY [W]EFT row: the sheet is the acts and the keys.
+  for (const name of ['List', 'History', 'Weft']) await expect(bar.getByRole('button', { name, exact: true })).toHaveCount(0);
   await machine.close();
 });
 

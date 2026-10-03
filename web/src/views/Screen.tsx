@@ -61,8 +61,22 @@ export function Screen({ agent, driving, onHistory, onKey, box }: { agent: strin
       if (e.deltaY < 0) onHistory();
     };
     el.addEventListener('wheel', wheel, { passive: true });
+    // On a touch screen: a finger pulling the screen down, as a wheel scrolled up.
+    let from: number | null = null;
+    const start = (e: TouchEvent) => (from = e.touches[0]?.clientY ?? null);
+    const move = (e: TouchEvent) => {
+      const y = e.touches[0]?.clientY;
+      if (from !== null && y !== undefined && y - from > 80) {
+        from = null;
+        onHistory();
+      }
+    };
+    el.addEventListener('touchstart', start, { passive: true });
+    el.addEventListener('touchmove', move, { passive: true });
     return () => {
       el.removeEventListener('wheel', wheel);
+      el.removeEventListener('touchstart', start);
+      el.removeEventListener('touchmove', move);
       m.watch(null, null);
       term.dispose();
     };

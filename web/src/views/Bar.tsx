@@ -1,5 +1,5 @@
-// The TUI's bar (web-app.md §7): [A]SK [E]VAL [S]EAL, the keys, and
-// [L]IST [H]ISTORY [W]EFT. On a phone it is a sheet behind ⌃.
+// The TUI's bar (web-app.md §7): [A]SK [E]VAL [S]EAL and the keys. On a
+// phone it is a sheet behind ⌃.
 import type { ComponentChildren } from 'preact';
 import { signal } from '@preact/signals';
 import { useEffect } from 'preact/hooks';
@@ -50,11 +50,6 @@ export function BarSheet({ acts, keys, onClose }: { acts: BarActs; keys: Compone
           <button class="fab7-button fab7-button--secondary" type="button" aria-label="Eval view" disabled={!live} onClick={then(acts.onRecord)}>[V] EVAL VIEW</button>
         )}
         {keys}
-        <div class="bar-row">
-          {acts.onList && <button class="fab7-button fab7-button--secondary" type="button" aria-label="List" onClick={then(acts.onList)}><Label word="list" /></button>}
-          <button class="fab7-button fab7-button--secondary" type="button" aria-label="History" disabled={!live} onClick={then(acts.onHistory)}><Label word="history" /></button>
-          <button class="fab7-button fab7-button--secondary" type="button" aria-label="Weft" onClick={then(acts.onWeft)}><Label word="weft" /> ⌄</button>
-        </div>
       </div>
     </div>
   );

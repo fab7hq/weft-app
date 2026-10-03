@@ -70,8 +70,14 @@ test('test 2: allow, open an agent, press 1, send a message, read history', asyn
 
   // History: asked for, shown as text, newest at the bottom.
   machine.onRead = (m) => ({ type: 'ok', req: m.req, text: 'line 1\nline 2\nthe newest line' });
-  await page.getByRole('button', { name: 'The bar', exact: true }).click();
-  await page.getByRole('dialog', { name: 'Weft' }).getByRole('button', { name: 'History' }).click();
+  // Scrolling up past the screen, a finger pulling it down, asks for what scrolled away (§6).
+  await page.getByLabel("The agent's screen").evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    const at = (y: number) => [new Touch({ identifier: 1, target: el, clientX: r.x + 50, clientY: y })];
+    el.dispatchEvent(new TouchEvent('touchstart', { bubbles: true, touches: at(r.y + 40), changedTouches: at(r.y + 40) }));
+    el.dispatchEvent(new TouchEvent('touchmove', { bubbles: true, touches: at(r.y + 200), changedTouches: at(r.y + 200) }));
+    el.dispatchEvent(new TouchEvent('touchend', { bubbles: true, touches: [], changedTouches: at(r.y + 200) }));
+  });
   await expect(page.getByText('the newest line')).toBeVisible();
   expect(machine.of('read').at(-1)).toMatchObject({ what: 'history', agent: '3f9a1c07b2de-0' });
   await page.getByRole('button', { name: 'Back to the screen' }).click();

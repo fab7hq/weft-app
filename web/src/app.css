@@ -17,6 +17,8 @@ a { color: var(--fab7-accent); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 .sheet-backdrop { position: fixed; inset: 0; z-index: 10; display: flex; flex-direction: column; justify-content: flex-end; background: rgba(9, 13, 22, 0.7); padding-bottom: env(safe-area-inset-bottom, 0px); }
 .sheet-backdrop .fab7-sheet { max-width: 640px; width: 100%; margin: 0 auto; box-sizing: border-box; }
-.acts { display: flex; gap: 8px; padding: 12px 16px 0; }
-.acts .fab7-button { flex: 1; }
 .field { min-height: 44px; box-sizing: border-box; padding: 0 14px; border: 1px solid var(--fab7-line); border-radius: var(--fab7-radius-md); background: var(--fab7-canvas); color: var(--fab7-text); font: 400 16px var(--font-sans); }
+.message-row { display: flex; gap: 8px; align-items: center; padding: 8px 16px 16px; flex: none; }
+.bar-sheet { display: flex; flex-direction: column; gap: 12px; }
+.bar-row { display: flex; gap: 8px; }
+.bar-row .fab7-button { flex: 1; }

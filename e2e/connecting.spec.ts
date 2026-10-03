@@ -28,7 +28,8 @@ test('keys are off and nothing is sent while reconnecting; a new epoch clears th
   await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
   await page.goto('/');
   await page.getByText('weft · Claude Code').click();
-  const esc = page.getByRole('button', { name: 'Esc' });
+  await page.getByRole('button', { name: 'The bar', exact: true }).click();
+  const esc = page.getByRole('dialog', { name: 'Weft' }).getByRole('button', { name: 'Esc' });
   await expect(esc).toBeEnabled();
 
   machine.down = true;

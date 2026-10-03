@@ -21,7 +21,8 @@ test('an Ask is composed, then shown exactly as it will be typed, then said yes 
   await page.goto('/');
   await page.getByText('weft · Claude Code').click();
 
-  await page.getByRole('button', { name: 'Ask', exact: true }).click();
+  await page.getByRole('button', { name: 'The bar', exact: true }).click();
+  await page.getByRole('dialog', { name: 'Weft' }).getByRole('button', { name: 'Ask', exact: true }).click();
   await page.getByLabel('What do you want done?').fill('Add a health endpoint');
   await page.getByRole('button', { name: 'Ask', exact: true }).click();
   await expect.poll(() => machine.of('act').length).toBe(1);
@@ -45,7 +46,8 @@ test('an Eval answered on the machine first closes the sheet and says so', async
   await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
   await page.goto('/');
   await page.getByText('weft · Claude Code').click();
-  await page.getByRole('button', { name: 'Eval', exact: true }).click();
+  await page.getByRole('button', { name: 'The bar', exact: true }).click();
+  await page.getByRole('dialog', { name: 'Weft' }).getByRole('button', { name: 'Eval', exact: true }).click();
   await expect.poll(() => machine.of('act').length).toBe(1);
   expect(machine.of('act')[0]).toMatchObject({ act: 'eval', agent: '3f9a1c07b2de-0' });
   const sheet = page.getByRole('dialog', { name: 'Ready to check with codex' });
@@ -85,7 +87,8 @@ test('the Eval record shows what was met and not, with its evidence, and seals f
   await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
   await page.goto('/');
   await page.getByText('weft · Claude Code').click();
-  await page.getByRole('button', { name: 'Eval record' }).click();
+  await page.getByRole('button', { name: 'The bar', exact: true }).click();
+  await page.getByRole('dialog', { name: 'Weft' }).getByRole('button', { name: 'Eval view' }).click();
   const record = page.getByRole('dialog', { name: 'Eval record' });
   await expect(record.getByText('Met · answers 200 with the build number')).toBeVisible();
   await expect(record.getByText('Not met · the build number is set in CI')).toBeVisible();

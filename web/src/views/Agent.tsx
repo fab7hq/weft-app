@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Machine } from '../api';
 import * as m from '../machine';
-import { back } from '../nav';
+import { back, go } from '../nav';
+import { BarSheet } from './Bar';
 import { NeedsYou } from './Agents';
 import { Screen, fit } from './Screen';
 import { ConfirmSheet, RecordSheet, type EvalRecord } from './Sheets';
@@ -39,6 +40,7 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
   const [shown, setShown] = useState<string | null>(null);
   const [answered, setAnswered] = useState(false);
   const [record, setRecord] = useState<EvalRecord | null>(null);
+  const [bar, setBar] = useState(false);
   const pending = m.pendings.value.find((p) => p.id === shown) ?? null;
   const [kept, setKept] = useState<m.Pending | null>(null);
   if (pending && pending !== kept) setKept(pending);
@@ -120,7 +122,6 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
           </span>
         </div>
         {a && <span class={a.turn === 'waiting' ? 'fab7-pill fab7-pill--needs-you' : 'fab7-pill'}>{WORDS[a.turn]}</span>}
-        <button class="fab7-button fab7-button--secondary" type="button" disabled={!live} onClick={() => void showHistory()}>History</button>
       </div>
       {history === null ? (
         <Screen agent={agent} driving={driving} onHistory={() => void showHistory()} onKey={key} box={box} />
@@ -138,39 +139,47 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
           </button>
         </div>
       )}
-      <div class="acts">
+      <form class="message-row" onSubmit={sendText}>
         {asking ? (
-          <button class="fab7-button fab7-button--secondary" type="button" onClick={() => setAsking(false)}>Cancel</button>
+          <button class="fab7-key" type="button" aria-label="Cancel" onClick={() => setAsking(false)}>✕</button>
         ) : (
-          <>
-            <button class="fab7-button fab7-button--secondary" type="button" disabled={!live} onClick={() => setAsking(true)}>Ask</button>
-            <button class="fab7-button fab7-button--secondary" type="button" disabled={!live || !a?.unit} onClick={() => void act('eval')}>Eval</button>
-            <button class="fab7-button fab7-button--secondary" type="button" disabled={!live || !a?.unit} onClick={() => void act('seal')}>Seal</button>
-            {a?.unit?.eval && (
-              <button class="fab7-button fab7-button--secondary" type="button" disabled={!live} onClick={() => void openRecord()}>Eval record</button>
-            )}
-          </>
+          <button class="fab7-key" type="button" aria-label="The bar" onClick={() => setBar(true)}>⌃</button>
         )}
-      </div>
-      <div class="fab7-keybar" role="toolbar" aria-label="Keys" style={{ marginTop: '12px' }}>
-        {KEYS.map(([label, name, bytes]) => (
-          <button key={name} class="fab7-key" type="button" aria-label={name} disabled={!live} onClick={() => key(bytes)}>
-            {label}
-          </button>
-        ))}
-      </div>
-      <form style={{ display: 'flex', gap: '8px', padding: '8px 16px 16px' }} onSubmit={sendText}>
         <label for="message" style={{ position: 'absolute', left: '-9999px' }}>{asking ? 'What do you want done?' : 'Message'}</label>
         <input
           id="message"
+          class="field"
           value={message}
           onInput={(e) => setMessage((e.target as HTMLInputElement).value)}
           placeholder={asking ? 'What do you want done?' : a ? `Message ${a.title}` : 'Message'}
           disabled={!live}
-          style={{ flex: 1, minWidth: 0, minHeight: '44px', boxSizing: 'border-box', padding: '0 14px', border: '1px solid var(--fab7-line)', borderRadius: 'var(--fab7-radius-md)', background: 'var(--fab7-canvas)', color: 'var(--fab7-text)', font: '400 16px var(--font-sans)' }}
+          style={{ flex: 1, minWidth: 0 }}
         />
-        <button class="fab7-button" type="submit" disabled={!live}>{asking ? 'Ask' : 'Send'}</button>
+        <button class="fab7-button" type="submit" aria-label={asking ? 'Ask' : 'Send'} disabled={!live}>{asking ? 'Ask' : '▶'}</button>
       </form>
+      {bar && (
+        <BarSheet
+          onClose={() => setBar(false)}
+          acts={{
+            live,
+            unit: a?.unit,
+            onAct: (which) => (which === 'ask' ? setAsking(true) : void act(which)),
+            onRecord: () => void openRecord(),
+            onList: embedded ? null : back,
+            onHistory: () => void showHistory(),
+            onWeft: () => go({ name: 'settings' }),
+          }}
+          keys={
+            <div class="fab7-keybar" role="toolbar" aria-label="Keys">
+              {KEYS.map(([label, name, bytes]) => (
+                <button key={name} class="fab7-key" type="button" aria-label={name} disabled={!live} onClick={() => key(bytes)}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          }
+        />
+      )}
       {shown && (pending ?? kept) && <ConfirmSheet pending={(pending ?? kept)!} answered={answered} onAnswer={answer} />}
       {record && (
         <RecordSheet

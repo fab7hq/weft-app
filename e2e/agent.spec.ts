@@ -83,7 +83,7 @@ test('test 2: a notification\'s agent opens from what it left in IndexedDB', asy
   machine.agents = [agent(0, 'weft', 'claude-code', 'waiting'), agent(1, 'docs', 'codex', 'ready')];
   await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
   await page.goto('/');
-  await expect(page.getByText('docs · Codex')).toBeVisible();
+  await expect(page.getByText('docs · Codex', { exact: true })).toBeVisible();
   await page.evaluate(
     () =>
       new Promise<void>((done) => {
@@ -97,7 +97,7 @@ test('test 2: a notification\'s agent opens from what it left in IndexedDB', asy
   );
   await page.reload();
   await expect.poll(() => machine.of('watch').at(-1)).toEqual({ type: 'watch', agent: '3f9a1c07b2de-1' });
-  await expect(page.getByText('docs · Codex')).toBeVisible();
+  await expect(page.getByText('docs · Codex', { exact: true })).toBeVisible();
   const left = await page.evaluate(
     () =>
       new Promise((done) => {

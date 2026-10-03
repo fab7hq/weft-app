@@ -29,3 +29,7 @@ a { color: var(--fab7-accent); }
 .answer-strip .label { color: var(--fab7-amber-text); margin-right: auto; white-space: nowrap; }
 .cue { display: flex; align-items: center; gap: 8px; padding: 8px 16px 0; flex: none; }
 .cue-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: var(--fab7-muted); }
+.tabs { display: flex; gap: 8px; padding: 8px 16px 0; overflow-x: auto; flex: none; scrollbar-width: none; }
+.tab { flex: none; min-height: 36px; padding: 0 12px; border: 1px solid var(--fab7-line); border-radius: var(--fab7-radius-pill); background: none; color: var(--fab7-muted); font: 500 13px var(--font-sans); white-space: nowrap; cursor: pointer; }
+.tab[aria-current="page"] { color: var(--fab7-text); border-color: var(--fab7-accent); }
+.tab--needs-you { color: var(--fab7-amber-text); border-color: var(--fab7-amber); }

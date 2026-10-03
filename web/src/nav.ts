@@ -25,6 +25,11 @@ export function go(view: View): void {
   history.pushState({ depth: stack.value.length - 1 }, '', '/');
 }
 
+/** Put this view in place of the one shown: no new step for the back gesture. */
+export function swap(view: View): void {
+  stack.value = [...stack.value.slice(0, -1), view];
+}
+
 export function back(): void {
   history.back();
 }

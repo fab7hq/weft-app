@@ -4,6 +4,7 @@ import * as m from '../machine';
 import { back, go } from '../nav';
 import { BarSheet, Label } from './Bar';
 import { KeyBar, mods, press } from './Keys';
+import { Tabs } from './Tabs';
 import { ANSWER, sent, typed } from '../keys';
 import { NeedsYou } from './Agents';
 import { Screen, fit } from './Screen';
@@ -104,6 +105,7 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
           <LinkPill />
         </div>
       )}
+      <Tabs machine={machine.id} open={agent} />
       <div style={{ padding: '12px 16px 8px', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: 0 }}>
           <span style={{ fontSize: '17px', fontWeight: 600 }}>{a ? `${a.project} · ${a.title}` : 'This agent has gone'}</span>

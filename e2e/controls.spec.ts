@@ -202,3 +202,28 @@ test('step 49: Eval on cue when the Ask\'s turn has ended; Seal or Ask after an 
   await expect(cue).toHaveCount(0);
   await machine.close();
 });
+
+test('step 50: the open agents as tabs; the one that needs you is amber; a tap opens it', async ({ page, context }, info) => {
+  test.skip(info.project.name === 'desktop-push', 'covered by desktop');
+  const machine = await FakeMachine.start();
+  machine.agents = [agent(0, 'weft', 'claude-code', 'working'), agent(1, 'docs', 'codex', 'waiting')];
+  await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
+  await opened(page, machine);
+  const tabs = page.getByRole('navigation', { name: 'Tabs' });
+  await expect(tabs.getByRole('button')).toHaveText(['1 weft · Claude Code', '2 docs · Codex']);
+  const first = tabs.getByRole('button', { name: /^1 / });
+  const second = tabs.getByRole('button', { name: /^2 / });
+  await expect(first).toHaveAttribute('aria-current', 'page');
+  await expect(second).toHaveAttribute('data-needs-you', 'true');
+  await expect(first).not.toHaveAttribute('data-needs-you', 'true');
+
+  await second.click();
+  await expect.poll(() => machine.of('watch').at(-1)).toEqual({ type: 'watch', agent: '3f9a1c07b2de-1' });
+  await expect(second).toHaveAttribute('aria-current', 'page');
+  if (info.project.name === 'iphone') {
+    // A tab replaces the open agent: back goes to the list, as the TUI's tabs do.
+    await page.goBack();
+    await expect(page.getByLabel('Message')).toHaveCount(0);
+  }
+  await machine.close();
+});

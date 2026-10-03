@@ -62,6 +62,6 @@ test('notifications on: the subscription goes to the machine; its push shows and
     self.dispatchEvent(new NotificationEvent('notificationclick', { notification: n }));
   });
   await expect.poll(() => machine.of('watch').at(-1)).toEqual({ type: 'watch', agent: '3f9a1c07b2de-1' });
-  await expect(page.getByRole('main').getByText('docs · Codex')).toBeVisible();
+  await expect(page.getByRole('main').getByText('docs · Codex', { exact: true })).toBeVisible();
   await machine.close();
 });

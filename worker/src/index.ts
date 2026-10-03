@@ -3,6 +3,7 @@
 // a Mac's owner. No screen, key, record or push passes through it.
 
 import { begin, finish } from './github';
+import * as machines from './machines';
 import { json, refuse } from './respond';
 import { sweep, who } from './session';
 
@@ -15,6 +16,9 @@ export interface Env {
   GITHUB_CLIENT_SECRET: string;
 }
 
+/** The calls a person makes with their session. */
+const PERSON = ['GET /api/me', 'GET /api/machines', 'DELETE /api/machines/:id'];
+
 const signedOut = () => refuse(401, 'signed_out', 'Sign in with GitHub first.');
 
 async function route(request: Request, env: Env): Promise<Response> {
@@ -26,15 +30,29 @@ async function route(request: Request, env: Env): Promise<Response> {
       return finish(request, env);
   }
   if (!url.pathname.startsWith('/api/')) return refuse(404, 'not_found', 'There is nothing here.');
-  const me = await who(request, env);
+  // A Mac's own calls, with its machine token.
   switch (`${request.method} ${url.pathname}`) {
-    case 'GET /api/me':
-      return me ? json({ login: me.login, github_id: me.githubId }) : signedOut();
-    case 'GET /api/machines':
-      if (!me) return signedOut();
-      return json([]);
+    case 'POST /api/machine/enrol':
+      return machines.enrol(request, env);
+    case 'PUT /api/machine/address':
+      return machines.address(request, env);
+    case 'DELETE /api/machine':
+      return machines.leave(request, env);
   }
-  return refuse(404, 'not_found', 'There is nothing here.');
+  // The person's, with their session.
+  const machine = url.pathname.match(/^\/api\/machines\/([A-Za-z0-9_-]+)$/)?.[1];
+  const call = machine ? `${request.method} /api/machines/:id` : `${request.method} ${url.pathname}`;
+  if (!PERSON.includes(call)) return refuse(404, 'not_found', 'There is nothing here.');
+  const me = await who(request, env);
+  if (!me) return signedOut();
+  switch (call) {
+    case 'GET /api/me':
+      return json({ login: me.login, github_id: me.githubId });
+    case 'GET /api/machines':
+      return machines.list(me, env);
+    default:
+      return machines.remove(me, machine!, env);
+  }
 }
 
 export default {

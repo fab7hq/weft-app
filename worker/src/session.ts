@@ -3,6 +3,7 @@
 
 import { random, sha256Hex } from './crypto';
 import type { Env } from './index';
+import { SQL } from './sql';
 
 export const SESSION_COOKIE = '__Host-session';
 const DAYS_30 = 30 * 24 * 60 * 60;
@@ -25,7 +26,7 @@ export function readCookie(request: Request, name: string): string | null {
 /** A new session for this user: its Set-Cookie line. */
 export async function startSession(env: Env, userId: string): Promise<string> {
   const cookie = random(32);
-  await env.DB.prepare('INSERT INTO sessions (hash, user_id, expires_at) VALUES (?, ?, ?)')
+  await env.DB.prepare(SQL.startSession)
     .bind(await sha256Hex(cookie), userId, Date.now() + DAYS_30 * 1000)
     .run();
   return `${SESSION_COOKIE}=${cookie}; Secure; HttpOnly; SameSite=Lax; Path=/; Max-Age=${DAYS_30}`;
@@ -36,10 +37,7 @@ export async function who(request: Request, env: Env): Promise<Who | null> {
   const cookie = readCookie(request, SESSION_COOKIE);
   if (!cookie) return null;
   const hash = await sha256Hex(cookie);
-  const row = await env.DB.prepare(
-    `SELECT s.user_id AS userId, s.expires_at AS expiresAt, u.login, u.github_id AS githubId
-     FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.hash = ?`,
-  )
+  const row = await env.DB.prepare(SQL.session)
     .bind(hash)
     .first<{ userId: string; expiresAt: number; login: string; githubId: number }>();
   if (!row || row.expiresAt <= Date.now()) return null;
@@ -48,5 +46,5 @@ export async function who(request: Request, env: Env): Promise<Who | null> {
 
 /** The daily cron: sessions past their thirty days go. */
 export async function sweep(env: Env): Promise<void> {
-  await env.DB.prepare('DELETE FROM sessions WHERE expires_at <= ?').bind(Date.now()).run();
+  await env.DB.prepare(SQL.sweep).bind(Date.now()).run();
 }

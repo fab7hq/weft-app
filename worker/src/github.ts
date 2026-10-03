@@ -6,6 +6,7 @@ import { base64url, random, sha256 } from './crypto';
 import type { Env } from './index';
 import { readCookie, startSession } from './session';
 import { refuse } from './respond';
+import { SQL } from './sql';
 
 const AUTHORIZE = 'https://github.com/login/oauth/authorize';
 const TOKEN = 'https://github.com/login/oauth/access_token';
@@ -76,11 +77,7 @@ export async function whoIs(token: string): Promise<GitHubUser | null> {
 
 /** One user per GitHub id, whatever their login is now. Their id. */
 export async function upsertUser(env: Env, user: GitHubUser): Promise<string> {
-  const row = await env.DB.prepare(
-    `INSERT INTO users (id, github_id, login, created_at) VALUES (?, ?, ?, ?)
-     ON CONFLICT (github_id) DO UPDATE SET login = excluded.login
-     RETURNING id`,
-  )
+  const row = await env.DB.prepare(SQL.upsertUser)
     .bind(random(16), user.id, user.login, Date.now())
     .first<{ id: string }>();
   return row!.id;

@@ -4,6 +4,7 @@
 import { Terminal } from '@xterm/xterm';
 import '@xterm/xterm/css/xterm.css';
 import { useEffect, useRef } from 'preact/hooks';
+import { encode } from '../keys';
 import * as m from '../machine';
 
 const CELL_WIDTH = 0.6;
@@ -25,7 +26,7 @@ export function fit(el: HTMLElement): { rows: number; cols: number } {
   };
 }
 
-export function Screen({ agent, driving, onHistory, box }: { agent: string; driving: boolean; onHistory: () => void; box: { current: HTMLDivElement | null } }) {
+export function Screen({ agent, driving, onHistory, onKey, box }: { agent: string; driving: boolean; onHistory: () => void; onKey: (bytes: number[]) => void; box: { current: HTMLDivElement | null } }) {
   const host = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = host.current!;
@@ -66,7 +67,16 @@ export function Screen({ agent, driving, onHistory, box }: { agent: string; driv
     };
   }, [agent, driving]);
   return (
-    <div ref={box} style={{ flex: 1, minHeight: 0, margin: '0 8px', border: `1px solid ${driving ? 'var(--fab7-teal)' : 'var(--fab7-line)'}`, borderRadius: 'var(--fab7-radius-lg)', padding: '8px', overflow: 'hidden' }}>
+    <div
+      ref={box}
+      tabIndex={0}
+      onKeyDownCapture={(e) => {
+        const bytes = encode(e);
+        if (!bytes) return;
+        e.preventDefault();
+        onKey(bytes);
+      }}
+      style={{ flex: 1, minHeight: 0, margin: '0 8px', border: `1px solid ${driving ? 'var(--fab7-teal)' : 'var(--fab7-line)'}`, borderRadius: 'var(--fab7-radius-lg)', padding: '8px', overflow: 'hidden' }}>
       <div ref={host} style={{ width: '100%', height: '100%' }} aria-label="The agent's screen" />
     </div>
   );

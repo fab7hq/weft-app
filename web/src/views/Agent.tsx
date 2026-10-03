@@ -123,7 +123,7 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
         <button class="fab7-button fab7-button--secondary" type="button" disabled={!live} onClick={() => void showHistory()}>History</button>
       </div>
       {history === null ? (
-        <Screen agent={agent} driving={driving} onHistory={() => void showHistory()} box={box} />
+        <Screen agent={agent} driving={driving} onHistory={() => void showHistory()} onKey={key} box={box} />
       ) : (
         <div style={{ flex: 1, minHeight: 0, margin: '0 8px', display: 'flex', flexDirection: 'column', border: '1px solid var(--fab7-line)', borderRadius: 'var(--fab7-radius-lg)' }}>
           <pre

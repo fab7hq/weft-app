@@ -10,7 +10,7 @@ export default defineConfig({
   workers: 1,
   use: { baseURL: 'http://localhost:8788', serviceWorkers: 'allow' },
   projects: [
-    { name: 'iphone', use: as('iPhone 15'), testIgnore: /desktop.*\.spec/ },
+    { name: 'iphone', use: as('iPhone 15'), testIgnore: /(desktop.*|layout)\.spec/ },
     { name: 'ipad', use: as('iPad Pro 11'), testMatch: /(shell|layout)\.spec/ },
     { name: 'desktop', use: { ...devices['Desktop Chrome'] }, testMatch: /(shell|desktop)\.spec/ },
     // Notifications need the whole browser, which the default headless shell is not.

@@ -8,6 +8,7 @@ import { Agent } from './views/Agent';
 import { Agents } from './views/Agents';
 import { Machines } from './views/Machines';
 import { Settings } from './views/Settings';
+import { Wide } from './views/Wide';
 import { SignIn } from './views/SignIn';
 
 /** What the app knows about who is here and their machines. */
@@ -18,6 +19,11 @@ type Account =
   | { state: 'signed_in'; login: string; machines: api.Machine[] };
 
 export const account = signal<Account>({ state: 'loading' });
+
+/** A tablet or a desktop: the list beside the agent. */
+const wideQuery = matchMedia('(min-width: 768px)');
+const wide = signal(wideQuery.matches);
+wideQuery.addEventListener('change', (e) => (wide.value = e.matches));
 
 /** The agent a notification asked to open (web-app.md §8), read once at start. */
 let wanted: string | null = null;
@@ -115,6 +121,7 @@ export function App() {
       if (machine.link.value === 'asking') return <Asking name={m.name} />;
       if (machine.link.value === 'refused') return <Refused name={m.name} />;
       if (view.name === 'agents') queueMicrotask(() => openWanted(m.id));
+      if (wide.value) return <Wide machine={m} agent={view.name === 'agent' ? view.agent : null} />;
       return view.name === 'agent' ? <Agent machine={m} agent={view.agent} /> : <Agents machine={m} />;
     }
     case 'settings':

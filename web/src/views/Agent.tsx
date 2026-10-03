@@ -1,9 +1,10 @@
-import { useRef, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Machine } from '../api';
 import * as m from '../machine';
 import { back } from '../nav';
 import { NeedsYou } from './Agents';
 import { Screen, fit } from './Screen';
+import { ConfirmSheet, RecordSheet, type EvalRecord } from './Sheets';
 import { LinkPill } from './Status';
 
 /** The keys the key bar sends, as bytes (web-app.md §6). */
@@ -34,6 +35,45 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
   const box = useRef<HTMLDivElement>(null);
   const [message, setMessage] = useState('');
   const [history, setHistory] = useState<string | null>(null);
+  const [asking, setAsking] = useState(false);
+  const [shown, setShown] = useState<string | null>(null);
+  const [answered, setAnswered] = useState(false);
+  const [record, setRecord] = useState<EvalRecord | null>(null);
+  const pending = m.pendings.value.find((p) => p.id === shown) ?? null;
+  const [kept, setKept] = useState<m.Pending | null>(null);
+  if (pending && pending !== kept) setKept(pending);
+
+  // A pending answered elsewhere closes the sheet, and says so.
+  useEffect(() => {
+    const r = m.resolved.value;
+    if (!r || r.id !== shown || answered) return;
+    setAnswered(true);
+    const t = setTimeout(() => {
+      setShown(null);
+      setAnswered(false);
+    }, 2500);
+    return () => clearTimeout(t);
+  }, [m.resolved.value, shown]);
+
+  /** An act; its pending is shown when the machine answers. */
+  const act = async (which: 'ask' | 'eval' | 'seal', text?: string) => {
+    if (!live) return;
+    setRecord(null);
+    const answer = await m.request({ type: 'act', agent, act: which, ...(text ? { text } : {}) });
+    if (answer?.type === 'ok' && answer.pending) {
+      setAnswered(false);
+      setShown(String(answer.pending));
+    }
+  };
+  const answer = (yes: boolean) => {
+    if (!shown) return;
+    void m.request({ type: 'resolve', pending: shown, yes });
+    setShown(null);
+  };
+  const openRecord = async () => {
+    const answer = await m.request({ type: 'read', agent, what: 'eval' });
+    if (answer?.type === 'ok' && answer.record) setRecord(answer.record as EvalRecord);
+  };
 
   const takeKeys = () => {
     if (sized.has(agent) || !box.current) return;
@@ -48,6 +88,12 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
   const sendText = (e: Event) => {
     e.preventDefault();
     if (!live || !message.trim()) return;
+    if (asking) {
+      void act('ask', message);
+      setMessage('');
+      setAsking(false);
+      return;
+    }
     takeKeys();
     if (m.request({ type: 'text', agent, text: message })) setMessage('');
   };
@@ -92,6 +138,20 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
           </button>
         </div>
       )}
+      <div class="acts">
+        {asking ? (
+          <button class="fab7-button fab7-button--secondary" type="button" onClick={() => setAsking(false)}>Cancel</button>
+        ) : (
+          <>
+            <button class="fab7-button fab7-button--secondary" type="button" disabled={!live} onClick={() => setAsking(true)}>Ask</button>
+            <button class="fab7-button fab7-button--secondary" type="button" disabled={!live || !a?.unit} onClick={() => void act('eval')}>Eval</button>
+            <button class="fab7-button fab7-button--secondary" type="button" disabled={!live || !a?.unit} onClick={() => void act('seal')}>Seal</button>
+            {a?.unit?.eval && (
+              <button class="fab7-button fab7-button--secondary" type="button" disabled={!live} onClick={() => void openRecord()}>Eval record</button>
+            )}
+          </>
+        )}
+      </div>
       <div class="fab7-keybar" role="toolbar" aria-label="Keys" style={{ marginTop: '12px' }}>
         {KEYS.map(([label, name, bytes]) => (
           <button key={name} class="fab7-key" type="button" aria-label={name} disabled={!live} onClick={() => key(bytes)}>
@@ -100,17 +160,30 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
         ))}
       </div>
       <form style={{ display: 'flex', gap: '8px', padding: '8px 16px 16px' }} onSubmit={sendText}>
-        <label for="message" style={{ position: 'absolute', left: '-9999px' }}>Message</label>
+        <label for="message" style={{ position: 'absolute', left: '-9999px' }}>{asking ? 'What do you want done?' : 'Message'}</label>
         <input
           id="message"
           value={message}
           onInput={(e) => setMessage((e.target as HTMLInputElement).value)}
-          placeholder={a ? `Message ${a.title}` : 'Message'}
+          placeholder={asking ? 'What do you want done?' : a ? `Message ${a.title}` : 'Message'}
           disabled={!live}
           style={{ flex: 1, minWidth: 0, minHeight: '44px', boxSizing: 'border-box', padding: '0 14px', border: '1px solid var(--fab7-line)', borderRadius: 'var(--fab7-radius-md)', background: 'var(--fab7-canvas)', color: 'var(--fab7-text)', font: '400 16px var(--font-sans)' }}
         />
-        <button class="fab7-button" type="submit" disabled={!live}>Send</button>
+        <button class="fab7-button" type="submit" disabled={!live}>{asking ? 'Ask' : 'Send'}</button>
       </form>
+      {shown && (pending ?? kept) && <ConfirmSheet pending={(pending ?? kept)!} answered={answered} onAnswer={answer} />}
+      {record && (
+        <RecordSheet
+          record={record}
+          title={a?.unit?.title ?? ''}
+          onSeal={() => void act('seal')}
+          onAskAgain={() => {
+            setRecord(null);
+            setAsking(true);
+          }}
+          onClose={() => setRecord(null)}
+        />
+      )}
     </div>
   );
 }

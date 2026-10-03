@@ -21,6 +21,8 @@ export class FakeMachine {
   pendings: Record<string, unknown>[] = [];
   /** Refuse new connections at the upgrade. */
   down = false;
+  /** How an `act` is answered; else plain `ok`. */
+  onAct: ((m: Record<string, unknown>) => Record<string, unknown>[]) | null = null;
   /** How a `read` is answered; else plain `ok`. */
   onRead: ((m: Record<string, unknown>) => Record<string, unknown>) | null = null;
   /** Answer `pair` with `asking`, then `paired` at once. */
@@ -52,7 +54,9 @@ export class FakeMachine {
           }
           ws.send(JSON.stringify(this.welcome()));
         }
-        if (m.type === 'read' && this.onRead) {
+        if (m.type === 'act' && this.onAct) {
+          for (const out of this.onAct(m)) ws.send(JSON.stringify(out));
+        } else if (m.type === 'read' && this.onRead) {
           ws.send(JSON.stringify(this.onRead(m)));
         } else if (typeof m.req !== 'undefined' && ['keys', 'text', 'act', 'resolve', 'read'].includes(m.type)) {
           ws.send(JSON.stringify({ type: 'ok', req: m.req }));

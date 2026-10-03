@@ -2,6 +2,7 @@ import { signal } from '@preact/signals';
 import * as api from './api';
 import { go, here, reset } from './nav';
 import * as machine from './machine';
+import * as store from './store';
 import { AddMachine } from './views/AddMachine';
 import { Agent } from './views/Agent';
 import { Agents } from './views/Agents';
@@ -17,7 +18,23 @@ type Account =
 
 export const account = signal<Account>({ state: 'loading' });
 
+/** The agent a notification asked to open (web-app.md §8), read once at start. */
+let wanted: string | null = null;
+const reading = store.get<string>('open', 'open').then((a) => {
+  wanted = a ?? null;
+});
+
+/** Open the agent a notification asked for, once the machine lists it. */
+function openWanted(machineId: string): void {
+  if (!wanted || !machine.agents.value.some((a) => a.agent === wanted)) return;
+  const agent = wanted;
+  wanted = null;
+  void store.del('open', 'open');
+  go({ name: 'agent', machine: machineId, agent });
+}
+
 export async function lookWho(): Promise<void> {
+  await reading;
   try {
     const me = await api.me();
     if (!me) {
@@ -96,6 +113,7 @@ export function App() {
       machine.open(m);
       if (machine.link.value === 'asking') return <Asking name={m.name} />;
       if (machine.link.value === 'refused') return <Refused name={m.name} />;
+      if (view.name === 'agents') queueMicrotask(() => openWanted(m.id));
       return view.name === 'agent' ? <Agent machine={m} agent={view.agent} /> : <Agents machine={m} />;
     }
     default:

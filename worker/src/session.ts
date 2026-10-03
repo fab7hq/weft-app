@@ -52,3 +52,24 @@ export async function who(request: Request, env: Env): Promise<Who | null> {
 export async function sweep(env: Env): Promise<void> {
   await env.DB.prepare(SQL.sweep).bind(Date.now()).run();
 }
+
+const ENDED = `${SESSION_COOKIE}=; Secure; HttpOnly; SameSite=Lax; Path=/; Max-Age=0`;
+
+/** POST /api/signout: this session, or with `?all=1` every one of the user's. */
+export async function signOut(me: Who, everywhere: boolean, env: Env): Promise<Response> {
+  const statement = everywhere
+    ? env.DB.prepare(SQL.signOutEverywhere).bind(me.userId)
+    : env.DB.prepare(SQL.signOut).bind(me.hash);
+  await statement.run();
+  return new Response(null, { status: 204, headers: { 'set-cookie': ENDED } });
+}
+
+/** DELETE /api/me: the user, their sessions and their Macs, all at once. */
+export async function forget(me: Who, env: Env): Promise<Response> {
+  await env.DB.batch([
+    env.DB.prepare(SQL.signOutEverywhere).bind(me.userId),
+    env.DB.prepare(SQL.forgetMachines).bind(me.userId),
+    env.DB.prepare(SQL.forgetUser).bind(me.userId),
+  ]);
+  return new Response(null, { status: 204, headers: { 'set-cookie': ENDED } });
+}

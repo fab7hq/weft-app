@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Privacy · Weft</title>
+    <style>
+      :root { color-scheme: dark; }
+      body { margin: 0; background: #090d16; color: #f1f3f7; font: 16px/1.6 Sora, system-ui, sans-serif; }
+      main { max-width: 640px; margin: 0 auto; padding: 32px 16px 64px; }
+      h1, h2 { font-weight: 600; }
+      h2 { font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #a2adbd; margin-top: 32px; }
+      a { color: #2ec4b6; }
+      li { margin: 4px 0; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Privacy</h1>
+      <p>Weft on the web lets you see and answer the coding agents running in Weft on your own Mac. The screens,
+        the keys you press and the notifications go between your device and your Mac. They do not pass through
+        Fab7.</p>
+
+      <h2>What Fab7 keeps</h2>
+      <ul>
+        <li>Your GitHub account's numeric id and login, read once when you sign in.</li>
+        <li>A record of each session you are signed in with: the SHA-256 of its cookie and when it ends, 30 days
+          after you sign in.</li>
+        <li>Each Mac you add: the name it gives itself, the SHA-256 of its own token, and the address it last
+          reported, with when.</li>
+      </ul>
+
+      <h2>What Fab7 never sees or keeps</h2>
+      <ul>
+        <li>Your agents' screens, what you type, the prompts Weft sends, and RingFrame's records.</li>
+        <li>Notifications: your Mac sends them, encrypted to your device, through Apple's or Google's push
+          service.</li>
+        <li>Your GitHub token: it is used to read who you are and then dropped.</li>
+        <li>The token that lets a device into your Mac: your Mac makes it and keeps only its hash.</li>
+      </ul>
+
+      <h2>Where it lives</h2>
+      <p>On Cloudflare (a Worker and a D1 database). Your Mac is reached through a Cloudflare tunnel, where traffic
+        is decrypted at Cloudflare's edge; Fab7 makes no end-to-end claim for it.</p>
+
+      <h2>Leaving</h2>
+      <ul>
+        <li><b>Sign out</b> ends this session. <b>Sign out everywhere</b> ends all of them.</li>
+        <li><b>Delete my account</b>, in Settings, deletes your account, your sessions and your Macs at once.</li>
+        <li>Removing a device happens on your Mac, in Weft: <code>W</code> → <code>R</code>.</li>
+      </ul>
+
+      <h2>Contact</h2>
+      <p><a href="mailto:privacy@getfab7.com">privacy@getfab7.com</a></p>
+      <p><a href="/">Back to Weft</a></p>
+    </main>
+  </body>
+</html>

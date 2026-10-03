@@ -6,7 +6,7 @@ import { assertion } from './assert';
 import { begin, finish } from './github';
 import * as machines from './machines';
 import { json, refuse } from './respond';
-import { sweep, who } from './session';
+import { forget, signOut, sweep, who } from './session';
 
 export interface Env {
   DB: D1Database;
@@ -20,7 +20,14 @@ export interface Env {
 }
 
 /** The calls a person makes with their session. */
-const PERSON = ['GET /api/me', 'GET /api/machines', 'DELETE /api/machines/:id', 'POST /api/assertion'];
+const PERSON = [
+  'GET /api/me',
+  'DELETE /api/me',
+  'GET /api/machines',
+  'DELETE /api/machines/:id',
+  'POST /api/assertion',
+  'POST /api/signout',
+];
 
 const signedOut = () => refuse(401, 'signed_out', 'Sign in with GitHub first.');
 
@@ -55,6 +62,10 @@ async function route(request: Request, env: Env): Promise<Response> {
       return machines.list(me, env);
     case 'POST /api/assertion':
       return assertion(request, me, env);
+    case 'POST /api/signout':
+      return signOut(me, url.searchParams.get('all') === '1', env);
+    case 'DELETE /api/me':
+      return forget(me, env);
     default:
       return machines.remove(me, machine!, env);
   }

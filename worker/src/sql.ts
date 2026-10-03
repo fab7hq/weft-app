@@ -9,6 +9,10 @@ export const SQL = {
       u.login, u.github_id AS githubId
     FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.hash = ?`,
   sweep: 'DELETE FROM sessions WHERE expires_at <= ?',
+  signOut: 'DELETE FROM sessions WHERE hash = ?',
+  signOutEverywhere: 'DELETE FROM sessions WHERE user_id = ?',
+  forgetMachines: 'DELETE FROM machines WHERE user_id = ?',
+  forgetUser: 'DELETE FROM users WHERE id = ?',
   addMachine: `INSERT INTO machines (id, user_id, name, token_hash, created_at) VALUES (?, ?, ?, ?, ?)`,
   machineByToken: 'SELECT id, user_id AS userId FROM machines WHERE token_hash = ?',
   setAddress: 'UPDATE machines SET address = ?, address_at = ? WHERE id = ?',

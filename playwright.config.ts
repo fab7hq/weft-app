@@ -16,7 +16,7 @@ export default defineConfig({
   ],
   webServer: {
     command:
-      'npx vite build web && npx wrangler d1 migrations apply weft --local --persist-to .wrangler/e2e && npx wrangler dev --port 8788 --persist-to .wrangler/e2e',
+      'node e2e/dev-vars.mjs && npx vite build web && npx wrangler d1 migrations apply weft --local --persist-to .wrangler/e2e && npx wrangler dev --port 8788 --persist-to .wrangler/e2e',
     url: 'http://localhost:8788/',
     reuseExistingServer: false,
     timeout: 120_000,

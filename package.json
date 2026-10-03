@@ -21,7 +21,9 @@
     "@preact/preset-vite": "2.10.6",
     "@preact/signals": "2.11.3",
     "@xterm/xterm": "6.0.0",
-    "@playwright/test": "1.63.0"
+    "@playwright/test": "1.63.0",
+    "ws": "8.22.0",
+    "@types/ws": "8.18.1"
   },
   "packageManager": "npm@11.21.0",
   "allowScripts": {

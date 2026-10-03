@@ -1,7 +1,10 @@
 import { signal } from '@preact/signals';
 import * as api from './api';
 import { go, here, reset } from './nav';
+import * as machine from './machine';
 import { AddMachine } from './views/AddMachine';
+import { Agent } from './views/Agent';
+import { Agents } from './views/Agents';
 import { Machines } from './views/Machines';
 import { SignIn } from './views/SignIn';
 
@@ -44,13 +47,32 @@ export function NoConnection() {
   );
 }
 
-function MachineAgents({ machine }: { machine: api.Machine }) {
+function Asking({ name }: { name: string }) {
   return (
     <div class="app">
       <div class="appbar">
-        <h1>{machine.name}</h1>
-        <span class="spacer" />
-        <button class="back" type="button" onClick={() => go({ name: 'settings' })}>Settings</button>
+        <h1>{name}</h1>
+        <span class="fab7-pill">Asking</span>
+      </div>
+      <div class="page">
+        <h2>Allow this phone on your machine</h2>
+        <p class="lede">Your machine is asking you. Go to it and press Y.</p>
+        <p class="note">The question waits two minutes. Nothing on this device can answer it.</p>
+      </div>
+    </div>
+  );
+}
+
+function Refused({ name }: { name: string }) {
+  return (
+    <div class="app">
+      <div class="appbar">
+        <h1>{name}</h1>
+        <span class="fab7-pill">Refused</span>
+      </div>
+      <div class="page">
+        <h2>Not allowed</h2>
+        <p class="lede">{machine.refusal.value}</p>
       </div>
     </div>
   );
@@ -69,8 +91,12 @@ export function App() {
       return <Machines list={a.machines} />;
     case 'agents':
     case 'agent': {
-      const machine = a.machines.find((m) => m.id === view.machine);
-      return machine ? <MachineAgents machine={machine} /> : <Machines list={a.machines} />;
+      const m = a.machines.find((x) => x.id === view.machine);
+      if (!m) return <Machines list={a.machines} />;
+      machine.open(m);
+      if (machine.link.value === 'asking') return <Asking name={m.name} />;
+      if (machine.link.value === 'refused') return <Refused name={m.name} />;
+      return view.name === 'agent' ? <Agent machine={m} agent={view.agent} /> : <Agents machine={m} />;
     }
     default:
       return <div class="app" />;

@@ -54,8 +54,11 @@ export async function finish(request: Request, env: Env): Promise<Response> {
       code_verifier: verifier,
     }),
   });
-  const token = ((await exchanged.json()) as { access_token?: string }).access_token;
-  if (!token) return refuse(400, 'code', 'GitHub did not accept that sign-in. Try again.');
+  const answer = (await exchanged.json()) as { access_token?: string; error?: string };
+  const token = answer.access_token;
+  // GitHub's error code is not a secret, and tells a used code from a misconfigured App.
+  const why = /^[a-z_]{1,64}$/.test(answer.error ?? '') ? ` (${answer.error})` : '';
+  if (!token) return refuse(400, 'code', `GitHub did not accept that sign-in${why}. Try again.`);
   const user = await whoIs(token);
   if (!user) return refuse(400, 'code', 'GitHub did not say who you are. Try again.');
   const userId = await upsertUser(env, user);

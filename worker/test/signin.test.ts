@@ -51,6 +51,8 @@ describe('signing in with GitHub', () => {
     const r = await get(`/auth/callback?code=once&state=${again.state}`, again.auth);
     expect(r.status).toBe(400);
     expect(cookies(r)['__Host-session']).toBeUndefined();
+    // GitHub's own reason is said, so a refused sign-in can be told apart from a misconfigured one.
+    expect(await r.json()).toEqual({ code: 'code', message: 'GitHub did not accept that sign-in (bad_verification_code). Try again.' });
   });
 
   it('sets the session cookie and makes one user however many times they sign in', async () => {

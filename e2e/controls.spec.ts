@@ -71,3 +71,47 @@ test('step 45: with an Ask on the board, Eval goes from the sheet', async ({ pag
   await expect(page.getByRole('dialog', { name: 'Ready to check with codex' })).toBeVisible();
   await machine.close();
 });
+
+const hex = (b64: unknown) => [...Buffer.from(String(b64), 'base64')].map((b) => b.toString(16).padStart(2, '0')).join(' ');
+
+test('step 46: sticky modifiers: Ctrl then r sends ^R, a double tap locks, ⇧ then Tab', async ({ page, context }, info) => {
+  test.skip(info.project.name !== 'iphone', 'the phone layout');
+  const machine = await FakeMachine.start();
+  machine.agents = [agent(0, 'weft', 'claude-code', 'ready')];
+  await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
+  await opened(page, machine);
+  const keysSent = () => machine.of('keys').map((k) => hex(k.bytes));
+
+  // Ctrl lit once, then a letter typed: one key, nothing in the message box, Ctrl off.
+  await page.getByRole('button', { name: 'The bar', exact: true }).click();
+  const bar = page.getByRole('dialog', { name: 'Weft' });
+  const ctrl = bar.getByRole('button', { name: 'Ctrl', exact: true });
+  await ctrl.click();
+  await expect(ctrl).toHaveAttribute('aria-pressed', 'true');
+  await page.keyboard.press('Escape');
+  await page.getByLabel('Message').pressSequentially('r');
+  await expect.poll(keysSent).toEqual(['12']);
+  await expect(page.getByLabel('Message')).toHaveValue('');
+  await page.getByLabel('Message').pressSequentially('s');
+  await expect(page.getByLabel('Message')).toHaveValue('s');
+  await page.getByLabel('Message').fill('');
+
+  // Two taps lock it: every letter is a key until it is tapped off.
+  await page.getByRole('button', { name: 'The bar', exact: true }).click();
+  await ctrl.click();
+  await ctrl.click();
+  await expect(ctrl).toHaveAttribute('data-lit', 'locked');
+  await page.keyboard.press('Escape');
+  await page.getByLabel('Message').pressSequentially('ox');
+  await expect.poll(keysSent).toEqual(['12', '0f', '18']);
+  await page.getByRole('button', { name: 'The bar', exact: true }).click();
+  await ctrl.click();
+  await expect(ctrl).toHaveAttribute('aria-pressed', 'false');
+
+  // ⇧ then Tab, and the arrows the bar now has.
+  await bar.getByRole('button', { name: '⇧', exact: true }).click();
+  await bar.getByRole('button', { name: 'Tab', exact: true }).click();
+  await bar.getByRole('button', { name: 'Left', exact: true }).click();
+  await expect.poll(keysSent).toEqual(['12', '0f', '18', '1b 5b 5a', '1b 5b 44']);
+  await machine.close();
+});

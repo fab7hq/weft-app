@@ -3,23 +3,12 @@ import type { Machine } from '../api';
 import * as m from '../machine';
 import { back, go } from '../nav';
 import { BarSheet } from './Bar';
+import { KeyBar, mods } from './Keys';
+import { sent, typed } from '../keys';
 import { NeedsYou } from './Agents';
 import { Screen, fit } from './Screen';
 import { ConfirmSheet, RecordSheet, type EvalRecord } from './Sheets';
 import { LinkPill } from './Status';
-
-/** The keys the key bar sends, as bytes (web-app.md §6). */
-export const KEYS: [string, string, number[]][] = [
-  ['Esc', 'Esc', [0x1b]],
-  ['Tab', 'Tab', [0x09]],
-  ['↑', 'Up', [0x1b, 0x5b, 0x41]],
-  ['↓', 'Down', [0x1b, 0x5b, 0x42]],
-  ['⏎', 'Enter', [0x0d]],
-  ['^C', 'Control-C', [0x03]],
-  ['1', '1', [0x31]],
-  ['2', '2', [0x32]],
-  ['3', '3', [0x33]],
-];
 
 export const b64 = (bytes: number[]) => btoa(String.fromCharCode(...bytes));
 
@@ -151,6 +140,14 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
           class="field"
           value={message}
           onInput={(e) => setMessage((e.target as HTMLInputElement).value)}
+          onBeforeInput={(e) => {
+            // With Ctrl or Alt lit, a typed character is a key for the agent (§6).
+            const bytes = e.data ? typed(e.data, mods.value) : null;
+            if (!bytes) return;
+            e.preventDefault();
+            key(bytes);
+            mods.value = sent(mods.value);
+          }}
           placeholder={asking ? 'What do you want done?' : a ? `Message ${a.title}` : 'Message'}
           disabled={!live}
           style={{ flex: 1, minWidth: 0 }}
@@ -169,15 +166,7 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
             onHistory: () => void showHistory(),
             onWeft: () => go({ name: 'settings' }),
           }}
-          keys={
-            <div class="fab7-keybar" role="toolbar" aria-label="Keys">
-              {KEYS.map(([label, name, bytes]) => (
-                <button key={name} class="fab7-key" type="button" aria-label={name} disabled={!live} onClick={() => key(bytes)}>
-                  {label}
-                </button>
-              ))}
-            </div>
-          }
+          keys={<KeyBar live={live} send={key} />}
         />
       )}
       {shown && (pending ?? kept) && <ConfirmSheet pending={(pending ?? kept)!} answered={answered} onAnswer={answer} />}

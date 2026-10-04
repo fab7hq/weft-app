@@ -27,8 +27,13 @@ export function fit(el: HTMLElement): { rows: number; cols: number } {
   };
 }
 
-export function Screen({ agent, driving, onHistory, onKey, box }: { agent: string; driving: boolean; onHistory: () => void; onKey: (bytes: number[]) => void; box: { current: HTMLDivElement | null } }) {
+export function Screen({ agent, driving, history, onHistory, onLive, onKey, box }: { agent: string; driving: boolean; history: string | null; onHistory: () => void; onLive: () => void; onKey: (bytes: number[]) => void; box: { current: HTMLDivElement | null } }) {
   const host = useRef<HTMLDivElement>(null);
+  const shown = useRef<HTMLPreElement>(null);
+  // The history, inside the pane, starts at its newest line.
+  useEffect(() => {
+    if (history !== null && shown.current) shown.current.scrollTop = shown.current.scrollHeight;
+  }, [history]);
   useEffect(() => {
     const el = host.current!;
     const term = new Terminal({
@@ -57,16 +62,18 @@ export function Screen({ agent, driving, onHistory, onKey, box }: { agent: strin
       }
       term.write(bytes(f.bytes));
     });
+    // Only an active pane scrolls (§6): until it is tapped, the app is for its buttons.
     const wheel = (e: WheelEvent) => {
-      if (e.deltaY < 0) onHistory();
+      if (paneHasKeys.value && e.deltaY < 0) onHistory();
     };
-    el.addEventListener('wheel', wheel, { passive: true });
+    // In the capture phase: xterm's own viewport handles the wheel and stops it.
+    el.addEventListener('wheel', wheel, { passive: true, capture: true });
     // On a touch screen: a finger pulling the screen down, as a wheel scrolled up.
     let from: number | null = null;
     const start = (e: TouchEvent) => (from = e.touches[0]?.clientY ?? null);
     const move = (e: TouchEvent) => {
       const y = e.touches[0]?.clientY;
-      if (from !== null && y !== undefined && y - from > 80) {
+      if (paneHasKeys.value && from !== null && y !== undefined && y - from > 40) {
         from = null;
         onHistory();
       }
@@ -74,17 +81,22 @@ export function Screen({ agent, driving, onHistory, onKey, box }: { agent: strin
     el.addEventListener('touchstart', start, { passive: true });
     el.addEventListener('touchmove', move, { passive: true });
     return () => {
-      el.removeEventListener('wheel', wheel);
+      el.removeEventListener('wheel', wheel, { capture: true });
       el.removeEventListener('touchstart', start);
       el.removeEventListener('touchmove', move);
       m.watch(null, null);
       term.dispose();
     };
   }, [agent, driving]);
+  /** In the history: scrolled to its newest line and still going down, back to live. */
+  const atBottom = (el: HTMLElement) => el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
+  let historyFrom: number | null = null;
   return (
     <div
       ref={box}
       tabIndex={0}
+      aria-label="The agent"
+      data-active={paneHasKeys.value ? 'true' : 'false'}
       // xterm's own text area takes the focus inside it; focusin and focusout bubble.
       onFocusIn={() => (paneHasKeys.value = true)}
       onFocusOut={(e) => {
@@ -102,8 +114,31 @@ export function Screen({ agent, driving, onHistory, onKey, box }: { agent: strin
         e.preventDefault();
         onKey(bytes);
       }}
-      style={{ flex: 1, minHeight: 0, margin: '0 8px', border: `1px solid ${driving ? 'var(--fab7-teal)' : 'var(--fab7-line)'}`, borderRadius: 'var(--fab7-radius-lg)', padding: '8px', overflow: 'hidden' }}>
+      style={{ position: 'relative', flex: 1, minHeight: 0, margin: '0 8px', border: `1px solid ${paneHasKeys.value ? 'var(--fab7-accent)' : driving ? 'var(--fab7-teal)' : 'var(--fab7-line)'}`, borderRadius: 'var(--fab7-radius-lg)', padding: '8px', overflow: 'hidden' }}>
       <div ref={host} style={{ width: '100%', height: '100%' }} aria-label="The agent's screen" />
+      {history !== null && (
+        // The agent's earlier output, in the pane itself (§6).
+        <div class="pane-history">
+          <pre
+            ref={shown}
+            aria-label="History"
+            onWheel={(e) => {
+              if (e.deltaY > 0 && atBottom(e.currentTarget)) onLive();
+            }}
+            onTouchStart={(e) => (historyFrom = e.touches[0]?.clientY ?? null)}
+            onTouchMove={(e) => {
+              const y = e.touches[0]?.clientY;
+              if (historyFrom !== null && y !== undefined && historyFrom - y > 60 && atBottom(e.currentTarget)) {
+                historyFrom = null;
+                onLive();
+              }
+            }}
+          >
+            {history}
+          </pre>
+          <button class="fab7-key pane-live" type="button" onClick={onLive}>LIVE</button>
+        </div>
+      )}
     </div>
   );
 }

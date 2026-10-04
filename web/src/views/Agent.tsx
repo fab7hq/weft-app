@@ -162,22 +162,7 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
         </div>
         {a && <span class={a.turn === 'waiting' ? 'fab7-pill fab7-pill--needs-you' : 'fab7-pill'}>{WORDS[a.turn]}</span>}
       </div>
-      {history === null ? (
-        <Screen agent={agent} driving={driving} onHistory={() => void showHistory()} onKey={key} box={box} />
-      ) : (
-        <div style={{ flex: 1, minHeight: 0, margin: '0 8px', display: 'flex', flexDirection: 'column', border: '1px solid var(--fab7-line)', borderRadius: 'var(--fab7-radius-lg)' }}>
-          <pre
-            aria-label="History"
-            ref={(el) => { if (el) el.scrollTop = el.scrollHeight; }}
-            style={{ flex: 1, margin: 0, padding: '12px', overflow: 'auto', font: '400 12px/1.4 var(--font-mono)', whiteSpace: 'pre-wrap' }}
-          >
-            {history}
-          </pre>
-          <button class="fab7-button fab7-button--secondary" type="button" style={{ margin: '8px' }} onClick={() => setHistory(null)}>
-            Back to the screen
-          </button>
-        </div>
-      )}
+      <Screen agent={agent} driving={driving} history={history} onHistory={() => void showHistory()} onLive={() => setHistory(null)} onKey={key} box={box} />
       {a?.unit && a.turn === 'ended' && (
         // On cue (§7): the Ask on the board, once its turn has ended.
         <div class="cue" role="group" aria-label="On cue">

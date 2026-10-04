@@ -217,3 +217,51 @@ test('step 50: the open agents as tabs; the one that needs you is amber; a tap o
   }
   await machine.close();
 });
+
+/** A finger pulling the element down by `by` pixels: scrolling up. */
+async function pull(page: Page, label: string, by: number) {
+  await page.getByLabel(label).evaluate((el, by) => {
+    const r = el.getBoundingClientRect();
+    const at = (y: number) => [new Touch({ identifier: 1, target: el, clientX: r.x + 50, clientY: y })];
+    el.dispatchEvent(new TouchEvent('touchstart', { bubbles: true, touches: at(r.y + 40), changedTouches: at(r.y + 40) }));
+    el.dispatchEvent(new TouchEvent('touchmove', { bubbles: true, touches: at(r.y + 40 + by), changedTouches: at(r.y + 40 + by) }));
+    el.dispatchEvent(new TouchEvent('touchend', { bubbles: true, touches: [], changedTouches: at(r.y + 40 + by) }));
+  }, by);
+}
+
+test('step 62: the pane, once tapped, scrolls through its history inside itself', async ({ page, context }, info) => {
+  test.skip(info.project.name !== 'iphone', 'the phone layout');
+  const machine = await FakeMachine.start();
+  machine.agents = [agent(0, 'weft', 'claude-code', 'ready')];
+  machine.onRead = (m) => ({ type: 'ok', req: m.req, text: Array.from({ length: 200 }, (_, i) => `line ${i + 1}`).join('\n') });
+  await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
+  await opened(page, machine);
+  const pane = page.getByLabel('The agent', { exact: true });
+
+  // Inactive: the app is for its buttons; a pull reads nothing.
+  await expect(pane).toHaveAttribute('data-active', 'false');
+  await pull(page, "The agent's screen", 200);
+  await page.waitForTimeout(300);
+  expect(machine.of('read')).toHaveLength(0);
+
+  // Tapped: active, and a pull shows the history inside the pane, newest at the bottom.
+  await pane.click();
+  await expect(pane).toHaveAttribute('data-active', 'true');
+  await pull(page, "The agent's screen", 200);
+  await expect.poll(() => machine.of('read').length).toBe(1);
+  const history = pane.getByLabel('History');
+  await expect(history).toBeVisible();
+  await expect(history.getByText('line 200')).toBeInViewport();
+  const inside = (await history.boundingBox())!;
+  const box = (await pane.boundingBox())!;
+  expect(inside.y).toBeGreaterThanOrEqual(box.y - 1);
+  expect(inside.y + inside.height).toBeLessThanOrEqual(box.y + box.height + 1);
+  // The message row is still there: this is the pane, not another view.
+  await expect(page.getByLabel('Message')).toBeVisible();
+
+  // LIVE brings the screen back.
+  await pane.getByRole('button', { name: 'LIVE' }).click();
+  await expect(history).toHaveCount(0);
+  await expect(page.getByLabel("The agent's screen")).toBeVisible();
+  await machine.close();
+});

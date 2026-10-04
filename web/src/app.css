@@ -37,3 +37,6 @@ a { color: var(--fab7-accent); }
 .wide-bar-hint { color: var(--fab7-muted); white-space: pre; }
 .bar-word { background: none; border: 0; padding: 8px 4px; min-height: 44px; color: var(--fab7-text); font: inherit; letter-spacing: inherit; cursor: pointer; }
 .bar-word:disabled { color: var(--fab7-faint); cursor: default; }
+.pane-history { position: absolute; inset: 0; display: flex; flex-direction: column; background: var(--fab7-canvas); border-radius: var(--fab7-radius-lg); }
+.pane-history pre { flex: 1; min-height: 0; margin: 0; padding: 8px; overflow: auto; -webkit-overflow-scrolling: touch; font: 400 12px/1.4 var(--font-mono); white-space: pre-wrap; }
+.pane-live { position: absolute; right: 8px; bottom: 8px; }

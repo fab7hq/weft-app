@@ -156,3 +156,4 @@ a { color: var(--fab7-accent); }
 .woven--weaving .woven-mark { animation: weave 1.6s ease-in-out infinite alternate; }
 @keyframes weave { from { opacity: 0.35; letter-spacing: 0; } to { opacity: 1; letter-spacing: 1px; } }
 @media (prefers-reduced-motion: reduce) { .woven--weaving .woven-mark { animation: none; } }
+.allow-key { min-width: 30px; height: 30px; margin: 0 6px; padding: 0 8px; font: 600 12px var(--font-mono); cursor: default; vertical-align: middle; }

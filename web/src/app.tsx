@@ -1,7 +1,7 @@
 import { signal } from '@preact/signals';
 import * as api from './api';
 import { go, here, reset } from './nav';
-import { w } from './words';
+import { fill, w } from './words';
 import * as machine from './machine';
 import * as store from './store';
 import { AddMachine } from './views/AddMachine';
@@ -10,7 +10,7 @@ import { PendingBar } from './views/Asked';
 import { AskSheet } from './views/Ask';
 import { Details } from './views/Details';
 import { EvalView } from './views/EvalView';
-import { TreePage } from './views/Tree';
+import { Mark, TreePage } from './views/Tree';
 import { StartPage } from './views/Start';
 import { Machines } from './views/Machines';
 import { Settings } from './views/Settings';
@@ -80,32 +80,48 @@ export function NoConnection() {
   );
 }
 
+/** Allowing this device (M8.1, D8.1): the machine asks, and only it can answer. */
 function Asking({ name }: { name: string }) {
+  const where = wide.value ? 'browser' : 'phone';
+  // The key the machine waits for, drawn as a key.
+  const [before, after] = fill('web.allow.go', { machine: name }).split('{key}');
   return (
     <div class="app">
       <div class="appbar">
+        <Mark />
         <h1>{name}</h1>
         <span class="fab7-pill">{w('web.link.asking')}</span>
       </div>
       <div class="page">
-        <h2>Allow this phone on your machine</h2>
-        <p class="lede">Your machine is asking you. Go to it and press Y.</p>
-        <p class="note">The question waits two minutes. Nothing on this device can answer it.</p>
+        <h2>{w(`web.allow.${where}`)}</h2>
+        <p class="lede">
+          {before}
+          <span class="fab7-key allow-key">Y</span>
+          {after}
+        </p>
+        <p class="note">{w(`web.allow.waits_${where}`)}</p>
       </div>
     </div>
   );
 }
 
+/** Not allowed (M8.2–M8.4, D8.2): why, and Your machines, the way on. */
 function Refused({ name }: { name: string }) {
+  const machines = () => {
+    machine.close();
+    go({ name: 'machines' });
+  };
   return (
     <div class="app">
       <div class="appbar">
+        <Mark />
         <h1>{name}</h1>
         <span class="fab7-pill">{w('web.link.refused')}</span>
       </div>
       <div class="page">
-        <h2>Not allowed</h2>
-        <p class="lede">{machine.refusal.value}</p>
+        <h2>{w('web.refused.title')}</h2>
+        <p class="lede">{w(machine.refusal.value ?? 'web.refused.other')}</p>
+        <button class="fab7-button fab7-button--secondary" type="button" onClick={machines}>{w('web.machines.title')}</button>
       </div>
     </div>
   );

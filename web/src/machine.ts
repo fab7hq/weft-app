@@ -104,12 +104,8 @@ export const current = signal<api.Machine | null>(null);
 
 export const needsYou = computed(() => agents.value.filter((a) => a.turn === 'waiting').length);
 
-const REFUSED: Record<string, string> = {
-  denied: 'Your machine said no to this device.',
-  expired: 'Nobody answered on your machine in two minutes.',
-  not_owner: 'This machine belongs to another account.',
-  busy: 'Your machine was asked too often. Try again in a few minutes.',
-};
+/** The refusals a machine gives, by the words key that says each. */
+const REFUSED = ['denied', 'expired', 'not_owner', 'busy'];
 
 let socket: WebSocket | null = null;
 let machine: api.Machine | null = null;
@@ -217,7 +213,7 @@ function heard(s: WebSocket, m: api.Machine, msg: Record<string, unknown>): void
         // Removed on the machine, or never allowed: ask to be allowed again.
         void store.get<store.Kept>('macs', m.id).then((k) => store.set('macs', m.id, { ...k, token: undefined }));
       } else {
-        refusal.value = REFUSED[String(msg.code)] ?? 'Your machine refused this device.';
+        refusal.value = `web.refused.${REFUSED.includes(String(msg.code)) ? msg.code : 'other'}`;
         link.value = 'refused';
       }
       break;

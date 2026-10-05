@@ -146,3 +146,18 @@ test('D3.3 D3.11: while the pane is active the bar is Ask · Keys, and Keys send
   await expect.poll(() => machine.of('keys').map((k) => hex(k.bytes))).toEqual(['1b']);
   await machine.close();
 });
+
+test('M3.7 D3.7: an ended agent says the TUI\'s sentence, from words.json', async ({ page, context }) => {
+  const machine = await opened(page, context);
+  const words = await (await page.request.get('/words.json')).json();
+  machine.agents = machine.agents.map((a) => (a.harness === 'codex' ? { ...a, running: false } : a));
+  machine.send({ type: 'agents', agents: machine.agents });
+  const said = words['agent.ended'].replace('{harness}', 'codex');
+  await expect(page.getByText(said)).toBeVisible();
+  expect(said).toBe('codex has ended. Its work is still on the list.');
+  await expect(page.getByLabel("The agent's screen")).toHaveCount(0);
+  await expect(page.getByRole('navigation', { name: 'Tabs' }).getByRole('button', { name: /codex/ })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Back to the tree' }).click();
+  await expect(page.getByRole('treeitem', { name: 'codex', exact: true })).toBeVisible();
+  await machine.close();
+});

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Machine } from '../api';
 import * as m from '../machine';
-import { back } from '../nav';
+import { back, swap } from '../nav';
 import { BarSheet, askHere, openKeys, type BarActs } from './Bar';
 import { KeyBar, mods, press } from './Keys';
 import { Tabs } from './Tabs';
@@ -10,7 +10,7 @@ import { NeedsYouPill } from './Tree';
 import { Screen, fit } from './Screen';
 import { act } from './Asked';
 import { LinkPill } from './Status';
-import { w } from '../words';
+import { fill, w } from '../words';
 
 export const b64 = (bytes: number[]) => btoa(String.fromCharCode(...bytes));
 
@@ -20,7 +20,8 @@ const sized = new Set<string>();
 
 export function Agent({ machine, agent, embedded = false }: { machine: Machine; agent: string; embedded?: boolean }) {
   const a = m.agents.value.find((x) => x.agent === agent);
-  const live = m.link.value === 'connected';
+  // Nothing goes to an agent that has ended.
+  const live = m.link.value === 'connected' && Boolean(a?.running);
   const driving = m.control.value[agent] === 'you';
   if (!driving) sized.delete(agent);
   const box = useRef<HTMLDivElement>(null);
@@ -91,8 +92,15 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
         </div>
       )}
       <Tabs machine={machine.id} open={agent} />
-      {!a && <p class="note pane-said">This agent has gone</p>}
-      <Screen agent={agent} driving={driving} history={history} onHistory={() => void showHistory()} onLive={() => setHistory(null)} onKey={key} box={box} />
+      {a?.running ? (
+        <Screen agent={agent} driving={driving} history={history} onHistory={() => void showHistory()} onLive={() => setHistory(null)} onKey={key} box={box} />
+      ) : (
+        // Its pane closed, as the TUI's does; its work stays on the tree.
+        <div class="ended">
+          {a && <p class="ended-said">{fill('agent.ended', { harness: a.harness })}</p>}
+          <button class="tree-act" type="button" onClick={() => swap({ name: 'tree', machine: machine.id })}>{w('web.agent.back')}</button>
+        </div>
+      )}
       {a?.turn === 'waiting' && (
         // While the agent waits for its person (its hooks say so; the screen is never read).
         <div class="answer-strip" role="toolbar" aria-label="Answer">

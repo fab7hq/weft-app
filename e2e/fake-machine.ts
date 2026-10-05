@@ -9,6 +9,7 @@ export interface Agent {
   harness: string;
   title: string;
   turn: 'ready' | 'working' | 'waiting' | 'ended';
+  running: boolean;
   since: number;
 }
 
@@ -166,7 +167,7 @@ export class FakeMachine {
 }
 
 export function agent(n: number, project: string, harness: string, turn: Agent['turn']): Agent {
-  return { agent: `3f9a1c07b2de-${n}`, project, harness, title: harness === 'claude-code' ? 'Claude Code' : 'Codex', turn, since: Date.now() - 120_000 };
+  return { agent: `3f9a1c07b2de-${n}`, project, harness, title: harness === 'claude-code' ? 'Claude Code' : 'Codex', turn, running: true, since: Date.now() - 120_000 };
 }
 
 /** A tree of these agents, with nothing asked of any. */
@@ -179,7 +180,7 @@ export function treeOf(agents: Agent[]): Project[] {
       open: mine.length,
       needs: mine.filter((a) => a.turn === 'waiting').length,
       ask: null,
-      harnesses: mine.map((a) => ({ harness: a.harness, agent: a.agent, title: a.title, turn: a.turn, turbo: false, running: a.turn !== 'ended', works: [] })),
+      harnesses: mine.map((a) => ({ harness: a.harness, agent: a.running ? a.agent : null, title: a.title, turn: a.running ? a.turn : null, turbo: false, running: a.running, works: [] })),
     };
   });
 }
@@ -196,9 +197,9 @@ const work = (unit: string, title: string, word: Work['word'], turn: Work['turn'
 export function atlas(): { agents: Agent[]; tree: Project[]; harnesses: Start[] } {
   const since = Date.now() - 120_000;
   const agents: Agent[] = [
-    { agent: `${WEFT}-0`, project: 'weft', harness: 'claude', title: 'Claude Code', turn: 'waiting', since },
-    { agent: `${WEFT}-1`, project: 'weft', harness: 'codex', title: 'Codex', turn: 'ended', since },
-    { agent: `${DOCS}-0`, project: 'docs', harness: 'claude', title: 'Claude Code', turn: 'ready', since },
+    { agent: `${WEFT}-0`, project: 'weft', harness: 'claude', title: 'Claude Code', turn: 'waiting', running: true, since },
+    { agent: `${WEFT}-1`, project: 'weft', harness: 'codex', title: 'Codex', turn: 'ended', running: true, since },
+    { agent: `${DOCS}-0`, project: 'docs', harness: 'claude', title: 'Claude Code', turn: 'ready', running: true, since },
   ];
   const tree: Project[] = [
     {

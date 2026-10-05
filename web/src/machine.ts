@@ -12,6 +12,8 @@ export interface Agent {
   harness: string;
   title: string;
   turn: 'ready' | 'working' | 'waiting' | 'ended';
+  /** The agent still runs: `ended` is then its turn, not the agent. */
+  running: boolean;
   since: number;
 }
 

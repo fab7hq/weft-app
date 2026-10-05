@@ -10,7 +10,7 @@ async function opened(page: Page, context: BrowserContext, harnesses = atlas().h
   const machine = await FakeMachine.start();
   Object.assign(machine, { agents: [], tree: empty, harnesses });
   machine.onStart = (m) => {
-    machine.agents = [{ agent: '3f9a1c07b2de-5', project: 'weft', harness: String(m.harness), title: 'Codex', turn: 'ready', since: Date.now() }];
+    machine.agents = [{ agent: '3f9a1c07b2de-5', project: 'weft', harness: String(m.harness), title: 'Codex', turn: 'ready', running: true, since: Date.now() }];
     return [{ type: 'agents', agents: machine.agents }, { type: 'ok', req: m.req, agent: '3f9a1c07b2de-5' }];
   };
   await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));

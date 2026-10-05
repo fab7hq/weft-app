@@ -9,7 +9,7 @@ const turbo = (agent: string) => m.tree.value.some((p) => p.harnesses.some((h) =
 export function Tabs({ machine, open }: { machine: string; open: string }) {
   return (
     <nav class="tabs" aria-label="Tabs">
-      {m.agents.value.map((a, i) => (
+      {m.agents.value.filter((a) => a.running).map((a, i) => (
         <button
           key={a.agent}
           type="button"

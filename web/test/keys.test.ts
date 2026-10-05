@@ -8,7 +8,7 @@ const lit = (over: Partial<typeof NONE>) => ({ ...NONE, ...over });
 
 describe('the key bar', () => {
   it('holds the generic keys, in order, and nothing of any harness', () => {
-    expect(BAR.map((k) => k.label)).toEqual(['Esc', 'Tab', '←', '↑', '↓', '→', '⏎', '^C', 'PgUp', 'PgDn', '1', '2', '3']);
+    expect(BAR.map((k) => k.label)).toEqual(['Esc', 'Tab', '←', '↑', '↓', '→', '⏎', '^C', 'PgUp', 'PgDn']);
   });
 
   it('sends each key as the terminal encodes it', () => {

@@ -44,9 +44,6 @@ export const BAR: { label: string; name: string }[] = [
   { label: '^C', name: 'Control-C' },
   { label: 'PgUp', name: 'PgUp' },
   { label: 'PgDn', name: 'PgDn' },
-  { label: '1', name: '1' },
-  { label: '2', name: '2' },
-  { label: '3', name: '3' },
 ];
 
 const on = (l: Lit) => l !== 'off';
@@ -93,5 +90,5 @@ export function sent(m: Mods): Mods {
   return { ctrl: keep(m.ctrl), alt: keep(m.alt), shift: keep(m.shift) };
 }
 
-/** The answer strip while an agent waits: the keys most questions take (§6). */
-export const ANSWER = ['1', '2', '3', 'Esc', 'Enter'].map((name) => BAR.find((k) => k.name === name)!);
+/** The answer strip while an agent waits: its choice keys, whatever numbers a harness gives its choices. */
+export const ANSWER = ['Up', 'Down', 'Enter', 'Esc'].map((name) => BAR.find((k) => k.name === name)!);

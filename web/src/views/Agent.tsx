@@ -89,6 +89,7 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
         // While the agent waits for its person (its hooks say so; the screen is never read).
         <div class="answer-strip" role="toolbar" aria-label="Answer">
           <span class="label">{w('title.needs_you').toUpperCase()}</span>
+          <span class="spacer" />
           {ANSWER.map(({ label, name }) => (
             <button key={name} class="fab7-key" type="button" aria-label={name} disabled={!live} onClick={() => press(name, key)}>
               {label}

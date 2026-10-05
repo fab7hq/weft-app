@@ -47,7 +47,7 @@ test('test 2: allow, open an agent, press 1, send a message, read history', asyn
   expect(machine.of('size')).toHaveLength(0);
 
   await page.getByRole('button', { name: 'The bar', exact: true }).click();
-  await page.getByRole('dialog', { name: 'Weft' }).getByRole('button', { name: '1', exact: true }).click();
+  await page.getByRole('dialog', { name: 'Weft' }).getByRole('button', { name: 'Tab', exact: true }).click();
   await expect.poll(() => machine.of('keys').length).toBe(1);
   await page.keyboard.press('Escape');
   const [size] = machine.of('size');
@@ -55,7 +55,7 @@ test('test 2: allow, open an agent, press 1, send a message, read history', asyn
   expect(Number(size.rows)).toBeGreaterThan(10);
   expect(Number(size.cols)).toBeGreaterThan(20);
   expect(machine.heard.indexOf(size)).toBeLessThan(machine.heard.indexOf(machine.of('keys')[0]));
-  expect(machine.of('keys')[0]).toMatchObject({ agent: '3f9a1c07b2de-0', bytes: 'MQ==' });
+  expect(machine.of('keys')[0]).toMatchObject({ agent: '3f9a1c07b2de-0', bytes: 'CQ==' });
   machine.send({ type: 'control', agent: '3f9a1c07b2de-0', by: 'you' });
 
   await page.getByLabel('Message').fill('Also add it to the README');

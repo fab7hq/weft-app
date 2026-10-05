@@ -81,3 +81,32 @@ test('D3.1 D3.3 D3.5: a click activates; the wheel reads the history and goes ba
   await expect(pane(page)).toHaveAttribute('data-active', 'false');
   await machine.close();
 });
+
+const hex = (b64: unknown) => [...Buffer.from(String(b64), 'base64')].map((b) => b.toString(16).padStart(2, '0')).join(' ');
+
+test('M3.4 D3.4 M3.10: while the agent waits, the strip is ↑ ↓ ⏎ Esc and sends their bytes; no digit key anywhere', async ({ page, context }) => {
+  const machine = await FakeMachine.start();
+  Object.assign(machine, atlas());
+  await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
+  await page.goto('/');
+  await page.getByRole('treeitem', { name: 'claude', exact: true }).first().click();
+  const strip = page.getByRole('toolbar', { name: 'Answer' });
+  await expect(strip.getByText('NEEDS YOU')).toBeVisible();
+  expect(await strip.getByRole('button').allTextContents()).toEqual(['↑', '↓', '⏎', 'Esc']);
+  for (const name of ['Up', 'Down', 'Enter', 'Esc']) await strip.getByRole('button', { name, exact: true }).click();
+  await expect.poll(() => machine.of('keys').map((k) => hex(k.bytes))).toEqual(['1b 5b 41', '1b 5b 42', '0d', '1b']);
+  for (const digit of ['1', '2', '3']) await expect(page.getByRole('button', { name: digit, exact: true })).toHaveCount(0);
+
+  // The key bar too has none.
+  if (await page.getByRole('button', { name: 'The bar', exact: true }).count()) {
+    await page.getByRole('button', { name: 'The bar', exact: true }).click();
+    const bar = page.getByRole('dialog', { name: 'Weft' });
+    await expect(bar.getByRole('button', { name: 'Tab', exact: true })).toBeVisible();
+    for (const digit of ['1', '2', '3']) await expect(bar.getByRole('button', { name: digit, exact: true })).toHaveCount(0);
+  }
+  // Answered: no strip.
+  machine.agents = machine.agents.map((a) => ({ ...a, turn: 'working' as const }));
+  machine.send({ type: 'agents', agents: machine.agents });
+  await expect(strip).toHaveCount(0);
+  await machine.close();
+});

@@ -1,6 +1,7 @@
 import { signal } from '@preact/signals';
 import * as api from './api';
 import { go, here, reset } from './nav';
+import { w } from './words';
 import * as machine from './machine';
 import * as store from './store';
 import { AddMachine } from './views/AddMachine';
@@ -64,6 +65,9 @@ export async function lookWho(): Promise<void> {
   }
 }
 
+/** A machine joined while the account had none: look again, and open it. */
+const joined = () => void lookWho();
+
 export function NoConnection() {
   return (
     <div class="app">
@@ -81,7 +85,7 @@ function Asking({ name }: { name: string }) {
     <div class="app">
       <div class="appbar">
         <h1>{name}</h1>
-        <span class="fab7-pill">Asking</span>
+        <span class="fab7-pill">{w('web.link.asking')}</span>
       </div>
       <div class="page">
         <h2>Allow this phone on your machine</h2>
@@ -97,7 +101,7 @@ function Refused({ name }: { name: string }) {
     <div class="app">
       <div class="appbar">
         <h1>{name}</h1>
-        <span class="fab7-pill">Refused</span>
+        <span class="fab7-pill">{w('web.link.refused')}</span>
       </div>
       <div class="page">
         <h2>Not allowed</h2>
@@ -115,7 +119,7 @@ export function App() {
   if (a.state === 'signed_out' || !view || view.name === 'signin') return <SignIn />;
   switch (view.name) {
     case 'add':
-      return <AddMachine login={a.login} />;
+      return <AddMachine login={a.login} onJoined={joined} />;
     case 'machines':
       return <Machines list={a.machines} />;
     case 'tree':

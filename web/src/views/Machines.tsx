@@ -1,15 +1,16 @@
 import type { Machine } from '../api';
 import { go } from '../nav';
+import { w } from '../words';
 
 export function Machines({ list }: { list: Machine[] }) {
   return (
     <div class="app">
       <div class="appbar">
-        <h1>Your machines</h1>
+        <h1>{w('web.machines.title')}</h1>
         <span class="spacer" />
-        <button class="back" type="button" onClick={() => go({ name: 'settings' })}>Settings</button>
+        <button class="back" type="button" onClick={() => go({ name: 'settings' })}>{w('web.settings.title')}</button>
       </div>
-      <ul aria-label="Your machines" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+      <ul aria-label={w('web.machines.title')} style={{ listStyle: 'none', margin: 0, padding: 0 }}>
         {list.map((m) => (
           <li key={m.id}>
             <button

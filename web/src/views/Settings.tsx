@@ -47,13 +47,13 @@ export function Settings({ login }: { login: string }) {
       <div class="appbar">
         <button class="back" type="button" onClick={back}>‹ Back</button>
         <span class="spacer" />
-        <h1>Settings</h1>
+        <h1>{w('web.settings.title')}</h1>
         <span class="spacer" />
       </div>
       <div style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
         {machine && (
           <div style={{ padding: '16px 16px 0' }}>
-            <button class="fab7-button fab7-button--secondary" type="button" style={{ width: '100%' }} onClick={() => go({ name: 'start', machine: machine.id, from: 'Settings' })}>
+            <button class="fab7-button fab7-button--secondary" type="button" style={{ width: '100%' }} onClick={() => go({ name: 'start', machine: machine.id, from: w('web.settings.title') })}>
               {w('start.title')}
             </button>
           </div>

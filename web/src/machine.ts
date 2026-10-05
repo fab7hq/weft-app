@@ -81,6 +81,8 @@ export interface Frame {
 export type Link = 'connecting' | 'asking' | 'connected' | 'reconnecting' | 'refused';
 
 export const link = signal<Link>('connecting');
+/** The open machine has welcomed this device since it was opened: there is a tree to show. */
+export const welcomed = signal(false);
 export const refusal = signal<string | null>(null);
 export const agents = signal<Agent[]>([]);
 export const tree = signal<Project[]>([]);
@@ -143,6 +145,7 @@ export function close(): void {
   socket = null;
   s?.close();
   link.value = 'connecting';
+  welcomed.value = false;
 }
 
 async function connect(): Promise<void> {
@@ -189,6 +192,7 @@ function heard(s: WebSocket, m: api.Machine, msg: Record<string, unknown>): void
       pendings.value = (msg.pendings as Pending[]) ?? [];
       vapid.value = (msg.vapid as string | null) ?? null;
       link.value = 'connected';
+      welcomed.value = true;
       refusal.value = null;
       wait = 1;
       clearInterval(pinger);
@@ -265,7 +269,8 @@ function lost(): void {
   for (const done of waiting.values()) done({ type: 'error', code: 'unknown', message: 'Not known: the connection closed.' });
   waiting.clear();
   if (!machine || link.value === 'refused') return;
-  link.value = 'reconnecting';
+  // Until it first answers, it is still connecting.
+  link.value = welcomed.value ? 'reconnecting' : 'connecting';
   later();
 }
 

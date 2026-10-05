@@ -7,6 +7,7 @@ import * as m from '../machine';
 import { go, here } from '../nav';
 import { fill, stateWord, turnWord, w } from '../words';
 import { TreeBar } from './Bar';
+import { LinkPill } from './Status';
 
 /** The work the bar's acts are on, by its Ask id. */
 export const selected = signal<string | null>(null);
@@ -90,7 +91,22 @@ function Empty({ machine }: { machine: Machine }) {
   );
 }
 
+/** Connecting (M1.7, D1.7): the tree's shape, with no words until the machine answers. */
+function Skeleton() {
+  const bars: [number, number][] = [[16, 120], [32, 173], [48, 226], [16, 159], [32, 212]];
+  return (
+    <div class="tree tree-skeleton" aria-busy="true">
+      {bars.map(([at, width], i) => (
+        <div key={i} class="tree-row" style={{ paddingLeft: `${at}px` }}>
+          <span class="skeleton-bar" style={{ width: `${width}px` }} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function TreeList({ machine, onAgent }: { machine: Machine; onAgent: (agent: string) => void }) {
+  if (!m.welcomed.value) return <Skeleton />;
   const projects = m.tree.value;
   if (projects.every((p) => p.harnesses.length === 0)) return <Empty machine={machine} />;
   const fold_ = folded.value;
@@ -203,6 +219,7 @@ export function TreePage({ machine }: { machine: Machine }) {
       <div class="appbar">
         <Mark />
         <h1>{machine.name}</h1>
+        {m.link.value !== 'connected' && <LinkPill />}
         <span class="spacer" />
         <NeedsYouPill machine={machine} />
         <button class="menu" type="button" aria-label="Menu" onClick={() => go({ name: 'settings' })}>☰</button>

@@ -50,3 +50,11 @@ export async function signIn(context: BrowserContext, p: Seeded): Promise<void> 
     { name: '__Host-session', value: p.cookie, domain: 'localhost', path: '/', secure: true, httpOnly: true, sameSite: 'Lax' },
   ]);
 }
+
+/** A machine joining this person's account, as the Worker records one. */
+export function addMachine(p: Seeded, name: string, address: string): void {
+  const id = `m_${p.userId}_${p.machines.length}`;
+  const now = Date.now();
+  sql(`INSERT INTO machines (id, user_id, name, token_hash, address, address_at, created_at) VALUES ('${id}', '${p.userId}', '${name}', '${sha256(id)}', '${address}', ${now}, ${now});`);
+  p.machines.push({ id, name, address });
+}

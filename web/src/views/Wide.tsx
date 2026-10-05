@@ -14,11 +14,13 @@ import { TreeBar } from './Bar';
 
 /** The empty right pane (D2.1): the woven mark, and the way to start an agent. */
 function Woven({ machine }: { machine: Machine }) {
-  if (m.tree.value.some((p) => p.harnesses.length > 0)) return null;
+  // While it connects the threads weave (D1.7), with nothing to start yet.
+  const weaving = !m.welcomed.value;
+  if (!weaving && m.tree.value.some((p) => p.harnesses.length > 0)) return null;
   return (
-    <div class="woven">
+    <div class={weaving ? 'woven woven--weaving' : 'woven'}>
       <pre class="woven-mark">{'╸┃╺╸┃╺╸┃╺╸┃╺\n┃╺╸┃╺╸┃╺╸┃╺╸\n╺╸┃╺╸┃╺╸┃╺╸┃\n╸┃╺╸┃╺╸┃╺╸┃╺\n┃╺╸┃╺╸┃╺╸┃╺╸\n╺╸┃╺╸┃╺╸┃╺╸┃\n╸┃╺╸┃╺╸┃╺╸┃╺'}</pre>
-      <StartButton machine={machine} />
+      {!weaving && <StartButton machine={machine} />}
     </div>
   );
 }

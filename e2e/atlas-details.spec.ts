@@ -4,39 +4,7 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import { FakeMachine, atlas } from './fake-machine';
 import { person, signIn } from './seed';
-
-type Section = { act: string; state: string; aside: string; lines: string[]; open: boolean };
-const NOT_RUN = (act: string): Section => ({ act, state: "HAVEN'T RUN", aside: '', lines: [], open: false });
-const ASKED = ['You asked:', 'Read the build number from the environment and show it on /health'];
-const SENT: Section = { act: 'ask', state: 'DONE', aside: '', lines: [...ASKED, 'The prompt codex sent:', 'Implement /health: read BUILD_NUMBER …'], open: false };
-const JUDGED: Section = {
-  act: 'eval', state: 'DONE', aside: "doesn't match what you asked, 0.67 agreed", open: true,
-  lines: [
-    'judged by codex · recorded as drifted, 0.67', '3 judges checked the work · none of them did it',
-    'JUDGE      map · codex · gpt-5.6-terra', 'JUDGE      reduce · claude · sonnet-5', 'JUDGE      confirm · claude · sonnet-5', '',
-    '✗ returns the real build number', '  no · all 3 judges agreed', '  it still reads a literal "dev" at src/health.rs:41',
-    '✓ adds a test for /health', '  yes · all 3 judges agreed', '',
-    'CHANGED WITH NO JUDGE ABLE TO TIE IT TO WHAT YOU ASKED', '  src/telemetry.rs', '', 'A check is a judgement, not a guarantee.',
-  ],
-};
-const SEALED: Section = {
-  act: 'seal', state: 'DONE', aside: 'accepted', open: true,
-  lines: ['ON THE EVAL   recorded as aligned, 1.00 agreed', 'RECEIPT       rcp_7f3a2c', 'The receipt still matches what RingFrame wrote.', 'A Seal records what was decided. It does not make the work right.'],
-};
-
-const detail = (title: string, harness: string, provenance: string, sections: Section[], more: Record<string, unknown> = {}) => ({
-  title, harness, provenance, sections, proceed: false, eval_view: false, recorded: null, holds: null, debate_in: null, follows: 'ask_3', ...more,
-});
-
-const DETAILS: Record<string, ReturnType<typeof detail>> = {
-  ask_1: detail('fix login', 'claude', 'asked 2026-10-05 08:40 · waiting for your yes', [
-    { act: 'ask', state: 'DONE', aside: '', lines: ['You asked:', 'Refresh the token before it expires, not after', 'The prompt claude composed:', 'In src/login.rs refresh the session token 60 s before expiry …'], open: true },
-  ], { proceed: true, follows: 'ask_1' }),
-  ask_2: detail('telemetry', 'claude', 'asked 2026-10-05 09:12 · asked, still being composed', [
-    { act: 'ask', state: 'ASKING', aside: '', lines: ['You asked:', 'Count how often /health is called, per hour', 'claude has not composed its prompt yet.'], open: true },
-  ], { follows: 'ask_2' }),
-  ask_3: detail('health endpoint', 'codex', 'asked 2026-10-04 14:02 · sent · word for word', [SENT, NOT_RUN('eval'), NOT_RUN('seal')]),
-};
+import { DETAILS, JUDGED, NOT_RUN, SEALED, SENT, detail, type Section } from './atlas-fixtures';
 
 async function opened(page: Page, context: BrowserContext, unit: string, d = DETAILS[unit]) {
   const machine = await FakeMachine.start();

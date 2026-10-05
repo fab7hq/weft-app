@@ -10,11 +10,14 @@ export default defineConfig({
   workers: 1,
   use: { baseURL: 'http://localhost:8788', serviceWorkers: 'allow' },
   projects: [
-    { name: 'iphone', use: as('iPhone 15'), testIgnore: /(desktop.*|layout)\.spec/ },
+    { name: 'iphone', use: as('iPhone 15'), testIgnore: /(desktop.*|layout|gallery)\.spec/ },
     { name: 'ipad', use: as('iPad Pro 11'), testMatch: /(shell|layout)\.spec/ },
     { name: 'desktop', use: { ...devices['Desktop Chrome'] }, testMatch: /(shell|desktop|atlas-.*)\.spec/ },
     // Notifications need the whole browser, which the default headless shell is not.
     { name: 'desktop-push', use: { ...devices['Desktop Chrome'], channel: 'chromium' }, testMatch: /desktop-push\.spec/ },
+    // `npm run gallery`: every web screen at its Atlas frame.
+    { name: 'gallery-phone', use: { ...as('iPhone 15'), viewport: { width: 390, height: 844 } }, testMatch: /gallery\.spec/ },
+    { name: 'gallery-desktop', use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 800 } }, testMatch: /gallery\.spec/ },
   ],
   webServer: {
     command:

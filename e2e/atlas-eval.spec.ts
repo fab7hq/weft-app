@@ -3,54 +3,7 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import { FakeMachine, atlas } from './fake-machine';
 import { person, signIn } from './seed';
-
-const S7 = 'plans/app/plan.md#Phase 1/7';
-const row = (kind: string, key: string, depth: number, text: string, aside = '', mark = '', state: unknown = null) => ({ kind, key, depth, mark, text, aside, state });
-const heading = (text: string) => row('heading', '', 0, text);
-const text = (t: string, depth = 1, aside = '') => row('text', '', depth, t, aside);
-
-const VIEW = {
-  eval_id: 'evl_2',
-  closed: true,
-  header: 'drifted · confidence 0.75 · drift: commission 2%, omission 50%',
-  by_step: [
-    heading('FINDINGS'), text('unclaimed rewrite: commit 94d7989 rewrites lines of 758156f'),
-    heading('UNEXPLAINED CHANGES'), row('change', 'c:w_t', 1, 'src/telemetry.rs  L12–L30', 'unexplained: posts the project path outside', '·'),
-    row('group', 'g:p1', 0, 'Phase 1 · plans/app/plan.md', '1 met · 1 not met', '▾'),
-    row('step', `s:${S7}`, 1, '7  A failed send is told.', 'not met · 1 change', '✗', 'not_met'),
-    row('step', 's:p1/8', 1, '8  /health returns the build number', 'met · 2 changes', '✓', 'met'),
-    row('group', 'g:rules', 0, 'Rules across the work', '2 met', '▾'),
-    row('group', 'g:ask', 0, 'Ask: health endpoint', '1 met · 1 unsettled', '▾'),
-    heading('CHECKS RINGFRAME RAN'), text('`cargo test`: succeeded in 12 s'),
-    heading('LIMITATIONS'), text('No judge ran the app; the checks are the tests above.'),
-  ],
-  by_file: [
-    row('group', 'f:src/health.rs', 0, 'src/health.rs', '2 changes', '▾'),
-    row('change', 'c:w_h1', 1, 'L30–L52', 'required', '·'), row('change', 'c:w_h2', 1, 'L60–L64', 'consequence', '·'),
-    row('group', 'f:src/telemetry.rs', 0, 'src/telemetry.rs', '1 change · 1 unexplained', '▾'),
-    row('change', 'c:w_t', 1, 'L12–L30', 'unexplained: posts the project path outside', '·'),
-    row('group', 'f:tests/health.rs', 0, 'tests/health.rs', '1 change', '▾'), row('change', 'c:w_x', 1, 'L1–L20', 'required', '·'),
-  ],
-  steps: {
-    [S7]: [
-      row('heading', '', 0, '7  A failed send is told.', 'not met', '✗', 'not_met'),
-      text('Done when: a send that fails shows the reason to the person.'),
-      heading('FOUND'), text('the error is logged at debug level and the person sees nothing'),
-      heading('READINGS'), text('map: no  the error is swallowed in send()'), text('reduce: no  no message reaches the bar'),
-      text('confirm: no  agreed with both', 1, 'not counted'),
-      heading('CHANGES (1)'), row('change', 'c:w_s', 1, 'src/send.rs  L88–L97', 'required', '·'),
-    ],
-  },
-  changes: {
-    w_s: [
-      { n: 88, text: ' fn send(&self, msg: &Msg) -> Result<()> {', lit: false },
-      { n: 89, text: '-    let _ = self.sock.write(msg);', lit: false },
-      { n: 89, text: '+    if let Err(e) = self.sock.write(msg) {', lit: false },
-      { n: 90, text: '+        log::debug!("send failed");', lit: true },
-      { n: 91, text: '     Ok(())', lit: false },
-    ],
-  },
-};
+import { S7, VIEW, row } from './atlas-fixtures';
 
 const DETAIL = { title: 'health endpoint', harness: 'codex', provenance: '', sections: [], proceed: false, eval_view: true, follows: 'evl_2' };
 

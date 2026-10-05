@@ -8,6 +8,7 @@ import { Agent } from './views/Agent';
 import { PendingBar } from './views/Asked';
 import { AskSheet } from './views/Ask';
 import { Details } from './views/Details';
+import { EvalView } from './views/EvalView';
 import { TreePage } from './views/Tree';
 import { StartPage } from './views/Start';
 import { Machines } from './views/Machines';
@@ -120,6 +121,7 @@ export function App() {
     case 'tree':
     case 'agent':
     case 'detail':
+    case 'eval':
     case 'start': {
       const m = a.machines.find((x) => x.id === view.machine);
       if (!m) return <Machines list={a.machines} />;
@@ -128,8 +130,9 @@ export function App() {
       if (machine.link.value === 'refused') return <Refused name={m.name} />;
       if (view.name === 'tree') queueMicrotask(() => openWanted(m.id));
       const shown =
-        view.name === 'detail' ? <Details machine={m} unit={view.unit} />
-        : wide.value ? <Wide machine={m} agent={view.name === 'agent' ? view.agent : null} starting={view.name === 'start' ? view.harness ?? '' : null} />
+        view.name === 'eval' ? <EvalView machine={m} unit={view.unit} />
+        : wide.value ? <Wide machine={m} agent={view.name === 'agent' ? view.agent : null} starting={view.name === 'start' ? view.harness ?? '' : null} detail={view.name === 'detail' ? view.unit : null} />
+        : view.name === 'detail' ? <Details machine={m} unit={view.unit} />
         : view.name === 'start' ? <StartPage machine={m} from={view.from} harness={view.harness} />
         : view.name === 'agent' ? <Agent machine={m} agent={view.agent} />
         : <TreePage machine={m} />;

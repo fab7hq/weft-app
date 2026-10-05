@@ -38,8 +38,9 @@ test('M2.6 D2.6: a tap selects a work, › opens its Details, a harness opens it
   await health.click();
   await expect(health).toHaveAttribute('aria-selected', 'true');
   await expect(row(page, 'fix login')).toHaveAttribute('aria-selected', 'false');
+  machine.onRead = (m) => ({ type: 'ok', req: m.req, detail: { title: 'health endpoint', harness: 'codex', provenance: '', sections: [], proceed: false, eval_view: false, follows: 'ask_3' } });
   await health.getByRole('button', { name: 'Details of health endpoint' }).click();
-  await expect(page.getByRole('heading', { name: 'health endpoint' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'health endpoint' })).toBeVisible();
   await page.goBack();
   await row(page, 'claude').click();
   await expect(page.getByLabel("The agent's screen")).toBeVisible();

@@ -164,6 +164,7 @@ function HarnessRows({ project, harness: h, onAgent, machine }: { project: m.Pro
             aria-label={work.title}
             aria-selected={selected.value === work.unit}
             onClick={() => (selected.value = work.unit)}
+            onDblClick={() => go({ name: 'detail', machine: machine.id, unit: work.unit })}
           >
             <span class="tree-name">{work.title}</span>
             <span class="tree-aside">

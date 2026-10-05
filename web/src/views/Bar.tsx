@@ -14,7 +14,6 @@ import { Menu } from './Settings';
 import { fill, w } from '../words';
 
 export interface BarActs {
-  live: boolean;
   /** The agent's harness, which the sheet is about. */
   harness: string;
   onAsk: () => void;
@@ -22,7 +21,6 @@ export interface BarActs {
 
 /** ⌃ (M3.11): Ask into this agent, and the keys. Eval and Seal are the tree's. */
 export function BarSheet({ acts, keys, onClose }: { acts: BarActs; keys: ComponentChildren; onClose: () => void }) {
-  const { live } = acts;
   // Escape closes it, as it closes the TUI's own views.
   useEffect(() => {
     const esc = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -37,7 +35,7 @@ export function BarSheet({ acts, keys, onClose }: { acts: BarActs; keys: Compone
     <div class="sheet-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div class="fab7-sheet bar-sheet" role="dialog" aria-label="Weft">
         <span class="label">{acts.harness.toUpperCase()}</span>
-        <button class="tree-act" type="button" disabled={!live} onClick={then(acts.onAsk)}>{w('act.ask')}</button>
+        <button class="tree-act" type="button" onClick={then(acts.onAsk)}>{w('act.ask')}</button>
         <span class="label">{w('web.act.keys').toUpperCase()}</span>
         {keys}
       </div>
@@ -93,7 +91,7 @@ export function TreeBar({ machine, wide }: { machine: Machine; wide: boolean }) 
       {inPane && keys && (
         <div class="keys-pop" onPointerDown={(e) => e.preventDefault()}>
           <span class="label">{w('web.act.keys').toUpperCase()}</span>
-          <KeyBar live send={(b) => openKeys.value?.(b)} />
+          <KeyBar send={(b) => openKeys.value?.(b)} />
         </div>
       )}
       <div class="tree-acts" onPointerDown={(e) => inPane && e.preventDefault()}>

@@ -36,23 +36,38 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
     const { rows, cols } = fit(box.current);
     if (m.send({ type: 'size', agent, rows, cols })) sized.add(agent);
   };
+  // Why nothing went, as the TUI says it (M10.2); the next press clears it.
+  const [said, setSaid] = useState<string | null>(null);
+  const why = () => (a && !a.running ? fill('agent.ended', { harness: a.harness }) : w('web.why.not_connected'));
+  const refused = (answer: Record<string, unknown> | undefined) => {
+    if (answer?.type !== 'error') return;
+    const key = `not_typed.${String(answer.code)}`;
+    setSaid(w(key) === key ? String(answer.message) : w(key));
+  };
   const key = (bytes: number[]) => {
-    if (!live) return;
+    setSaid(null);
+    if (!live) return setSaid(why());
     takeKeys();
-    void m.request({ type: 'keys', agent, bytes: b64(bytes) });
+    void m.request({ type: 'keys', agent, bytes: b64(bytes) })?.then(refused);
   };
   const sendText = (e: Event) => {
     e.preventDefault();
-    if (!live || !message.trim()) return;
+    setSaid(null);
+    if (!message.trim()) return;
+    if (!live) return setSaid(why());
     takeKeys();
-    if (m.request({ type: 'text', agent, text: message })) setMessage('');
+    const sent = m.request({ type: 'text', agent, text: message });
+    if (sent) {
+      setMessage('');
+      void sent.then(refused);
+    }
   };
   const showHistory = async () => {
     const answer = await m.request({ type: 'read', agent, what: 'history' });
     if (answer?.type === 'ok') setHistory(String(answer.text ?? ''));
   };
 
-  const acts: BarActs = { live, harness: a?.harness ?? '', onAsk: () => (asking.value = { agent, project: a?.project }) };
+  const acts: BarActs = { harness: a?.harness ?? '', onAsk: () => (asking.value = { agent, project: a?.project }) };
   // On a desktop the bar's Keys send here.
   useEffect(() => {
     if (!embedded) return;
@@ -88,7 +103,7 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
           <span class="label">{w('title.needs_you').toUpperCase()}</span>
           <span class="spacer" />
           {ANSWER.map(({ label, name }) => (
-            <button key={name} class="fab7-key" type="button" aria-label={name} disabled={!live} onClick={() => press(name, key)}>
+            <button key={name} class="fab7-key" type="button" aria-label={name} onClick={() => press(name, key)}>
               {label}
             </button>
           ))}
@@ -98,9 +113,10 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
         // On top of the on-screen keyboard while the message box has focus (§6).
         // A tap on it must not take the focus, or the keyboard would close.
         <div class="keys-on-keyboard" onPointerDown={(e) => e.preventDefault()} onMouseDown={(e) => e.preventDefault()}>
-          <KeyBar live={live} send={key} />
+          <KeyBar send={key} />
         </div>
       )}
+      {said && <p class="tree-said" role="status">{said}</p>}
       <form class="message-row" onSubmit={sendText}>
         <button class="fab7-key" type="button" aria-label="The bar" onClick={() => setBar(true)}>⌃</button>
         <label for="message" style={{ position: 'absolute', left: '-9999px' }}>Message</label>
@@ -120,17 +136,16 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
             key(bytes);
             mods.value = sent(mods.value);
           }}
-          placeholder={a ? `Message ${a.harness}…` : 'Message'}
-          disabled={!live}
+          placeholder={fill('web.agent.message', { harness: a?.harness ?? '' })}
           style={{ flex: 1, minWidth: 0 }}
         />
-        <button class="fab7-button" type="submit" aria-label={w('act.send')} disabled={!live}>▶</button>
+        <button class="fab7-button" type="submit" aria-label={w('act.send')}>▶</button>
       </form>
       {bar && (
         <BarSheet
           onClose={() => setBar(false)}
           acts={acts}
-          keys={<KeyBar live={live} send={key} />}
+          keys={<KeyBar send={key} />}
         />
       )}
     </div>

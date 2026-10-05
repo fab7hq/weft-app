@@ -19,7 +19,7 @@ const MODIFIERS: [keyof Mods, string][] = [
   ['shift', '⇧'],
 ];
 
-export function KeyBar({ live, send }: { live: boolean; send: (bytes: number[]) => void }) {
+export function KeyBar({ send }: { send: (bytes: number[]) => void }) {
   return (
     <div class="fab7-keybar" role="toolbar" aria-label={w('web.act.keys')}>
       {MODIFIERS.map(([which, label]) => {
@@ -32,7 +32,6 @@ export function KeyBar({ live, send }: { live: boolean; send: (bytes: number[]) 
             aria-label={label}
             aria-pressed={lit !== 'off'}
             data-lit={lit}
-            disabled={!live}
             onClick={() => (mods.value = tap(mods.value, which))}
           >
             {label}
@@ -40,7 +39,7 @@ export function KeyBar({ live, send }: { live: boolean; send: (bytes: number[]) 
         );
       })}
       {BAR.map(({ label, name }) => (
-        <button key={name} class="fab7-key" type="button" aria-label={name} disabled={!live} onClick={() => press(name, send)}>
+        <button key={name} class="fab7-key" type="button" aria-label={name} onClick={() => press(name, send)}>
           {label}
         </button>
       ))}

@@ -29,7 +29,7 @@ export async function turnOn(machine: string): Promise<string | null> {
   if (old) await old.unsubscribe();
   try {
     const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key(m.vapid.value) });
-    if (!m.send({ type: 'push', subscription: sub.toJSON() })) return 'web.push.not_connected';
+    if (!m.send({ type: 'push', subscription: sub.toJSON() })) return 'web.why.not_connected';
     const kept = (await store.get<store.Kept>('macs', machine)) ?? {};
     await store.set('macs', machine, { ...kept, push: true });
     return null;

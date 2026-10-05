@@ -1,5 +1,5 @@
-// Step 34, web-app.md §11 test 3: keys are disabled and nothing is sent while
-// reconnecting; a new epoch clears the list. And the first connection pairs.
+// Step 34, web-app.md §11 test 3: nothing is sent while reconnecting, and a
+// key says why; a new epoch clears the list. And the first connection pairs.
 import { expect, test } from '@playwright/test';
 import { FakeMachine, agent } from './fake-machine';
 import { person, signIn } from './seed';
@@ -22,7 +22,7 @@ test('a first connection pairs, then says hello with its token', async ({ page, 
   await machine.close();
 });
 
-test('keys are off and nothing is sent while reconnecting; a new epoch clears the list', async ({ page, context }) => {
+test('nothing is sent while reconnecting and a key says why; a new epoch clears the list', async ({ page, context }) => {
   const machine = await FakeMachine.start();
   machine.agents = [agent(0, 'weft', 'claude-code', 'waiting'), agent(1, 'homepage', 'codex', 'working')];
   await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
@@ -30,14 +30,14 @@ test('keys are off and nothing is sent while reconnecting; a new epoch clears th
   await page.getByRole('treeitem', { name: 'claude-code', exact: true }).first().click();
   await page.getByRole('button', { name: 'The bar', exact: true }).click();
   const esc = page.getByRole('dialog', { name: 'Weft' }).getByRole('button', { name: 'Esc' });
-  await expect(esc).toBeEnabled();
+  await expect(esc).toBeVisible();
 
   machine.down = true;
   machine.drop();
   await expect(page.getByText('Reconnecting')).toBeVisible();
-  await expect(esc).toBeDisabled();
   const before = machine.heard.length;
-  await esc.click({ force: true });
+  await esc.click();
+  await expect(page.getByText('Not connected to the machine.')).toBeVisible();
   await page.waitForTimeout(500);
   expect(machine.heard.slice(before).filter((m) => m.type === 'keys')).toEqual([]);
 

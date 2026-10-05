@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'preact/hooks';
 import * as api from '../api';
 import * as m from '../machine';
-import { back, reset } from '../nav';
+import { back, go } from '../nav';
+import { w } from '../words';
 import * as push from '../push';
 import * as store from '../store';
 
@@ -50,6 +51,13 @@ export function Settings({ login }: { login: string }) {
         <span class="spacer" />
       </div>
       <div style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
+        {machine && (
+          <div style={{ padding: '16px 16px 0' }}>
+            <button class="fab7-button fab7-button--secondary" type="button" style={{ width: '100%' }} onClick={() => go({ name: 'start', machine: machine.id, from: 'Settings' })}>
+              {w('start.title')}
+            </button>
+          </div>
+        )}
         <div class="fab7-group">This device</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '8px 16px 16px', borderBottom: '1px solid var(--fab7-line)' }}>
           <label for="device-name" style={{ fontSize: '13px', color: 'var(--fab7-muted)' }}>Name, as your machines show it</label>

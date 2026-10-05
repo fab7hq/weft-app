@@ -8,6 +8,7 @@ import { Agent } from './views/Agent';
 import { PendingSheet } from './views/Asked';
 import { Details } from './views/Details';
 import { TreePage } from './views/Tree';
+import { StartPage } from './views/Start';
 import { Machines } from './views/Machines';
 import { Settings } from './views/Settings';
 import { Wide } from './views/Wide';
@@ -117,7 +118,8 @@ export function App() {
       return <Machines list={a.machines} />;
     case 'tree':
     case 'agent':
-    case 'detail': {
+    case 'detail':
+    case 'start': {
       const m = a.machines.find((x) => x.id === view.machine);
       if (!m) return <Machines list={a.machines} />;
       machine.open(m);
@@ -126,7 +128,8 @@ export function App() {
       if (view.name === 'tree') queueMicrotask(() => openWanted(m.id));
       const shown =
         view.name === 'detail' ? <Details machine={m} unit={view.unit} />
-        : wide.value ? <Wide machine={m} agent={view.name === 'agent' ? view.agent : null} />
+        : wide.value ? <Wide machine={m} agent={view.name === 'agent' ? view.agent : null} starting={view.name === 'start'} />
+        : view.name === 'start' ? <StartPage machine={m} from={view.from} />
         : view.name === 'agent' ? <Agent machine={m} agent={view.agent} />
         : <TreePage machine={m} />;
       return (

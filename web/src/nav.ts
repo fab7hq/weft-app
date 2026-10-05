@@ -9,6 +9,7 @@ export type View =
   | { name: 'tree'; machine: string }
   | { name: 'agent'; machine: string; agent: string }
   | { name: 'detail'; machine: string; unit: string }
+  | { name: 'start'; machine: string; from: string }
   | { name: 'settings' };
 
 export const stack = signal<View[]>([]);

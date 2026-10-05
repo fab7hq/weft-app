@@ -62,6 +62,15 @@ export function NeedsYouPill({ machine }: { machine: Machine }) {
 /** A turn, as the web says it. */
 const turnSaid = (t: m.Agent['turn']) => (t === 'waiting' ? w('web.turn.waiting') : turnWord(t));
 
+/** The way to start an agent from the empty tree. */
+export function StartButton({ machine }: { machine: Machine }) {
+  return (
+    <button class="tree-act tree-act--start" type="button" onClick={() => go({ name: 'start', machine: machine.id, from: m.tree.value[0]?.project ?? machine.name })}>
+      {w('start.title')}
+    </button>
+  );
+}
+
 /** What the empty tree says, as the TUI's empty list does. */
 function Empty({ machine }: { machine: Machine }) {
   const why = m.tree.value.find((p) => p.ask)?.ask;
@@ -76,6 +85,7 @@ function Empty({ machine }: { machine: Machine }) {
       {lines.map((l) => (
         <p key={l} class="note">{l}</p>
       ))}
+      {!why || why.key === 'why.start_an_agent' ? <span class="phone-only"><StartButton machine={machine} /></span> : null}
     </div>
   );
 }

@@ -27,7 +27,7 @@ test('M2.6 D2.6: Eval and Seal act on the selected work', async ({ page, context
   await button(page, 'Eval').click();
   await expect.poll(() => machine.of('act')).toEqual([expect.objectContaining({ type: 'act', act: 'eval', unit: 'ask_3' })]);
   await expect(page.getByRole('dialog', { name: 'Eval this work?' })).toBeVisible();
-  await page.getByRole('button', { name: 'No' }).click();
+  await page.getByRole('button', { name: 'Cancel', exact: true }).click();
   await work(page, 'readme fix').click();
   await button(page, 'Seal').click();
   await expect.poll(() => machine.of('act').at(-1)).toEqual(expect.objectContaining({ act: 'seal', unit: 'ask_4' }));

@@ -1,9 +1,11 @@
 // What the machine is about to type, shown once an act staged it, wherever the
-// person is; answered on the machine first, it says so and closes.
+// person is: the bar (M4.5–M4.10, D4.5–D4.10), Cancel beside Send. Answered on
+// the machine first, it says so and closes.
 import { signal } from '@preact/signals';
 import { useEffect, useState } from 'preact/hooks';
 import * as m from '../machine';
-import { ConfirmSheet } from './Sheets';
+import { why } from '../bar';
+import { fill, w } from '../words';
 
 /** The pending this device asked for and shows. */
 export const shown = signal<string | null>(null);
@@ -15,7 +17,7 @@ export async function act(message: Record<string, unknown>): Promise<Record<stri
   return answer?.type === 'error' ? answer : null;
 }
 
-export function PendingSheet() {
+export function PendingBar() {
   const id = shown.value;
   const pending = m.pendings.value.find((p) => p.id === id) ?? null;
   const [kept, setKept] = useState<m.Pending | null>(null);
@@ -37,5 +39,26 @@ export function PendingSheet() {
     void m.request({ type: 'resolve', pending: id, yes });
     shown.value = null;
   };
-  return <ConfirmSheet pending={showing} answered={answered} onAnswer={answer} />;
+  const harness = m.agents.value.find((a) => a.agent === showing.agent)?.harness ?? '';
+  return (
+    <div class="pending-bar" role="dialog" aria-label={showing.what}>
+      <div class="pending-head">
+        <span class="pending-what">{showing.what}</span>
+        <span class="pending-into">{fill('web.bar.into', { harness })}</span>
+      </div>
+      {why(showing.why).map((s) => (
+        <p key={s} class="pending-why">{s}</p>
+      ))}
+      <pre class="pending-text">{showing.text}</pre>
+      {answered ? (
+        <p class="note" role="status">Answered on the machine</p>
+      ) : (
+        <div class="pending-acts">
+          <span class="spacer" />
+          <button class="tree-act" type="button" onClick={() => answer(false)}>{w('act.cancel')}</button>
+          <button class="tree-act tree-act--go" type="button" onClick={() => answer(true)}>{w('act.send')}</button>
+        </div>
+      )}
+    </div>
+  );
 }

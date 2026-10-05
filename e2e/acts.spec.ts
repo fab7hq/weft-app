@@ -31,7 +31,7 @@ test('an Ask is composed, then shown exactly as it will be typed, then said yes 
   const sheet = page.getByRole('dialog', { name: 'Ready to send to claude-code' });
   await expect(sheet).toBeVisible();
   expect(await sheet.locator('pre').textContent()).toBe(EXACT);
-  await sheet.getByRole('button', { name: 'Yes, type it' }).click();
+  await sheet.getByRole('button', { name: 'Send', exact: true }).click();
   await expect.poll(() => machine.of('resolve').length).toBe(1);
   expect(machine.of('resolve')[0]).toMatchObject({ pending: 'pnd_1', yes: true });
   expect(machine.of('resolve')[0]).not.toHaveProperty('force');
@@ -55,7 +55,7 @@ test('an Ask answered on the machine first closes the sheet and says so', async 
   await expect(sheet).toBeVisible();
   machine.send({ type: 'resolved', id: 'pnd_2', yes: true });
   await expect(page.getByText('Answered on the machine')).toBeVisible();
-  await expect(sheet.getByRole('button', { name: 'Yes, type it' })).toHaveCount(0);
+  await expect(sheet.getByRole('button', { name: 'Send', exact: true })).toHaveCount(0);
   expect(machine.of('resolve')).toHaveLength(0);
   await machine.close();
 });

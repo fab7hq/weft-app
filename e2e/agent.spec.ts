@@ -8,9 +8,9 @@ import { person, signIn } from './seed';
 
 const fixtures = path.join(import.meta.dirname, '../../weft/crates/weftd/tests/fixtures/screens');
 
-async function opened(page: Page, machine: FakeMachine, which = 'weft · Claude Code') {
+async function opened(page: Page, machine: FakeMachine, which = 'claude-code') {
   await page.goto('/');
-  await page.getByText(which).click();
+  await page.getByRole('treeitem', { name: which, exact: true }).first().click();
   await expect.poll(() => machine.of('watch').length).toBeGreaterThan(0);
 }
 
@@ -90,7 +90,7 @@ test('test 2: a notification\'s agent opens from what it left in IndexedDB', asy
   machine.agents = [agent(0, 'weft', 'claude-code', 'waiting'), agent(1, 'docs', 'codex', 'ready')];
   await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
   await page.goto('/');
-  await expect(page.getByText('docs · Codex', { exact: true })).toBeVisible();
+  await expect(page.getByRole('treeitem', { name: 'docs', exact: true })).toBeVisible();
   await page.evaluate(
     () =>
       new Promise<void>((done) => {

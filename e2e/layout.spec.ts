@@ -8,8 +8,8 @@ test('a tablet shows the list beside the agent', async ({ page, context }) => {
   machine.agents = [agent(0, 'weft', 'claude-code', 'waiting')];
   await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
   await page.goto('/');
-  await page.getByText('weft · Claude Code').click();
-  await expect(page.getByRole('navigation', { name: 'Agents' })).toBeVisible();
+  await page.getByRole('treeitem', { name: 'claude-code', exact: true }).first().click();
+  await expect(page.getByRole('navigation', { name: 'Work' })).toBeVisible();
   await expect(page.getByLabel("The agent's screen")).toBeVisible();
   await machine.close();
 });

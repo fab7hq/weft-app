@@ -6,7 +6,7 @@ import { person, signIn } from './seed';
 
 async function opened(page: Page, machine: FakeMachine) {
   await page.goto('/');
-  await page.getByText('weft · Claude Code').click();
+  await page.getByRole('treeitem', { name: 'claude-code', exact: true }).first().click();
   await expect.poll(() => machine.of('watch').length).toBeGreaterThan(0);
 }
 
@@ -138,7 +138,7 @@ test('step 50: the open agents as tabs; the one that needs you is amber; a tap o
   await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
   await opened(page, machine);
   const tabs = page.getByRole('navigation', { name: 'Tabs' });
-  await expect(tabs.getByRole('button')).toHaveText(['1 weft · Claude Code', '2 docs · Codex']);
+  await expect(tabs.getByRole('button')).toHaveText(['1 claude-code', '2 codex ●']);
   const first = tabs.getByRole('button', { name: /^1 / });
   const second = tabs.getByRole('button', { name: /^2 / });
   await expect(first).toHaveAttribute('aria-current', 'page');

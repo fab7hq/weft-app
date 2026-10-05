@@ -16,7 +16,7 @@ export function Machines({ list }: { list: Machine[] }) {
               type="button"
               class="fab7-row"
               style={{ width: '100%', background: 'none', border: 0, borderBottom: '1px solid var(--fab7-line)', textAlign: 'left', font: 'inherit', color: 'inherit', cursor: 'pointer' }}
-              onClick={() => go({ name: 'agents', machine: m.id })}
+              onClick={() => go({ name: 'tree', machine: m.id })}
             >
               <span class="fab7-row__title">{m.name}</span>
               <span class="fab7-row__meta">{m.address ? 'reached through its tunnel' : 'has not reported an address yet'}</span>

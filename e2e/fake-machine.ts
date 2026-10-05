@@ -43,6 +43,7 @@ export interface Project {
   project: string;
   open: number;
   needs: number;
+  ask: Why | null;
   harnesses: Harness[];
 }
 
@@ -59,7 +60,8 @@ export class FakeMachine {
   epoch = 'e1';
   vapid: string | null = null;
   agents: Agent[] = [];
-  tree: Project[] = [];
+  /** The tree; none set, each agent's project and harness with nothing asked. */
+  tree: Project[] | null = null;
   harnesses: Start[] = [];
   pendings: Record<string, unknown>[] = [];
   /** Refuse new connections at the upgrade. */
@@ -133,7 +135,7 @@ export class FakeMachine {
       machine: { id: 'm_fake', name: 'studio' },
       vapid: this.vapid,
       agents: this.agents,
-      tree: this.tree,
+      tree: this.tree ?? treeOf(this.agents),
       harnesses: this.harnesses,
       pendings: this.pendings,
     };
@@ -167,6 +169,21 @@ export function agent(n: number, project: string, harness: string, turn: Agent['
   return { agent: `3f9a1c07b2de-${n}`, project, harness, title: harness === 'claude-code' ? 'Claude Code' : 'Codex', turn, since: Date.now() - 120_000 };
 }
 
+/** A tree of these agents, with nothing asked of any. */
+export function treeOf(agents: Agent[]): Project[] {
+  const projects = [...new Set(agents.map((a) => a.project))];
+  return projects.map((project) => {
+    const mine = agents.filter((a) => a.project === project);
+    return {
+      project,
+      open: mine.length,
+      needs: mine.filter((a) => a.turn === 'waiting').length,
+      ask: null,
+      harnesses: mine.map((a) => ({ harness: a.harness, agent: a.agent, title: a.title, turn: a.turn, turbo: false, running: a.turn !== 'ended', works: [] })),
+    };
+  });
+}
+
 const WEFT = '3f9a1c07b2de';
 const DOCS = 'a1b2c3d4e5f6';
 const work = (unit: string, title: string, word: Work['word'], turn: Work['turn']): Work => ({ unit, title, word, turn, eval: null, seal: null });
@@ -188,6 +205,7 @@ export function atlas(): { agents: Agent[]; tree: Project[]; harnesses: Start[] 
       project: 'weft',
       open: 2,
       needs: 1,
+      ask: null,
       harnesses: [
         { harness: 'claude', agent: `${WEFT}-0`, title: 'Claude Code', turn: 'waiting', turbo: false, running: true,
           works: [work('ask_1', 'fix login', 'asked', 'waiting'), work('ask_2', 'telemetry', 'asking', null)] },
@@ -199,6 +217,7 @@ export function atlas(): { agents: Agent[]; tree: Project[]; harnesses: Start[] 
       project: 'docs',
       open: 1,
       needs: 0,
+      ask: null,
       harnesses: [{ harness: 'claude', agent: `${DOCS}-0`, title: 'Claude Code', turn: 'ready', turbo: false, running: true, works: [] }],
     },
   ];

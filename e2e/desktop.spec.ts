@@ -11,17 +11,15 @@ test('the list beside the agent; typing goes to the agent; Cmd+R stays the brows
   machine.agents = [agent(0, 'weft', 'claude-code', 'waiting'), agent(1, 'docs', 'codex', 'ready')];
   await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
   await page.goto('/');
-  await expect(page.getByText('Pick an agent')).toBeVisible();
-  await page.getByText('weft · Claude Code').click();
+  await page.getByRole('treeitem', { name: 'claude-code', exact: true }).first().click();
 
-  const list = page.getByRole('navigation', { name: 'Agents' });
+  const list = page.getByRole('navigation', { name: 'Work' });
   const screen = page.getByLabel("The agent's screen");
   await expect(list).toBeVisible();
   await expect(screen).toBeVisible();
   const [l, s] = [await list.boundingBox(), await screen.boundingBox()];
   expect(l!.x + l!.width).toBeLessThanOrEqual(s!.x);
-  expect(l!.width).toBe(360);
-  await expect(list.locator('.fab7-row--open')).toHaveText(/weft · Claude Code/);
+  expect(l!.width).toBe(380);
 
   await screen.click();
   await page.keyboard.type('ls');
@@ -48,7 +46,7 @@ const hex = (b64: unknown) => [...Buffer.from(String(b64), 'base64')].map((b) =>
 
 async function opened(page: import('@playwright/test').Page, machine: FakeMachine) {
   await page.goto('/');
-  await page.getByText('weft · Claude Code', { exact: true }).click();
+  await page.getByRole('treeitem', { name: 'claude-code', exact: true }).first().click();
   await expect.poll(() => machine.of('watch').length).toBeGreaterThan(0);
 }
 
@@ -61,7 +59,7 @@ test('step 51: wide, the TUI\'s bar under the list and the pane; Ctrl+] gives th
   await expect(bar).toContainText('[A]SK');
   await expect(bar).toContainText('[W]EFT ⌄');
   // The bar spans the list and the pane.
-  const list = (await page.getByRole('navigation', { name: 'Agents' }).boundingBox())!;
+  const list = (await page.getByRole('navigation', { name: 'Work' }).boundingBox())!;
   const span = (await bar.boundingBox())!;
   expect(span.x).toBeLessThanOrEqual(list.x + 1);
 

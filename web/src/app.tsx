@@ -5,7 +5,8 @@ import * as machine from './machine';
 import * as store from './store';
 import { AddMachine } from './views/AddMachine';
 import { Agent } from './views/Agent';
-import { Agents } from './views/Agents';
+import { Details } from './views/Details';
+import { TreePage } from './views/Tree';
 import { Machines } from './views/Machines';
 import { Settings } from './views/Settings';
 import { Wide } from './views/Wide';
@@ -20,7 +21,7 @@ type Account =
 
 export const account = signal<Account>({ state: 'loading' });
 
-/** A tablet or a desktop: the list beside the agent. */
+/** A tablet or a desktop: the tree beside the agent. */
 const wideQuery = matchMedia('(min-width: 768px)');
 const wide = signal(wideQuery.matches);
 wideQuery.addEventListener('change', (e) => (wide.value = e.matches));
@@ -52,7 +53,7 @@ export async function lookWho(): Promise<void> {
     const machines = await api.machines();
     account.value = { state: 'signed_in', login: me.login, machines };
     if (machines.length === 0) reset({ name: 'add' });
-    else if (machines.length === 1) reset({ name: 'agents', machine: machines[0].id });
+    else if (machines.length === 1) reset({ name: 'tree', machine: machines[0].id });
     else reset({ name: 'machines' });
   } catch {
     account.value = { state: 'offline' };
@@ -113,16 +114,18 @@ export function App() {
       return <AddMachine login={a.login} />;
     case 'machines':
       return <Machines list={a.machines} />;
-    case 'agents':
-    case 'agent': {
+    case 'tree':
+    case 'agent':
+    case 'detail': {
       const m = a.machines.find((x) => x.id === view.machine);
       if (!m) return <Machines list={a.machines} />;
       machine.open(m);
       if (machine.link.value === 'asking') return <Asking name={m.name} />;
       if (machine.link.value === 'refused') return <Refused name={m.name} />;
-      if (view.name === 'agents') queueMicrotask(() => openWanted(m.id));
+      if (view.name === 'tree') queueMicrotask(() => openWanted(m.id));
+      if (view.name === 'detail') return <Details machine={m} unit={view.unit} />;
       if (wide.value) return <Wide machine={m} agent={view.name === 'agent' ? view.agent : null} />;
-      return view.name === 'agent' ? <Agent machine={m} agent={view.agent} /> : <Agents machine={m} />;
+      return view.name === 'agent' ? <Agent machine={m} agent={view.agent} /> : <TreePage machine={m} />;
     }
     case 'settings':
       return <Settings login={a.login} />;

@@ -6,7 +6,7 @@ import { BarSheet, Label, wideActs, type BarActs } from './Bar';
 import { KeyBar, mods, press } from './Keys';
 import { Tabs } from './Tabs';
 import { ANSWER, sent, typed } from '../keys';
-import { NeedsYou } from './Agents';
+import { NeedsYouPill } from './Tree';
 import { Screen, fit } from './Screen';
 import { ConfirmSheet } from './Sheets';
 import { LinkPill } from './Status';
@@ -139,7 +139,7 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
         <div class="appbar">
           <button class="back" type="button" onClick={back}>‹ Agents</button>
           <span class="spacer" />
-          <NeedsYou />
+          <NeedsYouPill />
           <LinkPill />
         </div>
       )}

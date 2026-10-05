@@ -15,6 +15,50 @@ export interface Agent {
   since: number;
 }
 
+/** Why an act cannot run: a words key, and the harness and work it names. */
+export interface Why {
+  key: string;
+  harness?: string;
+  title?: string;
+}
+
+/** One work of the tree: an Ask and where it stands (remote.md §6b). */
+export interface Work {
+  unit: string;
+  title: string;
+  word: 'asking' | 'asked' | 'evaled' | 'sealed' | 'cancelled';
+  turn: Agent['turn'] | null;
+  eval: Why | null;
+  seal: Why | null;
+}
+
+export interface Harness {
+  harness: string;
+  /** The agent a tap on the harness opens, while one runs. */
+  agent: string | null;
+  title: string | null;
+  turn: Agent['turn'] | null;
+  turbo: boolean;
+  running: boolean;
+  works: Work[];
+}
+
+/** One project of the tree, as weft_core::tree built it on the machine. */
+export interface Project {
+  project: string;
+  open: number;
+  needs: number;
+  ask: Why | null;
+  harnesses: Harness[];
+}
+
+/** A harness a project can start. */
+export interface Start {
+  project: string;
+  harness: string;
+  title: string;
+}
+
 export interface Pending {
   id: string;
   agent: string;
@@ -37,6 +81,8 @@ export type Link = 'connecting' | 'asking' | 'connected' | 'reconnecting' | 'ref
 export const link = signal<Link>('connecting');
 export const refusal = signal<string | null>(null);
 export const agents = signal<Agent[]>([]);
+export const tree = signal<Project[]>([]);
+export const harnesses = signal<Start[]>([]);
 export const pendings = signal<Pending[]>([]);
 export const vapid = signal<string | null>(null);
 /** Who has the keys of each agent this device drove: `you` or `mac`. */
@@ -136,6 +182,8 @@ function heard(s: WebSocket, m: api.Machine, msg: Record<string, unknown>): void
         control.value = {};
       }
       agents.value = (msg.agents as Agent[]) ?? [];
+      tree.value = (msg.tree as Project[]) ?? [];
+      harnesses.value = (msg.harnesses as Start[]) ?? [];
       pendings.value = (msg.pendings as Pending[]) ?? [];
       vapid.value = (msg.vapid as string | null) ?? null;
       link.value = 'connected';
@@ -169,6 +217,12 @@ function heard(s: WebSocket, m: api.Machine, msg: Record<string, unknown>): void
       break;
     case 'agents':
       agents.value = msg.agents as Agent[];
+      break;
+    case 'tree':
+      tree.value = msg.tree as Project[];
+      break;
+    case 'harnesses':
+      harnesses.value = msg.harnesses as Start[];
       break;
     case 'pending':
       pendings.value = [...pendings.value.filter((p) => p.id !== msg.id), msg as unknown as Pending];

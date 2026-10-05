@@ -19,7 +19,7 @@ test('an Ask is composed, then shown exactly as it will be typed, then said yes 
   machine.onAct = (m) => pendingFor(m, 'pnd_1', 'Ready to send to claude-code');
   await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
   await page.goto('/');
-  await page.getByText('weft · Claude Code').click();
+  await page.getByRole('treeitem', { name: 'claude-code', exact: true }).first().click();
 
   await page.getByRole('button', { name: 'The bar', exact: true }).click();
   await page.getByRole('dialog', { name: 'Weft' }).getByRole('button', { name: 'Ask', exact: true }).click();
@@ -45,7 +45,7 @@ test('an Ask answered on the machine first closes the sheet and says so', async 
   machine.onAct = (m) => pendingFor(m, 'pnd_2', 'Ready to ask claude-code');
   await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
   await page.goto('/');
-  await page.getByText('weft · Claude Code').click();
+  await page.getByRole('treeitem', { name: 'claude-code', exact: true }).first().click();
   await page.getByRole('button', { name: 'The bar', exact: true }).click();
   await page.getByRole('dialog', { name: 'Weft' }).getByRole('button', { name: 'Ask', exact: true }).click();
   await page.getByLabel('What do you want done?').fill('Add a health endpoint');

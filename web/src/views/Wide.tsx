@@ -1,9 +1,10 @@
-// A tablet or a desktop: the Agents list (360 px) beside the open agent
-// (web-app.md §4). One layout for both.
+// A tablet or a desktop: the tree (380 px) beside the open agent, the bar
+// under both (D2.6). One layout for both.
 import type { Machine } from '../api';
-import { go } from '../nav';
+import * as m from '../machine';
+import { swap } from '../nav';
 import { Agent } from './Agent';
-import { AgentList, NeedsYou } from './Agents';
+import { Mark, NeedsYouPill, TreeList } from './Tree';
 import { LinkPill } from './Status';
 import { WideBar } from './Bar';
 
@@ -11,25 +12,18 @@ export function Wide({ machine, agent }: { machine: Machine; agent: string | nul
   return (
     <div class="app">
       <div class="appbar">
-        <img src="/icons/weft-mark.svg" alt="" width={24} height={24} />
+        <Mark />
         <h1>{machine.name}</h1>
-        <LinkPill />
+        {m.link.value !== 'connected' && <LinkPill />}
         <span class="spacer" />
-        <NeedsYou />
-        <button class="back" type="button" onClick={() => go({ name: 'settings' })}>Settings</button>
+        <NeedsYouPill />
       </div>
       <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
-        <nav aria-label="Agents" style={{ flex: '0 0 360px', width: '360px', boxSizing: 'border-box', borderRight: '1px solid var(--fab7-line)', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-          <AgentList machine={machine} open={agent ?? undefined} />
+        <nav aria-label="Work" class="tree-side">
+          <TreeList machine={machine} onAgent={(a) => swap({ name: 'agent', machine: machine.id, agent: a })} />
         </nav>
         <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-          {agent ? (
-            <Agent key={agent} machine={machine} agent={agent} embedded />
-          ) : (
-            <div class="page" style={{ justifyContent: 'center', alignItems: 'center' }}>
-              <p class="lede">Pick an agent to see its screen.</p>
-            </div>
-          )}
+          {agent && <Agent key={agent} machine={machine} agent={agent} embedded />}
         </main>
       </div>
       <WideBar />

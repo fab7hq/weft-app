@@ -17,3 +17,14 @@ export function why(text: string): string[] {
   }
   return said.filter((s) => !s.startsWith(typing));
 }
+
+/** A time of day, as the TUI says one: HH:MM of the record's UTC day. */
+export function clock(at: number): string {
+  const minutes = Math.floor(at / 60_000) % (24 * 60);
+  return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+}
+
+/** At most `n` characters, ending in … when cut, as the TUI clips. */
+export function clip(s: string, n: number): string {
+  return s.length <= n ? s : `${s.slice(0, n - 1)}…`;
+}

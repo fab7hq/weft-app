@@ -13,10 +13,10 @@ function project(): string | undefined {
   return (of ?? m.tree.value[0])?.project ?? m.harnesses.value[0]?.project;
 }
 
-export function StartPanel({ machine }: { machine: Machine }) {
+export function StartPanel({ machine, harness }: { machine: Machine; harness?: string }) {
   const at = project();
   const starts = m.harnesses.value.filter((s) => s.project === at);
-  const [pick, setPick] = useState(0);
+  const [pick, setPick] = useState(Math.max(0, starts.findIndex((s) => s.harness === harness)));
   const [said, setSaid] = useState<string | null>(null);
   const start = async () => {
     const s = starts[pick];
@@ -58,14 +58,14 @@ export function StartPanel({ machine }: { machine: Machine }) {
 }
 
 /** The phone's page. */
-export function StartPage({ machine, from }: { machine: Machine; from: string }) {
+export function StartPage({ machine, from, harness }: { machine: Machine; from: string; harness?: string }) {
   return (
     <div class="app">
       <div class="appbar">
         <button class="back" type="button" onClick={back}>{`‹ ${from}`}</button>
         <h1>{w('start.title')}</h1>
       </div>
-      <StartPanel machine={machine} />
+      <StartPanel machine={machine} harness={harness} />
     </div>
   );
 }

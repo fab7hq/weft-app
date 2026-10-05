@@ -71,6 +71,8 @@ export class FakeMachine {
   onAct: ((m: Record<string, unknown>) => Record<string, unknown>[]) | null = null;
   /** How a `read` is answered; else plain `ok`. */
   onRead: ((m: Record<string, unknown>) => Record<string, unknown>) | null = null;
+  /** How a `resolve` is answered; else plain `ok`. */
+  onResolve: ((m: Record<string, unknown>) => Record<string, unknown>[]) | null = null;
   /** How a `start` is answered; else `ok` with a new agent. */
   onStart: ((m: Record<string, unknown>) => Record<string, unknown>[]) | null = null;
   /** Answer `pair` with `asking`, then `paired` at once. */
@@ -106,6 +108,8 @@ export class FakeMachine {
           for (const out of this.onAct(m)) ws.send(JSON.stringify(out));
         } else if (m.type === 'read' && this.onRead) {
           ws.send(JSON.stringify(this.onRead(m)));
+        } else if (m.type === 'resolve' && this.onResolve) {
+          for (const o of this.onResolve(m)) ws.send(JSON.stringify(o));
         } else if (m.type === 'start') {
           const out = this.onStart ? this.onStart(m) : [{ type: 'ok', req: m.req, agent: `3f9a1c07b2de-${this.agents.length}` }];
           for (const o of out) ws.send(JSON.stringify(o));

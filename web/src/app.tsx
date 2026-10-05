@@ -129,8 +129,8 @@ export function App() {
       if (view.name === 'tree') queueMicrotask(() => openWanted(m.id));
       const shown =
         view.name === 'detail' ? <Details machine={m} unit={view.unit} />
-        : wide.value ? <Wide machine={m} agent={view.name === 'agent' ? view.agent : null} starting={view.name === 'start'} />
-        : view.name === 'start' ? <StartPage machine={m} from={view.from} />
+        : wide.value ? <Wide machine={m} agent={view.name === 'agent' ? view.agent : null} starting={view.name === 'start' ? view.harness ?? '' : null} />
+        : view.name === 'start' ? <StartPage machine={m} from={view.from} harness={view.harness} />
         : view.name === 'agent' ? <Agent machine={m} agent={view.agent} />
         : <TreePage machine={m} />;
       return (

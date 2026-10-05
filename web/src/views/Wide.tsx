@@ -20,7 +20,7 @@ function Woven({ machine }: { machine: Machine }) {
   );
 }
 
-export function Wide({ machine, agent, starting = false }: { machine: Machine; agent: string | null; starting?: boolean }) {
+export function Wide({ machine, agent, starting = null }: { machine: Machine; agent: string | null; starting?: string | null }) {
   return (
     <div class="app">
       <div class="appbar">
@@ -35,7 +35,7 @@ export function Wide({ machine, agent, starting = false }: { machine: Machine; a
           <TreeList machine={machine} onAgent={(a) => swap({ name: 'agent', machine: machine.id, agent: a })} />
         </nav>
         <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-          {starting ? <StartPanel machine={machine} /> : agent ? <Agent key={agent} machine={machine} agent={agent} embedded /> : <Woven machine={machine} />}
+          {starting !== null ? <StartPanel machine={machine} harness={starting} /> : agent ? <Agent key={agent} machine={machine} agent={agent} embedded /> : <Woven machine={machine} />}
         </main>
       </div>
       <TreeBar machine={machine} wide />

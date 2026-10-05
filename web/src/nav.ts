@@ -9,7 +9,7 @@ export type View =
   | { name: 'tree'; machine: string }
   | { name: 'agent'; machine: string; agent: string }
   | { name: 'detail'; machine: string; unit: string }
-  | { name: 'eval'; machine: string; unit: string }
+  | { name: 'eval'; machine: string; unit: string; at?: string; files?: boolean }
   | { name: 'start'; machine: string; from: string; harness?: string }
   | { name: 'settings' };
 
@@ -35,6 +35,13 @@ export function swap(view: View): void {
 
 export function back(): void {
   history.back();
+}
+
+/** Go back past every view on top named here. */
+export function leave(names: View['name'][]): void {
+  let n = 0;
+  for (let i = stack.value.length - 1; i > 0 && names.includes(stack.value[i].name); i--) n++;
+  if (n) history.go(-n);
 }
 
 addEventListener('popstate', (e) => {

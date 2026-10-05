@@ -1,10 +1,12 @@
 // A tablet or a desktop: the tree (380 px) beside the open agent, or a work's
-// Details in its place, the bar under both (D2.6, D5.2). One layout for both.
+// Details or Eval view in its place, the bar under both (D2.6, D5.2, D6.1).
+// One layout for both.
 import type { Machine } from '../api';
 import * as m from '../machine';
-import { swap } from '../nav';
+import { swap, type View } from '../nav';
 import { Agent } from './Agent';
 import { Details } from './Details';
+import { EvalView } from './EvalView';
 import { Mark, NeedsYouPill, StartButton, TreeList } from './Tree';
 import { StartPanel } from './Start';
 import { LinkPill } from './Status';
@@ -21,7 +23,7 @@ function Woven({ machine }: { machine: Machine }) {
   );
 }
 
-export function Wide({ machine, agent, starting = null, detail = null }: { machine: Machine; agent: string | null; starting?: string | null; detail?: string | null }) {
+export function Wide({ machine, agent, starting = null, view }: { machine: Machine; agent: string | null; starting?: string | null; view: View }) {
   return (
     <div class="app">
       <div class="appbar">
@@ -36,7 +38,9 @@ export function Wide({ machine, agent, starting = null, detail = null }: { machi
           <TreeList machine={machine} onAgent={(a) => swap({ name: 'agent', machine: machine.id, agent: a })} />
         </nav>
         <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-          {detail ? <Details key={detail} machine={machine} unit={detail} wide /> : starting !== null ? <StartPanel machine={machine} harness={starting} /> : agent ? <Agent key={agent} machine={machine} agent={agent} embedded /> : <Woven machine={machine} />}
+          {view.name === 'eval' ? <EvalView key={`${view.at}${view.files}`} machine={machine} unit={view.unit} at={view.at} files={view.files} wide />
+          : view.name === 'detail' ? <Details key={view.unit} machine={machine} unit={view.unit} wide />
+          : starting !== null ? <StartPanel machine={machine} harness={starting} /> : agent ? <Agent key={agent} machine={machine} agent={agent} embedded /> : <Woven machine={machine} />}
         </main>
       </div>
       <TreeBar machine={machine} wide />

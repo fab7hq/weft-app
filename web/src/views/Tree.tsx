@@ -4,8 +4,9 @@
 import { signal } from '@preact/signals';
 import type { Machine } from '../api';
 import * as m from '../machine';
-import { go } from '../nav';
+import { go, here } from '../nav';
 import { fill, stateWord, turnWord, w } from '../words';
+import { TreeBar } from './Bar';
 
 /** The work the bar's acts are on, by its Ask id. */
 export const selected = signal<string | null>(null);
@@ -41,11 +42,21 @@ export function Mark() {
   );
 }
 
-/** NEEDS YOU and how many: only while an agent asks for input. */
-export function NeedsYouPill() {
+/** NEEDS YOU and how many, while an agent asks for input: a tap opens the next one. */
+export function NeedsYouPill({ machine }: { machine: Machine }) {
   const n = m.needsYou.value;
   if (n === 0) return null;
-  return <span class="needs-pill">{`${w('title.needs_you').toUpperCase()} ${n}`}</span>;
+  const next = () => {
+    const asking = m.agents.value.filter((a) => a.turn === 'waiting');
+    const view = here();
+    const at = asking.findIndex((a) => view?.name === 'agent' && a.agent === view.agent);
+    go({ name: 'agent', machine: machine.id, agent: asking[(at + 1) % asking.length].agent });
+  };
+  return (
+    <button class="needs-pill" type="button" onClick={next}>
+      {`${w('title.needs_you').toUpperCase()} ${n}`}
+    </button>
+  );
 }
 
 /** A turn, as the web says it. */
@@ -182,10 +193,11 @@ export function TreePage({ machine }: { machine: Machine }) {
         <Mark />
         <h1>{machine.name}</h1>
         <span class="spacer" />
-        <NeedsYouPill />
+        <NeedsYouPill machine={machine} />
         <button class="menu" type="button" aria-label="Menu" onClick={() => go({ name: 'settings' })}>☰</button>
       </div>
       <TreeList machine={machine} onAgent={(agent) => go({ name: 'agent', machine: machine.id, agent })} />
+      <TreeBar machine={machine} wide={false} />
     </div>
   );
 }

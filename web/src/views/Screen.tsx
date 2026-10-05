@@ -103,12 +103,6 @@ export function Screen({ agent, driving, history, onHistory, onLive, onKey, box 
         if (!(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node | null)) paneHasKeys.value = false;
       }}
       onKeyDownCapture={(e) => {
-        // The TUI's own escape: Ctrl+] gives the keys back to Weft.
-        if (e.ctrlKey && (e.key === ']' || e.code === 'BracketRight')) {
-          e.preventDefault();
-          (document.activeElement as HTMLElement | null)?.blur();
-          return;
-        }
         const bytes = encode(e);
         if (!bytes) return;
         e.preventDefault();

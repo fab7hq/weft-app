@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Machine } from '../api';
 import * as m from '../machine';
-import { back, go, swap } from '../nav';
-import { BarSheet, Label, wideActs, type BarActs } from './Bar';
+import { back } from '../nav';
+import { BarSheet, askHere, type BarActs } from './Bar';
 import { KeyBar, mods, press } from './Keys';
 import { Tabs } from './Tabs';
 import { ANSWER, sent, typed } from '../keys';
 import { NeedsYouPill } from './Tree';
 import { Screen, fit } from './Screen';
-import { ConfirmSheet } from './Sheets';
+import { act } from './Asked';
 import { LinkPill } from './Status';
 import { w } from '../words';
 
@@ -28,41 +28,11 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
   const [message, setMessage] = useState('');
   const [history, setHistory] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
-  const [shown, setShown] = useState<string | null>(null);
-  const [answered, setAnswered] = useState(false);
   const [bar, setBar] = useState(false);
   const [typing, setTyping] = useState(false);
   const input = useRef<HTMLInputElement>(null);
-  const pending = m.pendings.value.find((p) => p.id === shown) ?? null;
-  const [kept, setKept] = useState<m.Pending | null>(null);
-  if (pending && pending !== kept) setKept(pending);
-
-  // A pending answered elsewhere closes the sheet, and says so.
-  useEffect(() => {
-    const r = m.resolved.value;
-    if (!r || r.id !== shown || answered) return;
-    setAnswered(true);
-    const t = setTimeout(() => {
-      setShown(null);
-      setAnswered(false);
-    }, 2500);
-    return () => clearTimeout(t);
-  }, [m.resolved.value, shown]);
-
   /** An Ask to this agent; its pending is shown when the machine answers. */
-  const ask = async (text: string) => {
-    if (!live) return;
-    const answer = await m.request({ type: 'act', agent, act: 'ask', text });
-    if (answer?.type === 'ok' && answer.pending) {
-      setAnswered(false);
-      setShown(String(answer.pending));
-    }
-  };
-  const answer = (yes: boolean) => {
-    if (!shown) return;
-    void m.request({ type: 'resolve', pending: shown, yes });
-    setShown(null);
-  };
+  const ask = (text: string) => live && void act({ agent, act: 'ask', text });
 
   const takeKeys = () => {
     if (sized.has(agent) || !box.current) return;
@@ -91,55 +61,25 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
     if (answer?.type === 'ok') setHistory(String(answer.text ?? ''));
   };
 
-  const acts: BarActs = {
-    live,
-    onAsk: () => setAsking(true),
-    onList: embedded ? null : back,
-    onHistory: () => void showHistory(),
-    onWeft: () => go({ name: 'settings' }),
-  };
-  // Wide: the bar under the list and the pane draws these acts.
-  useEffect(() => {
-    if (!embedded) return;
-    wideActs.value = acts;
-  });
-  useEffect(() => () => {
-    if (embedded) wideActs.value = null;
-  }, []);
+  const acts: BarActs = { live, onAsk: () => setAsking(true) };
   // Ask puts the person in the message box.
   useEffect(() => {
     if (asking) input.current?.focus();
   }, [asking]);
-  // While Weft has the keys (nothing focused that types), the TUI's keys act (§7).
+  // Ask from the tree's bar: this agent, in the message box.
   useEffect(() => {
-    const keys = (e: KeyboardEvent) => {
-      const t = e.target as HTMLElement;
-      if (e.metaKey || e.ctrlKey || e.altKey || t.closest('input, textarea, [tabindex="0"], [role="dialog"]')) return;
-      const k = e.key.toLowerCase();
-      const n = Number(k);
-      const tab = n >= 1 && n <= 9 ? m.agents.value[n - 1] : undefined;
-      const known: Record<string, () => void> = {
-        a: acts.onAsk,
-        h: acts.onHistory,
-        w: acts.onWeft,
-        l: () => (acts.onList ? acts.onList() : (document.querySelector('nav[aria-label="Agents"] button') as HTMLElement | null)?.focus()),
-      };
-      const run = tab ? () => tab.agent !== agent && swap({ name: 'agent', machine: machine.id, agent: tab.agent }) : known[k];
-      if (!run) return;
-      e.preventDefault();
-      run();
-    };
-    addEventListener('keydown', keys);
-    return () => removeEventListener('keydown', keys);
-  });
+    if (!askHere.value) return;
+    askHere.value = false;
+    setAsking(true);
+  }, [askHere.value]);
 
   return (
     <div class="app" style={embedded ? { height: '100%' } : undefined}>
       {!embedded && (
         <div class="appbar">
-          <button class="back" type="button" onClick={back}>‹ Agents</button>
+          <button class="back" type="button" onClick={back}>{`‹ ${a?.project ?? machine.name}`}</button>
           <span class="spacer" />
-          <NeedsYouPill />
+          <NeedsYouPill machine={machine} />
           <LinkPill />
         </div>
       )}
@@ -208,7 +148,6 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
           keys={<KeyBar live={live} send={key} />}
         />
       )}
-      {shown && (pending ?? kept) && <ConfirmSheet pending={(pending ?? kept)!} answered={answered} onAnswer={answer} />}
     </div>
   );
 }

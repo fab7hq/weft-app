@@ -6,7 +6,7 @@ import { swap } from '../nav';
 import { Agent } from './Agent';
 import { Mark, NeedsYouPill, TreeList } from './Tree';
 import { LinkPill } from './Status';
-import { WideBar } from './Bar';
+import { TreeBar } from './Bar';
 
 export function Wide({ machine, agent }: { machine: Machine; agent: string | null }) {
   return (
@@ -16,7 +16,7 @@ export function Wide({ machine, agent }: { machine: Machine; agent: string | nul
         <h1>{machine.name}</h1>
         {m.link.value !== 'connected' && <LinkPill />}
         <span class="spacer" />
-        <NeedsYouPill />
+        <NeedsYouPill machine={machine} />
       </div>
       <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
         <nav aria-label="Work" class="tree-side">
@@ -26,7 +26,7 @@ export function Wide({ machine, agent }: { machine: Machine; agent: string | nul
           {agent && <Agent key={agent} machine={machine} agent={agent} embedded />}
         </main>
       </div>
-      <WideBar />
+      <TreeBar machine={machine} wide />
     </div>
   );
 }

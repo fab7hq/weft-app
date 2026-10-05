@@ -5,6 +5,7 @@ import * as machine from './machine';
 import * as store from './store';
 import { AddMachine } from './views/AddMachine';
 import { Agent } from './views/Agent';
+import { PendingSheet } from './views/Asked';
 import { Details } from './views/Details';
 import { TreePage } from './views/Tree';
 import { Machines } from './views/Machines';
@@ -123,9 +124,17 @@ export function App() {
       if (machine.link.value === 'asking') return <Asking name={m.name} />;
       if (machine.link.value === 'refused') return <Refused name={m.name} />;
       if (view.name === 'tree') queueMicrotask(() => openWanted(m.id));
-      if (view.name === 'detail') return <Details machine={m} unit={view.unit} />;
-      if (wide.value) return <Wide machine={m} agent={view.name === 'agent' ? view.agent : null} />;
-      return view.name === 'agent' ? <Agent machine={m} agent={view.agent} /> : <TreePage machine={m} />;
+      const shown =
+        view.name === 'detail' ? <Details machine={m} unit={view.unit} />
+        : wide.value ? <Wide machine={m} agent={view.name === 'agent' ? view.agent : null} />
+        : view.name === 'agent' ? <Agent machine={m} agent={view.agent} />
+        : <TreePage machine={m} />;
+      return (
+        <>
+          {shown}
+          <PendingSheet />
+        </>
+      );
     }
     case 'settings':
       return <Settings login={a.login} />;

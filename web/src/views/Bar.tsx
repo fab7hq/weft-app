@@ -3,10 +3,11 @@
 import type { ComponentChildren } from 'preact';
 import { signal } from '@preact/signals';
 import { useEffect } from 'preact/hooks';
+import { w } from '../words';
 
 /** A bar label the way the TUI writes it: the key in brackets, the rest in capitals. */
-export function Label({ word }: { word: string }) {
-  const upper = word.toUpperCase();
+export function Label({ act }: { act: string }) {
+  const upper = w(act).toUpperCase();
   return <>{`[${upper[0]}]${upper.slice(1)}`}</>;
 }
 
@@ -37,17 +38,17 @@ export function BarSheet({ acts, keys, onClose }: { acts: BarActs; keys: Compone
     <div class="sheet-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div class="fab7-sheet bar-sheet" role="dialog" aria-label="Weft">
         <div class="bar-row">
-          <button class="fab7-button fab7-button--secondary" type="button" aria-label="Ask" disabled={!live} onClick={then(() => acts.onAct('ask'))}><Label word="ask" /></button>
-          <button class="fab7-button fab7-button--secondary" type="button" aria-label="Eval" disabled={!live || !unit} onClick={then(() => acts.onAct('eval'))}><Label word="eval" /></button>
-          <button class="fab7-button fab7-button--secondary" type="button" aria-label="Seal" disabled={!live || !unit} onClick={then(() => acts.onAct('seal'))}><Label word="seal" /></button>
+          <button class="fab7-button fab7-button--secondary" type="button" aria-label={w('act.ask')} disabled={!live} onClick={then(() => acts.onAct('ask'))}><Label act="act.ask" /></button>
+          <button class="fab7-button fab7-button--secondary" type="button" aria-label={w('act.eval')} disabled={!live || !unit} onClick={then(() => acts.onAct('eval'))}><Label act="act.eval" /></button>
+          <button class="fab7-button fab7-button--secondary" type="button" aria-label={w('act.seal')} disabled={!live || !unit} onClick={then(() => acts.onAct('seal'))}><Label act="act.seal" /></button>
         </div>
         {unit ? (
           <p class="note">{unit.title}</p>
         ) : (
-          <p class="note">Nothing to work on yet.</p>
+          <p class="note">{w('why.nothing_to_work_on')}</p>
         )}
         {unit?.eval != null && (
-          <button class="fab7-button fab7-button--secondary" type="button" aria-label="Eval view" disabled={!live} onClick={then(acts.onRecord)}>[V] EVAL VIEW</button>
+          <button class="fab7-button fab7-button--secondary" type="button" aria-label={w('act.eval_view')} disabled={!live} onClick={then(acts.onRecord)}>[V] {w('act.eval_view').toUpperCase()}</button>
         )}
         {keys}
       </div>
@@ -69,11 +70,11 @@ export function WideBar() {
         <span class="wide-bar-hint">{'Ctrl+]  BACK TO WEFT'}</span>
       ) : (
         <>
-          <button class="bar-word" type="button" disabled={!acts?.live} onClick={() => acts?.onAct('ask')}><Label word="ask" /></button>
-          <button class="bar-word" type="button" disabled={!acts?.live || !acts.unit} onClick={() => acts?.onAct('eval')}><Label word="eval" /></button>
-          <button class="bar-word" type="button" disabled={!acts?.live || !acts.unit} onClick={() => acts?.onAct('seal')}><Label word="seal" /></button>
+          <button class="bar-word" type="button" disabled={!acts?.live} onClick={() => acts?.onAct('ask')}><Label act="act.ask" /></button>
+          <button class="bar-word" type="button" disabled={!acts?.live || !acts.unit} onClick={() => acts?.onAct('eval')}><Label act="act.eval" /></button>
+          <button class="bar-word" type="button" disabled={!acts?.live || !acts.unit} onClick={() => acts?.onAct('seal')}><Label act="act.seal" /></button>
           <span class="spacer" />
-          <button class="bar-word" type="button" onClick={() => acts?.onWeft()}><Label word="weft" /> ⌄</button>
+          <button class="bar-word" type="button" onClick={() => acts?.onWeft()}>{'[W]EFT ⌄'}</button>
         </>
       )}
     </div>

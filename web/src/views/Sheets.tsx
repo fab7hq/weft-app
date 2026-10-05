@@ -1,6 +1,7 @@
 // The two sheets (web-app.md §7): what Weft will type, exactly, before it
 // types it; and the Eval record.
 import type * as m from '../machine';
+import { evalState, w } from '../words';
 
 export function ConfirmSheet({ pending, answered, onAnswer }: { pending: m.Pending; answered: boolean; onAnswer: (yes: boolean) => void }) {
   return (
@@ -41,8 +42,6 @@ export interface EvalRecord {
   groups: { key: string; title: string; steps: Step[] }[];
 }
 
-const STATE: { [k: string]: string } = { met: 'Met', not_met: 'Not met', unsettled: 'Unsettled', judging: 'Judging' };
-const said = (s: Step['state']) => (typeof s === 'string' ? STATE[s] ?? s : `${s.read.replaceAll('_', ' ')}, so far`);
 
 export function RecordSheet({ record, title, onSeal, onAskAgain, onClose }: { record: EvalRecord; title: string; onSeal: () => void; onAskAgain: () => void; onClose: () => void }) {
   const steps = record.groups.flatMap((g) => g.steps);
@@ -59,7 +58,7 @@ export function RecordSheet({ record, title, onSeal, onAskAgain, onClose }: { re
           {steps.map((s) => (
             <li key={s.id} style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingBottom: '14px', borderBottom: '1px solid var(--fab7-line)' }}>
               <span style={{ fontSize: '14px', fontWeight: 600, color: s.state === 'not_met' ? 'var(--fab7-amber-text)' : undefined }}>
-                {said(s.state)} · {s.text}
+                {evalState(s.state)} · {s.text}
               </span>
               {s.readings.map((r) => (
                 <span key={r.role} style={{ fontSize: '13px', lineHeight: 1.6, color: 'var(--fab7-muted)' }}>{r.reason}</span>
@@ -69,7 +68,7 @@ export function RecordSheet({ record, title, onSeal, onAskAgain, onClose }: { re
         </ul>
         <div class="fab7-sheet__actions">
           <button class="fab7-button fab7-button--secondary" type="button" onClick={onAskAgain}>Ask again</button>
-          <button class="fab7-button" type="button" onClick={onSeal}>Seal</button>
+          <button class="fab7-button" type="button" onClick={onSeal}>{w('act.seal')}</button>
         </div>
         <button class="back" type="button" onClick={onClose}>Close</button>
       </div>

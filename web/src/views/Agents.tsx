@@ -2,14 +2,8 @@ import type { Machine } from '../api';
 import * as m from '../machine';
 import { go } from '../nav';
 import { LinkPill } from './Status';
+import { turnWord } from '../words';
 
-/** The machine's words for a turn (weft_core's `Turn::plain`). */
-const WORDS: Record<m.Agent['turn'], string> = {
-  waiting: 'waiting for you',
-  working: 'working',
-  ready: 'ready',
-  ended: 'turn ended',
-};
 
 const PILL: Record<m.Agent['turn'], string> = { waiting: 'Needs you', working: 'Working', ready: 'Ready', ended: 'Ended' };
 
@@ -57,7 +51,7 @@ export function AgentList({ machine, open }: { machine: Machine; open?: string }
                 onClick={() => go({ name: 'agent', machine: machine.id, agent: a.agent })}
               >
                 <span class="fab7-row__title">{a.project} · {a.title}</span>
-                <span class="fab7-row__meta">{WORDS[a.turn]}</span>
+                <span class="fab7-row__meta">{turnWord(a.turn)}</span>
                 <span class="fab7-row__since">
                   <span class={a.turn === 'waiting' ? 'fab7-pill fab7-pill--needs-you' : 'fab7-pill'}>{PILL[a.turn]}</span>
                   {since(a.since)}

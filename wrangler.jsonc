@@ -1,6 +1,6 @@
 // One Worker on weft.getfab7.com: the web app's static files, and a small API
 // for sign-in, the person's Macs and their addresses (account.md §2). Only
-// /api/* and /auth/* run the Worker; every other path is a static file.
+// /api/*, /auth/* and /words.json run the Worker; every other path is a static file.
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "weft-app",
@@ -10,7 +10,7 @@
     "directory": "./web/dist",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*", "/auth/*"]
+    "run_worker_first": ["/api/*", "/auth/*", "/words.json"]
   },
   // A Custom Domain: the Worker is the origin, DNS and certificate are Cloudflare's.
   "routes": [{ "pattern": "weft.getfab7.com", "custom_domain": true }],

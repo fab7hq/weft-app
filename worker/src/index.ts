@@ -71,12 +71,23 @@ async function route(request: Request, env: Env): Promise<Response> {
   }
 }
 
+/** The web app's language pack, revalidated on every load so a replaced file shows on the next refresh. */
+async function words(request: Request, env: Env): Promise<Response> {
+  // Asked afresh, without the browser's If-None-Match: the file is small, and
+  // an asset store's answer to a conditional request can lag a replaced file.
+  const file = await env.ASSETS.fetch(new Request(request.url));
+  const r = new Response(file.body, file);
+  r.headers.set('Cache-Control', 'no-cache');
+  return r;
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/auth/')) {
       return route(request, env);
     }
+    if (url.pathname === '/words.json') return words(request, env);
     return env.ASSETS.fetch(request);
   },
   async scheduled(_controller: ScheduledController, env: Env): Promise<void> {

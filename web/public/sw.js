@@ -20,6 +20,8 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   if (event.request.method !== 'GET' || url.origin !== self.location.origin) return;
   if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/auth/')) return;
+  // The words are the language pack: always the server's, so a replaced file shows on the next load.
+  if (url.pathname === '/words.json') return;
   // A page: the network first, the kept shell when there is none.
   if (event.request.mode === 'navigate') {
     event.respondWith(

@@ -1,5 +1,6 @@
 import { render } from 'preact';
 import { App } from './app';
+import { load } from './words';
 import './fab7.css';
 import './app.css';
 
@@ -14,4 +15,5 @@ const fit = () => {
 window.visualViewport?.addEventListener('resize', fit);
 fit();
 
-render(<App />, document.getElementById('app')!);
+// The shared words come first: no screen is drawn without them.
+void load().then(() => render(<App />, document.getElementById('app')!));

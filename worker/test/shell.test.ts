@@ -15,3 +15,13 @@ describe('the Worker', () => {
     expect(r.status).toBe(404);
   });
 });
+
+describe('words.json', () => {
+  it('is served to be revalidated on every load', async () => {
+    const worker = (await import('../src/index')).default;
+    const env = { ASSETS: { fetch: async () => new Response('{"act.ask":"Ask"}', { headers: { 'Content-Type': 'application/json' } }) } };
+    const r = await worker.fetch(new Request('https://weft.getfab7.com/words.json'), env as never);
+    expect(r.headers.get('Cache-Control')).toBe('no-cache');
+    expect(await r.json()).toEqual({ 'act.ask': 'Ask' });
+  });
+});

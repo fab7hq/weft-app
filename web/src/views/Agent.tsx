@@ -10,6 +10,7 @@ import { NeedsYou } from './Agents';
 import { Screen, fit } from './Screen';
 import { ConfirmSheet, RecordSheet, type EvalRecord } from './Sheets';
 import { LinkPill } from './Status';
+import { stateWord, w } from '../words';
 
 export const b64 = (bytes: number[]) => btoa(String.fromCharCode(...bytes));
 
@@ -166,13 +167,13 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
       {a?.unit && a.turn === 'ended' && (
         // On cue (§7): the Ask on the board, once its turn has ended.
         <div class="cue" role="group" aria-label="On cue">
-          <span class="cue-text">{a.unit.title} · {a.unit.eval == null ? 'ASKED' : 'EVALED'}</span>
+          <span class="cue-text">{a.unit.title} · {stateWord(a.unit.eval == null ? 'asked' : 'evaled')}</span>
           {a.unit.eval == null ? (
-            <button class="fab7-button fab7-button--secondary" type="button" aria-label="Eval" disabled={!live} onClick={() => void act('eval')}><Label word="eval" /></button>
+            <button class="fab7-button fab7-button--secondary" type="button" aria-label={w('act.eval')} disabled={!live} onClick={() => void act('eval')}><Label act="act.eval" /></button>
           ) : (
             <>
-              <button class="fab7-button fab7-button--secondary" type="button" aria-label="Seal" disabled={!live} onClick={() => void act('seal')}><Label word="seal" /></button>
-              <button class="fab7-button fab7-button--secondary" type="button" aria-label="Ask" disabled={!live} onClick={() => setAsking(true)}><Label word="ask" /></button>
+              <button class="fab7-button fab7-button--secondary" type="button" aria-label={w('act.seal')} disabled={!live} onClick={() => void act('seal')}><Label act="act.seal" /></button>
+              <button class="fab7-button fab7-button--secondary" type="button" aria-label={w('act.ask')} disabled={!live} onClick={() => setAsking(true)}><Label act="act.ask" /></button>
             </>
           )}
         </div>
@@ -180,7 +181,7 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
       {a?.turn === 'waiting' && (
         // While the agent waits for its person (its hooks say so; the screen is never read).
         <div class="answer-strip" role="toolbar" aria-label="Answer">
-          <span class="label">NEEDS YOU</span>
+          <span class="label">{w('title.needs_you').toUpperCase()}</span>
           {ANSWER.map(({ label, name }) => (
             <button key={name} class="fab7-key" type="button" aria-label={name} disabled={!live} onClick={() => press(name, key)}>
               {label}
@@ -197,11 +198,11 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
       )}
       <form class="message-row" onSubmit={sendText}>
         {asking ? (
-          <button class="fab7-key" type="button" aria-label="Cancel" onClick={() => setAsking(false)}>✕</button>
+          <button class="fab7-key" type="button" aria-label={w('act.cancel')} onClick={() => setAsking(false)}>✕</button>
         ) : (
           <button class="fab7-key" type="button" aria-label="The bar" onClick={() => setBar(true)}>⌃</button>
         )}
-        <label for="message" style={{ position: 'absolute', left: '-9999px' }}>{asking ? 'What do you want done?' : 'Message'}</label>
+        <label for="message" style={{ position: 'absolute', left: '-9999px' }}>{asking ? w('ask.title') : 'Message'}</label>
         <input
           id="message"
           ref={input}
@@ -218,11 +219,11 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
             key(bytes);
             mods.value = sent(mods.value);
           }}
-          placeholder={asking ? 'What do you want done?' : a ? `Message ${a.title}` : 'Message'}
+          placeholder={asking ? w('ask.title') : a ? `Message ${a.title}` : 'Message'}
           disabled={!live}
           style={{ flex: 1, minWidth: 0 }}
         />
-        <button class="fab7-button" type="submit" aria-label={asking ? 'Ask' : 'Send'} disabled={!live}>{asking ? 'Ask' : '▶'}</button>
+        <button class="fab7-button" type="submit" aria-label={asking ? w('act.ask') : w('act.send')} disabled={!live}>{asking ? w('act.ask') : '▶'}</button>
       </form>
       {bar && (
         <BarSheet

@@ -37,6 +37,12 @@ export async function machines(): Promise<Machine[]> {
   return r.json();
 }
 
+/** Take a machine off the account. Weft on it is not touched. */
+export async function removeMachine(id: string): Promise<void> {
+  const r = await call('DELETE', `/api/machines/${encodeURIComponent(id)}`);
+  if (!r.ok && r.status !== 404) throw new Offline();
+}
+
 /** Fab7's word that this device is the machine's owner's, for 60 seconds. */
 export async function assertion(machine: string, device: string): Promise<string> {
   const r = await call('POST', '/api/assertion', { machine, device });

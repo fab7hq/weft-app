@@ -171,3 +171,19 @@ a { color: var(--fab7-accent); }
 .settings-foot { margin: auto 16px 24px; }
 .menu-backdrop { position: fixed; inset: 0; z-index: 30; }
 .menu-pop { position: absolute; right: 16px; bottom: 64px; width: 320px; max-height: calc(100vh - 140px); overflow: auto; border: 1px solid var(--fab7-line); border-radius: 12px; background: var(--fab7-panel); box-shadow: 0 12px 40px #0008; }
+
+/* A page of its own on a tablet or a desktop (D1.x, D8.x, D9.2): one column,
+   520 px, centred under the bar, as the cards draw it. */
+@media (min-width: 768px) {
+  .page, .settings { flex: 1; width: 520px; max-width: calc(100% - 40px); margin: 0 auto; padding: 70px 0 32px; gap: 16px; justify-content: flex-start !important; }
+  .page .note[style*="margin-top: auto"] { margin-top: 0 !important; }
+}
+
+/* Your machines: a row opens its machine; Remove sits at its end (always on a
+   desktop, after a swipe left on a phone). */
+.machines { list-style: none; margin: 0; padding: 0; }
+.machine { display: flex; align-items: stretch; border-bottom: 1px solid var(--fab7-line); }
+.machine-open { flex: 1; min-width: 0; background: none; border: 0 !important; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.machine-remove { flex: none; align-self: center; margin-right: 12px; padding: 8px 14px; border: 1px solid var(--fab7-line); border-radius: 10px; background: none; color: var(--fab7-muted); font: 600 13px var(--font-sans); cursor: pointer; }
+.machine-remove--sure { color: var(--fab7-amber-text); border-color: var(--fab7-amber-text); }
+@media (max-width: 767px) { .machine--swiped .machine-remove { align-self: stretch; margin: 0; border: 0; border-radius: 0; background: #b3261e; color: #fff; padding: 0 20px; } }

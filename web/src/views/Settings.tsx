@@ -94,9 +94,14 @@ export function MachineRows({ then }: { then?: () => void }) {
 /** Leave: sign out here or everywhere, forget this device, delete the account. */
 async function leave(how: 'out' | 'everywhere' | 'forget' | 'delete') {
   if (how === 'forget') {
+    // This browser drops its name, its tokens and its notifications; the
+    // next time it opens a machine, the machine asks again.
+    m.send({ type: 'push', subscription: null });
+    await (await navigator.serviceWorker?.getRegistration())?.pushManager.getSubscription().then((s) => s?.unsubscribe());
     await store.clear('macs');
     await store.clear('devices');
-    return;
+    m.close();
+    return location.assign('/');
   }
   if (how === 'delete') await api.deleteAccount();
   else await api.signOut(how === 'everywhere');

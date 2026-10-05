@@ -66,6 +66,17 @@ export async function lookWho(): Promise<void> {
   }
 }
 
+/** A machine left the account: it goes from the list, and from the screen if open. */
+function removed(id: string): void {
+  const a = account.value;
+  if (a.state !== 'signed_in') return;
+  const machines = a.machines.filter((m) => m.id !== id);
+  account.value = { ...a, machines };
+  machine.mine.value = machines;
+  if (machine.current.value?.id === id) machine.close();
+  if (machines.length === 0) reset({ name: 'add' });
+}
+
 /** A machine joined while the account had none: look again, and open it. */
 const joined = () => void lookWho();
 
@@ -138,14 +149,14 @@ export function App() {
     case 'add':
       return <AddMachine login={a.login} onJoined={joined} />;
     case 'machines':
-      return <Machines list={a.machines} />;
+      return <Machines list={a.machines} wide={wide.value} onRemoved={removed} />;
     case 'tree':
     case 'agent':
     case 'detail':
     case 'eval':
     case 'start': {
       const m = a.machines.find((x) => x.id === view.machine);
-      if (!m) return <Machines list={a.machines} />;
+      if (!m) return <Machines list={a.machines} wide={wide.value} onRemoved={removed} />;
       machine.open(m);
       if (machine.link.value === 'asking') return <Asking name={m.name} />;
       if (machine.link.value === 'refused') return <Refused name={m.name} />;

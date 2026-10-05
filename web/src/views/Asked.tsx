@@ -48,16 +48,18 @@ function SendBar() {
   const [answered, setAnswered] = useState(false);
   const [unready, setUnready] = useState<string | null>(null);
   if (pending && pending !== kept) setKept(pending);
+  // Answered on the machine first: say so, then go. The timer hangs on
+  // `answered` alone, so a later message cannot cancel it.
+  const r = m.resolved.value;
+  if (r && r.id === id && !answered) setAnswered(true);
   useEffect(() => {
-    const r = m.resolved.value;
-    if (!r || r.id !== id || answered) return;
-    setAnswered(true);
+    if (!answered) return;
     const t = setTimeout(() => {
       shown.value = null;
       setAnswered(false);
     }, 2500);
     return () => clearTimeout(t);
-  }, [m.resolved.value, id]);
+  }, [answered]);
   const showing = pending ?? (kept?.id === id ? kept : null);
   if (!id || !showing) return null;
   const answer = async (yes: boolean, force = false) => {

@@ -107,7 +107,7 @@ export const current = signal<api.Machine | null>(null);
 export const needsYou = computed(() => agents.value.filter((a) => a.turn === 'waiting').length);
 
 /** The refusals a machine gives, by the words key that says each. */
-const REFUSED = ['denied', 'expired', 'not_owner', 'busy'];
+const REFUSED = ['denied', 'expired', 'not_owner', 'busy', 'version'];
 
 let socket: WebSocket | null = null;
 let machine: api.Machine | null = null;

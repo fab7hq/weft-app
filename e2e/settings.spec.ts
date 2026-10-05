@@ -40,3 +40,18 @@ test('deleting the account asks once more on the page', async ({ page, context }
   await expect(page.getByRole('link', { name: 'Sign in with GitHub' })).toBeVisible();
   await machine.close();
 });
+
+test('forgetting this device makes the machine ask again, as a new device', async ({ page, context }) => {
+  const machine = await FakeMachine.start();
+  machine.agents = [agent(0, 'weft', 'claude-code', 'working')];
+  await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
+  await page.goto('/');
+  await expect(page.getByRole('treeitem', { name: 'weft', exact: true }).first()).toBeVisible();
+  await page.getByRole('button', { name: 'Menu' }).click();
+  await page.getByRole('button', { name: 'Forget this device' }).click();
+  await expect.poll(() => machine.of('pair').length).toBe(2);
+  const [first, again] = machine.of('pair');
+  expect(again.device).not.toBe(first.device);
+  await expect(page.getByRole('treeitem', { name: 'weft', exact: true }).first()).toBeVisible();
+  await machine.close();
+});

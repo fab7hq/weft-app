@@ -33,7 +33,7 @@ test('notifications on: the subscription goes to the machine; its push shows and
   await page.getByLabel(/Notifications from studio/).click();
   await expect.poll(() => machine.of('push').length).toBe(1);
   expect(machine.of('push')[0]).toEqual({ type: 'push', subscription: { endpoint: 'https://push.example/sub/1', keys: { p256dh: 'BPk', auth: 'au' } } });
-  await page.getByRole('button', { name: '‹ Back' }).click();
+  await page.keyboard.press('Escape');
 
   // What weft remote sends (remote.md §10), delivered to the service worker.
   const cdp = await context.newCDPSession(page);

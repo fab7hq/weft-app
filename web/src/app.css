@@ -157,3 +157,17 @@ a { color: var(--fab7-accent); }
 @keyframes weave { from { opacity: 0.35; letter-spacing: 0; } to { opacity: 1; letter-spacing: 1px; } }
 @media (prefers-reduced-motion: reduce) { .woven--weaving .woven-mark { animation: none; } }
 .allow-key { min-width: 30px; height: 30px; margin: 0 6px; padding: 0 8px; font: 600 12px var(--font-mono); cursor: default; vertical-align: middle; }
+
+/* Settings (M9.1, D9.2) and the desktop's menu (D9.1). */
+.settings { flex: 1; overflow: auto; display: flex; flex-direction: column; }
+.settings-row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 8px 16px; border: 0; border-bottom: 1px solid var(--fab7-line); background: none; color: var(--fab7-text); font: 15px var(--font-sans); text-align: left; cursor: pointer; }
+.settings-row--read { cursor: default; color: var(--fab7-muted); }
+.settings-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.settings-sub { font-size: 12px; color: var(--fab7-muted); }
+.settings-toggle { width: 22px; height: 22px; accent-color: #58a6ff; }
+.settings-said { display: flex; flex-direction: column; gap: 6px; padding: 12px 16px; }
+.settings-field { display: flex; flex-direction: column; gap: 6px; padding: 8px 16px 16px; border-bottom: 1px solid var(--fab7-line); }
+.settings-acts { display: flex; flex-direction: column; gap: 12px; padding: 8px 16px; }
+.settings-foot { margin: auto 16px 24px; }
+.menu-backdrop { position: fixed; inset: 0; z-index: 30; }
+.menu-pop { position: absolute; right: 16px; bottom: 64px; width: 320px; max-height: calc(100vh - 140px); overflow: auto; border: 1px solid var(--fab7-line); border-radius: 12px; background: var(--fab7-panel); box-shadow: 0 12px 40px #0008; }

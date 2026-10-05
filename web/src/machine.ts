@@ -80,6 +80,8 @@ export interface Frame {
 
 export type Link = 'connecting' | 'asking' | 'connected' | 'reconnecting' | 'refused';
 
+/** The machines on this person's account. */
+export const mine = signal<api.Machine[]>([]);
 export const link = signal<Link>('connecting');
 /** The open machine has welcomed this device since it was opened: there is a tree to show. */
 export const welcomed = signal(false);

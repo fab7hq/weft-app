@@ -18,23 +18,23 @@ function key(vapid: string): Uint8Array<ArrayBuffer> {
   return out;
 }
 
-/** Turn pushes on for this machine: why not, if not. */
+/** Turn pushes on for this machine: why not, as a words key, if not. */
 export async function turnOn(machine: string): Promise<string | null> {
-  if (needsHomeScreen()) return 'home_screen';
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return 'This browser does not take pushes.';
-  if (!m.vapid.value) return 'Connect to the machine first.';
-  if ((await Notification.requestPermission()) !== 'granted') return 'Notifications are turned off for Weft in this browser.';
+  if (needsHomeScreen()) return 'web.push.home_screen';
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return 'web.push.unsupported';
+  if (!m.vapid.value) return 'web.push.connect_first';
+  if ((await Notification.requestPermission()) !== 'granted') return 'web.push.denied';
   const reg = await navigator.serviceWorker.ready;
   const old = await reg.pushManager.getSubscription();
   if (old) await old.unsubscribe();
   try {
     const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key(m.vapid.value) });
-    if (!m.send({ type: 'push', subscription: sub.toJSON() })) return 'Not connected to the machine.';
+    if (!m.send({ type: 'push', subscription: sub.toJSON() })) return 'web.push.not_connected';
     const kept = (await store.get<store.Kept>('macs', machine)) ?? {};
     await store.set('macs', machine, { ...kept, push: true });
     return null;
   } catch {
-    return 'The browser could not subscribe to pushes.';
+    return 'web.push.failed';
   }
 }
 

@@ -57,6 +57,7 @@ export async function lookWho(): Promise<void> {
     }
     const machines = await api.machines();
     account.value = { state: 'signed_in', login: me.login, machines };
+    machine.mine.value = machines;
     if (machines.length === 0) reset({ name: 'add' });
     else if (machines.length === 1) reset({ name: 'tree', machine: machines[0].id });
     else reset({ name: 'machines' });
@@ -165,7 +166,7 @@ export function App() {
       );
     }
     case 'settings':
-      return <Settings login={a.login} />;
+      return <Settings login={a.login} wide={wide.value} />;
     default:
       return <div class="app" />;
   }

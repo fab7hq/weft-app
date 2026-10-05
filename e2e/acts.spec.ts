@@ -23,7 +23,7 @@ test('an Ask is composed, then shown exactly as it will be typed, then said yes 
 
   await page.getByRole('button', { name: 'The bar', exact: true }).click();
   await page.getByRole('dialog', { name: 'Weft' }).getByRole('button', { name: 'Ask', exact: true }).click();
-  await page.getByLabel('What do you want done?').fill('Add a health endpoint');
+  await page.getByRole('textbox', { name: 'What do you want done?' }).fill('Add a health endpoint');
   await page.getByRole('button', { name: 'Ask', exact: true }).click();
   await expect.poll(() => machine.of('act').length).toBe(1);
   expect(machine.of('act')[0]).toMatchObject({ act: 'ask', agent: '3f9a1c07b2de-0', text: 'Add a health endpoint' });
@@ -48,7 +48,7 @@ test('an Ask answered on the machine first closes the sheet and says so', async 
   await page.getByRole('treeitem', { name: 'claude-code', exact: true }).first().click();
   await page.getByRole('button', { name: 'The bar', exact: true }).click();
   await page.getByRole('dialog', { name: 'Weft' }).getByRole('button', { name: 'Ask', exact: true }).click();
-  await page.getByLabel('What do you want done?').fill('Add a health endpoint');
+  await page.getByRole('textbox', { name: 'What do you want done?' }).fill('Add a health endpoint');
   await page.getByRole('button', { name: 'Ask', exact: true }).click();
   await expect.poll(() => machine.of('act').length).toBe(1);
   const sheet = page.getByRole('dialog', { name: 'Ready to ask claude-code' });

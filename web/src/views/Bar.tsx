@@ -5,7 +5,8 @@ import { signal } from '@preact/signals';
 import { useEffect, useState } from 'preact/hooks';
 import type { Machine } from '../api';
 import * as m from '../machine';
-import { go } from '../nav';
+import { go, here } from '../nav';
+import { asking } from './Ask';
 import { act } from './Asked';
 import { KeyBar } from './Keys';
 import { selected } from './Tree';
@@ -45,8 +46,6 @@ export function BarSheet({ acts, keys, onClose }: { acts: BarActs; keys: Compone
 
 /** The pane is active: it has the keys, and a wheel or a finger scrolls its history. */
 export const paneActive = signal(false);
-/** Ask, from the tree's bar: the agent opened next puts the person in its message box. */
-export const askHere = signal(false);
 /** Where the open agent's keys go, for the desktop bar's Keys. */
 export const openKeys = signal<((bytes: number[]) => void) | null>(null);
 
@@ -75,13 +74,16 @@ export function TreeBar({ machine, wide }: { machine: Machine; wide: boolean }) 
     const refused = await act({ act: which, unit: at.work.unit });
     if (refused) setSaid(String(refused.message));
   };
+  /** Ask, of the selected work's project: its agent first, else the open one, else the first running. */
   const onAsk = () => {
     setSaid(null);
-    const running = m.tree.value.flatMap((p) => p.harnesses).filter((h) => h.agent);
-    const agent = selection()?.h.agent ?? running[0]?.agent;
+    const at = selection();
+    const view = here();
+    const open = view?.name === 'agent' ? m.agents.value.find((a) => a.agent === view.agent && a.running) : undefined;
+    const first = m.agents.value.find((a) => a.running);
+    const agent = at?.h.agent ?? open?.agent ?? first?.agent;
     if (!agent) return setSaid(fill('web.why.start_an_agent', { machine: machine.name }));
-    askHere.value = true;
-    go({ name: 'agent', machine: machine.id, agent });
+    asking.value = { agent, project: m.agents.value.find((a) => a.agent === agent)?.project };
   };
   return (
     <div class={wide ? 'tree-bar tree-bar--wide' : 'tree-bar'}>
@@ -93,7 +95,7 @@ export function TreeBar({ machine, wide }: { machine: Machine; wide: boolean }) 
         </div>
       )}
       <div class="tree-acts" onPointerDown={(e) => inPane && e.preventDefault()}>
-        <button class="tree-act" type="button" onClick={inPane ? () => (askHere.value = true) : onAsk}>{w('act.ask')}</button>
+        <button class="tree-act" type="button" onClick={onAsk}>{w('act.ask')}</button>
         {inPane ? (
           <button class="tree-act" type="button" aria-pressed={keys} onClick={() => setKeys(!keys)}>{w('web.act.keys')}</button>
         ) : (

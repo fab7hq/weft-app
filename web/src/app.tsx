@@ -6,6 +6,7 @@ import * as store from './store';
 import { AddMachine } from './views/AddMachine';
 import { Agent } from './views/Agent';
 import { PendingSheet } from './views/Asked';
+import { AskSheet } from './views/Ask';
 import { Details } from './views/Details';
 import { TreePage } from './views/Tree';
 import { StartPage } from './views/Start';
@@ -135,6 +136,7 @@ export function App() {
       return (
         <>
           {shown}
+          <AskSheet />
           <PendingSheet />
         </>
       );

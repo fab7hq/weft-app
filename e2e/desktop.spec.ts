@@ -54,13 +54,11 @@ async function opened(page: import('@playwright/test').Page, machine: FakeMachin
 
 test('step 51: wide, the TUI\'s bar under the list and the pane; Ctrl+] gives the keys to Weft', async ({ page, context }) => {
   const machine = await FakeMachine.start();
-  machine.agents = [{ ...agent(0, 'weft', 'claude-code', 'ended'), unit: { id: 'ask_1', title: 'health endpoint', eval: null } }];
+  machine.agents = [agent(0, 'weft', 'claude-code', 'ended')];
   await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
   await opened(page, machine);
   const bar = page.getByRole('toolbar', { name: 'Weft' });
   await expect(bar).toContainText('[A]SK');
-  await expect(bar).toContainText('[E]VAL');
-  await expect(bar).toContainText('[S]EAL');
   await expect(bar).toContainText('[W]EFT ⌄');
   // The bar spans the list and the pane.
   const list = (await page.getByRole('navigation', { name: 'Agents' }).boundingBox())!;
@@ -80,10 +78,6 @@ test('step 51: wide, the TUI\'s bar under the list and the pane; Ctrl+] gives th
   await expect(page.getByLabel('What do you want done?')).toBeFocused();
   expect(machine.of('keys').map((k) => hex(k.bytes))).toEqual(['78']);
   await page.getByRole('button', { name: 'Cancel' }).click();
-
-  // e is Eval, from the keys alone.
-  await page.keyboard.press('e');
-  await expect.poll(() => machine.of('act').map((a) => a.act)).toEqual(['eval']);
 
   // A click on the pane gives the keys back to the agent.
   await page.getByLabel("The agent's screen").click();

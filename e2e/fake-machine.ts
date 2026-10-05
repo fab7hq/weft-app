@@ -1,4 +1,4 @@
-// A fake machine: speaks the remote protocol (remote.md §6) as `weft remote`
+// A fake machine: speaks the remote protocol (remote.md §6b) as `weft remote`
 // does, records every message, and lets a test drop and refuse connections,
 // change its epoch and send what the machine would.
 import { WebSocketServer, type WebSocket } from 'ws';
@@ -10,7 +10,6 @@ export interface Agent {
   title: string;
   turn: 'ready' | 'working' | 'waiting' | 'ended';
   since: number;
-  unit?: { id: string; title: string; eval: string | null };
 }
 
 export class FakeMachine {
@@ -81,7 +80,7 @@ export class FakeMachine {
   welcome() {
     return {
       type: 'welcome',
-      v: 1,
+      v: 2,
       epoch: this.epoch,
       machine: { id: 'm_fake', name: 'studio' },
       vapid: this.vapid,

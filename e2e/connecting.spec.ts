@@ -11,9 +11,9 @@ test('a first connection pairs, then says hello with its token', async ({ page, 
   await page.goto('/');
   await expect(page.getByText('weft · Claude Code')).toBeVisible();
   const [pair] = machine.of('pair');
-  expect(pair).toMatchObject({ v: 1, name: expect.any(String) });
+  expect(pair).toMatchObject({ v: 2, name: expect.any(String) });
   expect(String(pair.assertion)).toMatch(/^[\w-]+\.[\w-]+$/);
-  expect(machine.of('hello')).toEqual([{ type: 'hello', v: 1, device: pair.device, token: 't_good' }]);
+  expect(machine.of('hello')).toEqual([{ type: 'hello', v: 2, device: pair.device, token: 't_good' }]);
   // Next time, straight to hello: the token was kept.
   await page.reload();
   await expect(page.getByText('weft · Claude Code')).toBeVisible();

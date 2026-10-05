@@ -13,7 +13,6 @@ export interface Agent {
   title: string;
   turn: 'ready' | 'working' | 'waiting' | 'ended';
   since: number;
-  unit?: { id: string; title: string; eval: string | null };
 }
 
 export interface Pending {
@@ -117,12 +116,12 @@ async function connect(): Promise<void> {
 async function greet(s: WebSocket, m: api.Machine, kept: store.Kept): Promise<void> {
   const me = await store.device();
   if (kept.token) {
-    s.send(JSON.stringify({ type: 'hello', v: 1, device: me.id, token: kept.token }));
+    s.send(JSON.stringify({ type: 'hello', v: 2, device: me.id, token: kept.token }));
     return;
   }
   try {
     const assertion = await api.assertion(m.id, me.id);
-    s.send(JSON.stringify({ type: 'pair', v: 1, device: me.id, name: me.name, assertion }));
+    s.send(JSON.stringify({ type: 'pair', v: 2, device: me.id, name: me.name, assertion }));
   } catch {
     s.close();
   }
@@ -156,7 +155,7 @@ function heard(s: WebSocket, m: api.Machine, msg: Record<string, unknown>): void
       void store.get<store.Kept>('macs', m.id).then(async (k) => {
         await store.set('macs', m.id, { ...k, token: String(msg.token) });
         const me = await store.device();
-        s.send(JSON.stringify({ type: 'hello', v: 1, device: me.id, token: msg.token }));
+        s.send(JSON.stringify({ type: 'hello', v: 2, device: me.id, token: msg.token }));
       });
       break;
     case 'refused':

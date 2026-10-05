@@ -8,9 +8,9 @@ import { Tabs } from './Tabs';
 import { ANSWER, sent, typed } from '../keys';
 import { NeedsYou } from './Agents';
 import { Screen, fit } from './Screen';
-import { ConfirmSheet, RecordSheet, type EvalRecord } from './Sheets';
+import { ConfirmSheet } from './Sheets';
 import { LinkPill } from './Status';
-import { stateWord, w } from '../words';
+import { w } from '../words';
 
 export const b64 = (bytes: number[]) => btoa(String.fromCharCode(...bytes));
 
@@ -30,7 +30,6 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
   const [asking, setAsking] = useState(false);
   const [shown, setShown] = useState<string | null>(null);
   const [answered, setAnswered] = useState(false);
-  const [record, setRecord] = useState<EvalRecord | null>(null);
   const [bar, setBar] = useState(false);
   const [typing, setTyping] = useState(false);
   const input = useRef<HTMLInputElement>(null);
@@ -50,11 +49,10 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
     return () => clearTimeout(t);
   }, [m.resolved.value, shown]);
 
-  /** An act; its pending is shown when the machine answers. */
-  const act = async (which: 'ask' | 'eval' | 'seal', text?: string) => {
+  /** An Ask to this agent; its pending is shown when the machine answers. */
+  const ask = async (text: string) => {
     if (!live) return;
-    setRecord(null);
-    const answer = await m.request({ type: 'act', agent, act: which, ...(text ? { text } : {}) });
+    const answer = await m.request({ type: 'act', agent, act: 'ask', text });
     if (answer?.type === 'ok' && answer.pending) {
       setAnswered(false);
       setShown(String(answer.pending));
@@ -64,10 +62,6 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
     if (!shown) return;
     void m.request({ type: 'resolve', pending: shown, yes });
     setShown(null);
-  };
-  const openRecord = async () => {
-    const answer = await m.request({ type: 'read', agent, what: 'eval' });
-    if (answer?.type === 'ok' && answer.record) setRecord(answer.record as EvalRecord);
   };
 
   const takeKeys = () => {
@@ -84,7 +78,7 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
     e.preventDefault();
     if (!live || !message.trim()) return;
     if (asking) {
-      void act('ask', message);
+      void ask(message);
       setMessage('');
       setAsking(false);
       return;
@@ -99,9 +93,7 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
 
   const acts: BarActs = {
     live,
-    unit: a?.unit,
-    onAct: (which) => (which === 'ask' ? setAsking(true) : void act(which)),
-    onRecord: () => void openRecord(),
+    onAsk: () => setAsking(true),
     onList: embedded ? null : back,
     onHistory: () => void showHistory(),
     onWeft: () => go({ name: 'settings' }),
@@ -127,9 +119,7 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
       const n = Number(k);
       const tab = n >= 1 && n <= 9 ? m.agents.value[n - 1] : undefined;
       const known: Record<string, () => void> = {
-        a: () => acts.onAct('ask'),
-        e: () => a?.unit && acts.onAct('eval'),
-        s: () => a?.unit && acts.onAct('seal'),
+        a: acts.onAsk,
         h: acts.onHistory,
         w: acts.onWeft,
         l: () => (acts.onList ? acts.onList() : (document.querySelector('nav[aria-label="Agents"] button') as HTMLElement | null)?.focus()),
@@ -164,20 +154,6 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
         {a && <span class={a.turn === 'waiting' ? 'fab7-pill fab7-pill--needs-you' : 'fab7-pill'}>{WORDS[a.turn]}</span>}
       </div>
       <Screen agent={agent} driving={driving} history={history} onHistory={() => void showHistory()} onLive={() => setHistory(null)} onKey={key} box={box} />
-      {a?.unit && a.turn === 'ended' && (
-        // On cue (§7): the Ask on the board, once its turn has ended.
-        <div class="cue" role="group" aria-label="On cue">
-          <span class="cue-text">{a.unit.title} · {stateWord(a.unit.eval == null ? 'asked' : 'evaled')}</span>
-          {a.unit.eval == null ? (
-            <button class="fab7-button fab7-button--secondary" type="button" aria-label={w('act.eval')} disabled={!live} onClick={() => void act('eval')}><Label act="act.eval" /></button>
-          ) : (
-            <>
-              <button class="fab7-button fab7-button--secondary" type="button" aria-label={w('act.seal')} disabled={!live} onClick={() => void act('seal')}><Label act="act.seal" /></button>
-              <button class="fab7-button fab7-button--secondary" type="button" aria-label={w('act.ask')} disabled={!live} onClick={() => setAsking(true)}><Label act="act.ask" /></button>
-            </>
-          )}
-        </div>
-      )}
       {a?.turn === 'waiting' && (
         // While the agent waits for its person (its hooks say so; the screen is never read).
         <div class="answer-strip" role="toolbar" aria-label="Answer">
@@ -233,18 +209,6 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
         />
       )}
       {shown && (pending ?? kept) && <ConfirmSheet pending={(pending ?? kept)!} answered={answered} onAnswer={answer} />}
-      {record && (
-        <RecordSheet
-          record={record}
-          title={a?.unit?.title ?? ''}
-          onSeal={() => void act('seal')}
-          onAskAgain={() => {
-            setRecord(null);
-            setAsking(true);
-          }}
-          onClose={() => setRecord(null)}
-        />
-      )}
     </div>
   );
 }

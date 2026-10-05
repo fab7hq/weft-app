@@ -45,12 +45,21 @@ export interface Harness {
   works: Work[];
 }
 
+/** What a project still needs before RingFrame is set up in it; null where nothing could say. */
+export interface Needs {
+  ringframe: boolean;
+  git: boolean | null;
+  commit: boolean | null;
+}
+
 /** One project of the tree, as weft_core::tree built it on the machine. */
 export interface Project {
   project: string;
   open: number;
   needs: number;
   ask: Why | null;
+  /** Null when RingFrame is set up there. */
+  setup: Needs | null;
   harnesses: Harness[];
 }
 

@@ -76,17 +76,44 @@ export function StartButton({ machine }: { machine: Machine }) {
 function Empty({ machine }: { machine: Machine }) {
   const why = m.tree.value.find((p) => p.ask)?.ask;
   const lines =
-    why?.key === 'why.no_ringframe'
-      ? [w('tree.no_ringframe'), w('tree.install_ringframe')]
-      : why && why.key !== 'why.start_an_agent'
-        ? [fill(why.key, { harness: why.harness ?? '' }), w('tree.runs_either_way'), fill('web.why.set_up_on', { machine: machine.name })]
-        : [w('tree.nothing_asked')];
+    why && why.key !== 'why.start_an_agent'
+      ? [fill(why.key, { harness: why.harness ?? '' }), w('tree.runs_either_way'), fill('web.why.set_up_on', { machine: machine.name })]
+      : [w('tree.nothing_asked')];
   return (
     <div class="tree-empty">
       {lines.map((l) => (
         <p key={l} class="note">{l}</p>
       ))}
       {!why || why.key === 'why.start_an_agent' ? <span class="phone-only"><StartButton machine={machine} /></span> : null}
+    </div>
+  );
+}
+
+/** The checklist's lines: what each says, and how to make it hold while it does not. */
+const NEEDS = [
+  ['ringframe', 'tree.has_ringframe', 'tree.ringframe_how'],
+  ['git', 'tree.has_git', 'tree.git_how'],
+  ['commit', 'tree.has_commit', 'tree.commit_how'],
+] as const;
+
+/** RingFrame is not set up in this project yet: what it still needs, as the machine's RingFrame said. */
+function Checklist({ needs }: { needs: m.Needs }) {
+  return (
+    <div class="checklist">
+      <p class="note">{w('tree.not_set_up')}</p>
+      <ul aria-label={w('tree.not_set_up')}>
+        {NEEDS.map(([fact, said, how]) => {
+          const held = needs[fact];
+          return (
+            <li key={fact} data-held={String(held)}>
+              <span class="checklist-mark">{held === null ? '?' : held ? '✓' : '✗'}</span>
+              <span>{w(said)}</span>
+              <span class="checklist-how">{held === false ? w(how) : ''}</span>
+            </li>
+          );
+        })}
+      </ul>
+      <p class="note">{w('tree.sets_it_up')}</p>
     </div>
   );
 }
@@ -108,7 +135,7 @@ function Skeleton() {
 export function TreeList({ machine, onAgent }: { machine: Machine; onAgent: (agent: string) => void }) {
   if (!m.welcomed.value) return <Skeleton />;
   const projects = m.tree.value;
-  if (projects.every((p) => p.harnesses.length === 0)) return <Empty machine={machine} />;
+  if (projects.every((p) => p.harnesses.length === 0 && !p.setup)) return <Empty machine={machine} />;
   const fold_ = folded.value;
   return (
     <div class="tree" role="tree" aria-label="Work">
@@ -130,7 +157,8 @@ export function TreeList({ machine, onAgent }: { machine: Machine; onAgent: (age
               </span>
             </div>
             {!closed && p.harnesses.map((h) => <HarnessRows key={h.harness} project={p} harness={h} onAgent={onAgent} machine={machine} />)}
-            {!closed && p.harnesses.length > 0 && p.harnesses.every((h) => h.works.length === 0) && (
+            {!closed && p.setup && <Checklist needs={p.setup} />}
+            {!closed && !p.setup && p.harnesses.length > 0 && p.harnesses.every((h) => h.works.length === 0) && (
               <p class="note tree-next">{p.ask && p.ask.key !== 'why.start_an_agent' ? fill(p.ask.key, { harness: p.ask.harness ?? '' }) : w('web.tree.ask_for_something')}</p>
             )}
           </div>

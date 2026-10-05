@@ -59,6 +59,11 @@ a { color: var(--fab7-accent); }
 .tree-more { font: 600 16px var(--font-sans); color: var(--fab7-faint); background: none; border: 0; padding: 0 2px; min-width: 24px; min-height: 44px; cursor: pointer; }
 .tree-empty, .tree-next { padding: 12px 16px; }
 .tree-empty { display: flex; flex-direction: column; gap: 12px; }
+.checklist { padding: 4px 16px 12px 32px; }
+.checklist ul { list-style: none; margin: 6px 0; padding: 0; display: grid; grid-template-columns: auto auto 1fr; column-gap: 10px; row-gap: 2px; font-size: 13px; line-height: 1.7; color: var(--fab7-text); }
+.checklist li { display: contents; }
+.checklist-mark { color: var(--fab7-muted); }
+.checklist-how { font-family: var(--font-mono); color: var(--fab7-muted); }
 .needs-pill { border: 0; cursor: pointer; font-family: inherit; }
 .tree-bar { flex: none; background: var(--fab7-panel); border-top: 1px solid var(--fab7-line); }
 .tree-said { margin: 0; padding: 10px 16px; font-size: 13px; color: var(--fab7-amber-text); border-bottom: 1px solid var(--fab7-line); }

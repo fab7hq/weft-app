@@ -164,7 +164,7 @@ const SCREENS: Screen[] = [
     s.tree = [{ ...s.tree[0], open: 0, needs: 0, ask: { key: 'why.not_set_up', harness: 'claude' }, harnesses: [{ ...s.tree[0].harnesses[0], turn: 'ready', works: [] }] }];
     return s;
   }, run: tree },
-  { ids: ['M2.4'], sample: () => ({ ...atlas(), agents: [], tree: [{ project: 'weft', open: 0, needs: 0, ask: { key: 'why.no_ringframe' }, harnesses: [] }] }), run: open },
+  { ids: ['M2.4'], sample: () => ({ ...atlas(), agents: [], tree: [{ project: 'weft', open: 0, needs: 0, ask: { key: 'why.start_an_agent' }, setup: { ringframe: true, git: false, commit: false }, harnesses: [] }] }), run: tree },
   { ids: ['M2.5'], sample: () => {
     const s = atlas();
     return { ...s, agents: [s.agents[2]], tree: [s.tree[1]] };

@@ -109,10 +109,24 @@ test('M2.3 D2.3: a harness not set up says where to fix it', async ({ page, cont
   await machine.close();
 });
 
-test('M2.4: no ringframe on the machine', async ({ page, context }) => {
-  const machine = await opened(page, context, empty({ key: 'why.no_ringframe' }), []);
-  await expect(page.getByText('No ringframe on PATH, so there is no record to read.')).toBeVisible();
-  await expect(page.getByText('The agents still run here. Install ringframe to see the work.')).toBeVisible();
+test('M2.4 D2.4: RingFrame not set up here, the checklist says what it needs until it is', async ({ page, context }) => {
+  const unset = (setup: Project['setup']): Project[] => [{ project: 'weft', open: 0, needs: 0, ask: { key: 'why.start_an_agent' }, setup, harnesses: [] }];
+  const machine = await opened(page, context, unset({ ringframe: true, git: false, commit: false }), []);
+  await expect(row(page, 'weft')).toBeVisible();
+  const checklist = page.getByRole('list', { name: 'RingFrame is not set up here yet.' });
+  await expect(page.getByText('RingFrame is not set up here yet.')).toBeVisible();
+  await expect(checklist.getByRole('listitem')).toHaveText([/^✓\s*ringframe is installed$/, /^✗\s*a Git repository\s*git init$/, /^✗\s*a first commit\s*commit once$/]);
+  await expect(page.getByText('Weft sets it up as soon as these hold.')).toBeVisible();
+  // Each line turns as the person fixes it on the machine.
+  machine.send({ type: 'tree', tree: unset({ ringframe: true, git: true, commit: false }) });
+  await expect(checklist.getByRole('listitem')).toHaveText([/^✓/, /^✓\s*a Git repository$/, /^✗\s*a first commit\s*commit once$/]);
+  // With no ringframe, nothing could say what Git has.
+  machine.send({ type: 'tree', tree: unset({ ringframe: false, git: null, commit: null }) });
+  await expect(checklist.getByRole('listitem')).toHaveText([/^✗\s*ringframe is installed\s*run Weft's installer again$/, /^\?\s*a Git repository$/, /^\?\s*a first commit$/]);
+  // Set up: the checklist goes.
+  machine.send({ type: 'tree', tree: unset(null) });
+  await expect(page.getByText('Nothing asked for yet.')).toBeVisible();
+  await expect(checklist).toHaveCount(0);
   await machine.close();
 });
 

@@ -14,7 +14,6 @@ import { w } from '../words';
 
 export const b64 = (bytes: number[]) => btoa(String.fromCharCode(...bytes));
 
-const WORDS: Record<m.Agent['turn'], string> = { waiting: 'Needs you', working: 'Working', ready: 'Ready', ended: 'Ended' };
 
 /** Before a device's first key for an agent: its size (remote.md §9). */
 const sized = new Set<string>();
@@ -80,19 +79,11 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
           <button class="back" type="button" onClick={back}>{`‹ ${a?.project ?? machine.name}`}</button>
           <span class="spacer" />
           <NeedsYouPill machine={machine} />
-          <LinkPill />
+          {m.link.value !== 'connected' && <LinkPill />}
         </div>
       )}
       <Tabs machine={machine.id} open={agent} />
-      <div style={{ padding: '12px 16px 8px', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: 0 }}>
-          <span style={{ fontSize: '17px', fontWeight: 600 }}>{a ? `${a.project} · ${a.title}` : 'This agent has gone'}</span>
-          <span style={{ fontSize: '12px', color: driving ? 'var(--fab7-teal)' : 'var(--fab7-muted)' }}>
-            {driving ? 'You have the keys' : "Watching at the machine's size"}
-          </span>
-        </div>
-        {a && <span class={a.turn === 'waiting' ? 'fab7-pill fab7-pill--needs-you' : 'fab7-pill'}>{WORDS[a.turn]}</span>}
-      </div>
+      {!a && <p class="note pane-said">This agent has gone</p>}
       <Screen agent={agent} driving={driving} history={history} onHistory={() => void showHistory()} onLive={() => setHistory(null)} onKey={key} box={box} />
       {a?.turn === 'waiting' && (
         // While the agent waits for its person (its hooks say so; the screen is never read).

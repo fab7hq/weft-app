@@ -45,8 +45,8 @@ export function BarSheet({ acts, keys, onClose }: { acts: BarActs; keys: Compone
   );
 }
 
-/** The pane has the keys: everything typed goes to the agent. */
-export const paneHasKeys = signal(false);
+/** The pane is active: it has the keys, and a wheel or a finger scrolls its history. */
+export const paneActive = signal(false);
 /** Ask, from the tree's bar: the agent opened next puts the person in its message box. */
 export const askHere = signal(false);
 

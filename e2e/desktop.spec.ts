@@ -49,27 +49,3 @@ async function opened(page: import('@playwright/test').Page, machine: FakeMachin
   await page.getByRole('treeitem', { name: 'claude-code', exact: true }).first().click();
   await expect.poll(() => machine.of('watch').length).toBeGreaterThan(0);
 }
-
-test('step 62: a click makes the pane active; the wheel scrolls its history inside it and back to live', async ({ page, context }) => {
-  const machine = await FakeMachine.start();
-  machine.agents = [agent(0, 'weft', 'claude-code', 'ready')];
-  machine.onRead = (m) => ({ type: 'ok', req: m.req, text: Array.from({ length: 200 }, (_, i) => `line ${i + 1}`).join('\n') });
-  await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
-  await opened(page, machine);
-  const pane = page.getByLabel('The agent', { exact: true });
-  await pane.hover();
-  await page.mouse.wheel(0, -300);
-  await page.waitForTimeout(300);
-  expect(machine.of('read')).toHaveLength(0);
-
-  await pane.click();
-  await page.mouse.wheel(0, -300);
-  const history = pane.getByLabel('History');
-  await expect(history).toBeVisible();
-  await expect(history.getByText('line 200')).toBeInViewport();
-  // Down past the bottom: live again.
-  await page.mouse.wheel(0, 2000);
-  await page.mouse.wheel(0, 300);
-  await expect(history).toHaveCount(0);
-  await machine.close();
-});

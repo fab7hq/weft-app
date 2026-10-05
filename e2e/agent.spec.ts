@@ -33,7 +33,7 @@ test('test 1: frames from weftd draw what weftd\'s own parser shows', async ({ p
     const want = (fixture.frames.at(-1).contents as string).split('\n').map((r) => r.trimEnd()).join('\n').replace(/\n+$/, '');
     await expect.poll(() => drawn(page), { message: name }).toBe(want);
   }
-  await expect(page.getByText("Watching at the machine's size")).toBeVisible();
+  await expect(page.getByText("Watching at the machine's size")).toHaveCount(0);
   await machine.close();
 });
 
@@ -57,7 +57,6 @@ test('test 2: allow, open an agent, press 1, send a message, read history', asyn
   expect(machine.heard.indexOf(size)).toBeLessThan(machine.heard.indexOf(machine.of('keys')[0]));
   expect(machine.of('keys')[0]).toMatchObject({ agent: '3f9a1c07b2de-0', bytes: 'MQ==' });
   machine.send({ type: 'control', agent: '3f9a1c07b2de-0', by: 'you' });
-  await expect(page.getByText('You have the keys')).toBeVisible();
 
   await page.getByLabel('Message').fill('Also add it to the README');
   await page.getByRole('button', { name: 'Send' }).click();
@@ -66,7 +65,6 @@ test('test 2: allow, open an agent, press 1, send a message, read history', asyn
   await expect(page.getByLabel('Message')).toHaveValue('');
 
   machine.send({ type: 'control', agent: '3f9a1c07b2de-0', by: 'mac' });
-  await expect(page.getByText("Watching at the machine's size")).toBeVisible();
 
   // History: asked for, shown as text, newest at the bottom.
   machine.onRead = (m) => ({ type: 'ok', req: m.req, text: 'line 1\nline 2\nthe newest line' });
@@ -81,7 +79,6 @@ test('test 2: allow, open an agent, press 1, send a message, read history', asyn
   });
   await expect(page.getByText('the newest line')).toBeVisible();
   expect(machine.of('read').at(-1)).toMatchObject({ what: 'history', agent: '3f9a1c07b2de-0' });
-  await page.getByRole('button', { name: 'LIVE' }).click();
   await machine.close();
 });
 
@@ -104,7 +101,7 @@ test('test 2: a notification\'s agent opens from what it left in IndexedDB', asy
   );
   await page.reload();
   await expect.poll(() => machine.of('watch').at(-1)).toEqual({ type: 'watch', agent: '3f9a1c07b2de-1' });
-  await expect(page.getByText('docs · Codex', { exact: true })).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Tabs' }).getByRole('button', { name: '2 codex' })).toHaveAttribute('aria-current', 'page');
   const left = await page.evaluate(
     () =>
       new Promise((done) => {

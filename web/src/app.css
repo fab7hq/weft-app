@@ -29,9 +29,9 @@ a { color: var(--fab7-accent); }
 .answer-strip .label { color: var(--fab7-amber-text); margin-right: auto; white-space: nowrap; }
 .cue { display: flex; align-items: center; gap: 8px; padding: 8px 16px 0; flex: none; }
 .cue-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: var(--fab7-muted); }
-.tabs { display: flex; gap: 8px; padding: 8px 16px 0; overflow-x: auto; flex: none; scrollbar-width: none; }
-.tab { flex: none; min-height: 36px; padding: 0 12px; border: 1px solid var(--fab7-line); border-radius: var(--fab7-radius-pill); background: none; color: var(--fab7-muted); font: 500 13px var(--font-sans); white-space: nowrap; cursor: pointer; }
-.tab[aria-current="page"] { color: var(--fab7-text); border-color: var(--fab7-accent); }
+.tabs { display: flex; gap: 8px; padding: 8px 16px; border-bottom: 1px solid var(--fab7-line); overflow-x: auto; flex: none; scrollbar-width: none; }
+.tab { flex: none; min-height: 32px; padding: 6px 12px; border: 1px solid var(--fab7-line); border-radius: 16px; background: var(--fab7-surface); color: var(--fab7-text); font: 400 13px var(--font-sans); white-space: nowrap; cursor: pointer; }
+.tab[aria-current="page"] { color: var(--fab7-accent); border-color: var(--fab7-accent); background: #16233a; }
 .tab--needs-you { color: var(--fab7-amber-text); border-color: var(--fab7-amber); }
 .wide-bar { display: flex; align-items: center; gap: 16px; min-height: 44px; padding: 0 16px; border-top: 1px solid var(--fab7-line); flex: none; font-family: var(--font-mono); font-size: 13px; letter-spacing: 1px; }
 .wide-bar-hint { color: var(--fab7-muted); white-space: pre; }
@@ -78,3 +78,6 @@ a { color: var(--fab7-accent); }
 .woven { flex: 1; display: flex; flex-direction: column; gap: 24px; align-items: center; justify-content: center; }
 .woven-mark { margin: 0; font: 700 22px/26px var(--font-mono); color: var(--fab7-teal); }
 @media (min-width: 768px) { .phone-only { display: none; } }
+.pane { position: relative; flex: 1; min-height: 0; margin: 10px 12px; padding: 12px; border: 1px solid var(--fab7-line); border-radius: 10px; background: #05080f; overflow: hidden; outline: none; }
+.pane[data-active="true"] { border-color: var(--fab7-accent); }
+.pane-said { padding: 8px 16px 0; }

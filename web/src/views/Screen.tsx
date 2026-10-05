@@ -6,7 +6,7 @@ import '@xterm/xterm/css/xterm.css';
 import { useEffect, useRef } from 'preact/hooks';
 import { encode } from '../keys';
 import * as m from '../machine';
-import { paneHasKeys } from './Bar';
+import { paneActive } from './Bar';
 
 const CELL_WIDTH = 0.6;
 const LINE_HEIGHT = 1.2;
@@ -30,6 +30,7 @@ export function fit(el: HTMLElement): { rows: number; cols: number } {
 export function Screen({ agent, driving, history, onHistory, onLive, onKey, box }: { agent: string; driving: boolean; history: string | null; onHistory: () => void; onLive: () => void; onKey: (bytes: number[]) => void; box: { current: HTMLDivElement | null } }) {
   const host = useRef<HTMLDivElement>(null);
   const shown = useRef<HTMLPreElement>(null);
+  const tapped = useRef(-Infinity);
   // The history, inside the pane, starts at its newest line.
   useEffect(() => {
     if (history !== null && shown.current) shown.current.scrollTop = shown.current.scrollHeight;
@@ -62,9 +63,9 @@ export function Screen({ agent, driving, history, onHistory, onLive, onKey, box 
       }
       term.write(bytes(f.bytes));
     });
-    // Only an active pane scrolls (§6): until it is tapped, the app is for its buttons.
+    // Only an active pane scrolls: until then, the app is for its buttons.
     const wheel = (e: WheelEvent) => {
-      if (paneHasKeys.value && e.deltaY < 0) onHistory();
+      if (paneActive.value && e.deltaY < 0) onHistory();
     };
     // In the capture phase: xterm's own viewport handles the wheel and stops it.
     el.addEventListener('wheel', wheel, { passive: true, capture: true });
@@ -73,7 +74,7 @@ export function Screen({ agent, driving, history, onHistory, onLive, onKey, box 
     const start = (e: TouchEvent) => (from = e.touches[0]?.clientY ?? null);
     const move = (e: TouchEvent) => {
       const y = e.touches[0]?.clientY;
-      if (paneHasKeys.value && from !== null && y !== undefined && y - from > 40) {
+      if (paneActive.value && from !== null && y !== undefined && y - from > 40) {
         from = null;
         onHistory();
       }
@@ -91,24 +92,37 @@ export function Screen({ agent, driving, history, onHistory, onLive, onKey, box 
   /** In the history: scrolled to its newest line and still going down, back to live. */
   const atBottom = (el: HTMLElement) => el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
   let historyFrom: number | null = null;
+  /** A double tap on a touch screen, a click with a mouse: the pane is active. */
+  const activate = (e: PointerEvent) => {
+    if (e.pointerType === 'touch') {
+      const twice = e.timeStamp - tapped.current < 400;
+      tapped.current = twice ? -Infinity : e.timeStamp;
+      if (!twice) return;
+    }
+    paneActive.value = true;
+    (e.currentTarget as HTMLElement).focus();
+  };
   return (
     <div
       ref={box}
-      tabIndex={0}
+      tabIndex={-1}
       aria-label="The agent"
-      data-active={paneHasKeys.value ? 'true' : 'false'}
-      // xterm's own text area takes the focus inside it; focusin and focusout bubble.
-      onFocusIn={() => (paneHasKeys.value = true)}
+      class="pane"
+      data-active={paneActive.value ? 'true' : 'false'}
+      onPointerUp={activate}
+      // Anywhere else, and the pane is inactive again, at its newest line.
       onFocusOut={(e) => {
-        if (!(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node | null)) paneHasKeys.value = false;
+        if ((e.currentTarget as HTMLElement).contains(e.relatedTarget as Node | null)) return;
+        paneActive.value = false;
+        onLive();
       }}
       onKeyDownCapture={(e) => {
+        if (!paneActive.value) return;
         const bytes = encode(e);
         if (!bytes) return;
         e.preventDefault();
         onKey(bytes);
-      }}
-      style={{ position: 'relative', flex: 1, minHeight: 0, margin: '0 8px', border: `1px solid ${paneHasKeys.value ? 'var(--fab7-accent)' : driving ? 'var(--fab7-teal)' : 'var(--fab7-line)'}`, borderRadius: 'var(--fab7-radius-lg)', padding: '8px', overflow: 'hidden' }}>
+      }}>
       <div ref={host} style={{ width: '100%', height: '100%' }} aria-label="The agent's screen" />
       {history !== null && (
         // The agent's earlier output, in the pane itself (§6).
@@ -130,7 +144,6 @@ export function Screen({ agent, driving, history, onHistory, onLive, onKey, box 
           >
             {history}
           </pre>
-          <button class="fab7-key pane-live" type="button" onClick={onLive}>LIVE</button>
         </div>
       )}
     </div>

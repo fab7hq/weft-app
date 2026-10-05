@@ -81,3 +81,8 @@ a { color: var(--fab7-accent); }
 .pane { position: relative; flex: 1; min-height: 0; margin: 10px 12px; padding: 12px; border: 1px solid var(--fab7-line); border-radius: 10px; background: #05080f; overflow: hidden; outline: none; }
 .pane[data-active="true"] { border-color: var(--fab7-accent); }
 .pane-said { padding: 8px 16px 0; }
+.bar-sheet .fab7-keybar { flex-wrap: wrap; padding: 0; border: 0; background: none; }
+.bar-sheet .tree-act { flex: none; width: 100%; border: 1px solid var(--fab7-line); }
+.tree-act--menu { background: none; color: var(--fab7-accent); border: 0 !important; }
+.keys-pop { display: flex; flex-direction: column; gap: 10px; padding: 12px 20px; border-bottom: 1px solid var(--fab7-line); }
+.keys-pop .fab7-keybar { flex-wrap: wrap; padding: 0; border: 0; background: none; }

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Machine } from '../api';
 import * as m from '../machine';
 import { back } from '../nav';
-import { BarSheet, askHere, type BarActs } from './Bar';
+import { BarSheet, askHere, openKeys, type BarActs } from './Bar';
 import { KeyBar, mods, press } from './Keys';
 import { Tabs } from './Tabs';
 import { ANSWER, sent, typed } from '../keys';
@@ -60,7 +60,15 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
     if (answer?.type === 'ok') setHistory(String(answer.text ?? ''));
   };
 
-  const acts: BarActs = { live, onAsk: () => setAsking(true) };
+  const acts: BarActs = { live, harness: a?.harness ?? '', onAsk: () => setAsking(true) };
+  // On a desktop the bar's Keys send here.
+  useEffect(() => {
+    if (!embedded) return;
+    openKeys.value = key;
+    return () => {
+      openKeys.value = null;
+    };
+  });
   // Ask puts the person in the message box.
   useEffect(() => {
     if (asking) input.current?.focus();

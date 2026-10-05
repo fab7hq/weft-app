@@ -30,7 +30,7 @@ test('step 45: one row under the pane; the bar is a sheet behind ⌃', async ({ 
   await page.getByRole('button', { name: 'The bar', exact: true }).click();
   const bar = page.getByRole('dialog', { name: 'Weft' });
   await expect(bar).toBeVisible();
-  await expect(bar.getByRole('button', { name: 'Ask', exact: true })).toHaveText('[A]SK');
+  await expect(bar.getByRole('button', { name: 'Ask', exact: true })).toHaveText('Ask');
   await expect(bar.getByRole('toolbar', { name: 'Keys' })).toBeVisible();
 
   // No [L]IST [H]ISTORY [W]EFT row: the sheet is the acts and the keys.

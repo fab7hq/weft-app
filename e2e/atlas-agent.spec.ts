@@ -110,3 +110,39 @@ test('M3.4 D3.4 M3.10: while the agent waits, the strip is ↑ ↓ ⏎ Esc and s
   await expect(strip).toHaveCount(0);
   await machine.close();
 });
+
+test('M3.11: ⌃ is the harness, Ask and the keys; Eval, Seal and Eval view are not on it', async ({ page, context }, info) => {
+  test.skip(info.project.name !== 'iphone', 'the phone');
+  const machine = await opened(page, context);
+  await page.getByRole('button', { name: 'The bar', exact: true }).click();
+  const sheet = page.getByRole('dialog', { name: 'Weft' });
+  await expect(sheet.getByText('CODEX', { exact: true })).toBeVisible();
+  await expect(sheet.getByRole('button', { name: 'Ask', exact: true })).toBeVisible();
+  await expect(sheet.getByText('KEYS', { exact: true })).toBeVisible();
+  for (const key of ['Ctrl', 'Alt', '⇧', 'Esc', 'Tab', 'Left', 'Up', 'Down', 'Right', 'Enter', 'Control-C', 'PgUp', 'PgDn']) {
+    await expect(sheet.getByRole('button', { name: key, exact: true })).toBeVisible();
+  }
+  for (const gone of ['Eval', 'Seal', 'Eval view', '[V] EVAL VIEW']) await expect(sheet.getByRole('button', { name: gone, exact: true })).toHaveCount(0);
+  await machine.close();
+});
+
+test('D3.4 M3.1: no Eval on cue once a turn has ended', async ({ page, context }) => {
+  const machine = await opened(page, context);
+  await expect(page.getByRole('group', { name: 'On cue' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Eval', exact: true })).toHaveCount(page.viewportSize()!.width >= 768 ? 1 : 0);
+  await machine.close();
+});
+
+test('D3.3 D3.11: while the pane is active the bar is Ask · Keys, and Keys sends the agent its keys', async ({ page, context }, info) => {
+  test.skip(info.project.name !== 'desktop', 'the desktop');
+  const machine = await opened(page, context);
+  const bar = page.locator('.tree-acts');
+  await expect(bar.getByRole('button')).toHaveText(['Ask', 'Eval', 'Seal', 'Weft ⌄']);
+  await pane(page).click();
+  await expect(bar.getByRole('button')).toHaveText(['Ask', 'Keys', 'Weft ⌄']);
+  await bar.getByRole('button', { name: 'Keys' }).click();
+  await expect(pane(page)).toHaveAttribute('data-active', 'true');
+  await page.getByRole('toolbar', { name: 'Keys' }).getByRole('button', { name: 'Esc', exact: true }).click();
+  await expect.poll(() => machine.of('keys').map((k) => hex(k.bytes))).toEqual(['1b']);
+  await machine.close();
+});

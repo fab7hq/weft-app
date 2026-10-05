@@ -3,6 +3,7 @@
 // same Ctrl.
 import { signal } from '@preact/signals';
 import { BAR, chord, NONE, sent, tap, type Mods } from '../keys';
+import { w } from '../words';
 
 export const mods = signal<Mods>(NONE);
 
@@ -20,7 +21,7 @@ const MODIFIERS: [keyof Mods, string][] = [
 
 export function KeyBar({ live, send }: { live: boolean; send: (bytes: number[]) => void }) {
   return (
-    <div class="fab7-keybar" role="toolbar" aria-label="Keys">
+    <div class="fab7-keybar" role="toolbar" aria-label={w('web.act.keys')}>
       {MODIFIERS.map(([which, label]) => {
         const lit = mods.value[which];
         return (

@@ -12,12 +12,55 @@ export interface Agent {
   since: number;
 }
 
+/** A why-not: a words key, and the harness and work its sentence names. */
+export interface Why {
+  key: string;
+  harness?: string;
+  title?: string;
+}
+
+export interface Work {
+  unit: string;
+  title: string;
+  word: 'asking' | 'asked' | 'evaled' | 'sealed' | 'cancelled';
+  turn: Agent['turn'] | null;
+  eval: Why | null;
+  seal: Why | null;
+}
+
+export interface Harness {
+  harness: string;
+  agent: string | null;
+  title: string | null;
+  turn: Agent['turn'] | null;
+  turbo: boolean;
+  running: boolean;
+  works: Work[];
+}
+
+/** One project's rows of the tree (remote.md §6b), as weft_core::tree builds them. */
+export interface Project {
+  project: string;
+  open: number;
+  needs: number;
+  harnesses: Harness[];
+}
+
+/** A harness a project can start. */
+export interface Start {
+  project: string;
+  harness: string;
+  title: string;
+}
+
 export class FakeMachine {
   readonly server: WebSocketServer;
   readonly heard: Record<string, unknown>[] = [];
   epoch = 'e1';
   vapid: string | null = null;
   agents: Agent[] = [];
+  tree: Project[] = [];
+  harnesses: Start[] = [];
   pendings: Record<string, unknown>[] = [];
   /** Refuse new connections at the upgrade. */
   down = false;
@@ -25,6 +68,8 @@ export class FakeMachine {
   onAct: ((m: Record<string, unknown>) => Record<string, unknown>[]) | null = null;
   /** How a `read` is answered; else plain `ok`. */
   onRead: ((m: Record<string, unknown>) => Record<string, unknown>) | null = null;
+  /** How a `start` is answered; else `ok` with a new agent. */
+  onStart: ((m: Record<string, unknown>) => Record<string, unknown>[]) | null = null;
   /** Answer `pair` with `asking`, then `paired` at once. */
   allowAtOnce = true;
   private sockets = new Set<WebSocket>();
@@ -58,6 +103,9 @@ export class FakeMachine {
           for (const out of this.onAct(m)) ws.send(JSON.stringify(out));
         } else if (m.type === 'read' && this.onRead) {
           ws.send(JSON.stringify(this.onRead(m)));
+        } else if (m.type === 'start') {
+          const out = this.onStart ? this.onStart(m) : [{ type: 'ok', req: m.req, agent: `3f9a1c07b2de-${this.agents.length}` }];
+          for (const o of out) ws.send(JSON.stringify(o));
         } else if (typeof m.req !== 'undefined' && ['keys', 'text', 'act', 'resolve', 'read'].includes(m.type)) {
           ws.send(JSON.stringify({ type: 'ok', req: m.req }));
         }
@@ -85,6 +133,8 @@ export class FakeMachine {
       machine: { id: 'm_fake', name: 'studio' },
       vapid: this.vapid,
       agents: this.agents,
+      tree: this.tree,
+      harnesses: this.harnesses,
       pendings: this.pendings,
     };
   }
@@ -115,4 +165,46 @@ export class FakeMachine {
 
 export function agent(n: number, project: string, harness: string, turn: Agent['turn']): Agent {
   return { agent: `3f9a1c07b2de-${n}`, project, harness, title: harness === 'claude-code' ? 'Claude Code' : 'Codex', turn, since: Date.now() - 120_000 };
+}
+
+const WEFT = '3f9a1c07b2de';
+const DOCS = 'a1b2c3d4e5f6';
+const work = (unit: string, title: string, word: Work['word'], turn: Work['turn']): Work => ({ unit, title, word, turn, eval: null, seal: null });
+
+/**
+ * The Atlas's sample (spec/atlas.md §6): projects weft and docs on studio;
+ * claude, which needs you, and codex in weft; claude in docs; the works fix
+ * login, telemetry, health endpoint and readme fix.
+ */
+export function atlas(): { agents: Agent[]; tree: Project[]; harnesses: Start[] } {
+  const since = Date.now() - 120_000;
+  const agents: Agent[] = [
+    { agent: `${WEFT}-0`, project: 'weft', harness: 'claude', title: 'Claude Code', turn: 'waiting', since },
+    { agent: `${WEFT}-1`, project: 'weft', harness: 'codex', title: 'Codex', turn: 'ended', since },
+    { agent: `${DOCS}-0`, project: 'docs', harness: 'claude', title: 'Claude Code', turn: 'ready', since },
+  ];
+  const tree: Project[] = [
+    {
+      project: 'weft',
+      open: 2,
+      needs: 1,
+      harnesses: [
+        { harness: 'claude', agent: `${WEFT}-0`, title: 'Claude Code', turn: 'waiting', turbo: false, running: true,
+          works: [work('ask_1', 'fix login', 'asked', 'waiting'), work('ask_2', 'telemetry', 'asking', null)] },
+        { harness: 'codex', agent: `${WEFT}-1`, title: 'Codex', turn: 'ended', turbo: false, running: true,
+          works: [work('ask_3', 'health endpoint', 'evaled', 'ended'), work('ask_4', 'readme fix', 'sealed', null)] },
+      ],
+    },
+    {
+      project: 'docs',
+      open: 1,
+      needs: 0,
+      harnesses: [{ harness: 'claude', agent: `${DOCS}-0`, title: 'Claude Code', turn: 'ready', turbo: false, running: true, works: [] }],
+    },
+  ];
+  const harnesses: Start[] = ['weft', 'docs'].flatMap((project) => [
+    { project, harness: 'claude', title: 'Claude Code' },
+    { project, harness: 'codex', title: 'Codex' },
+  ]);
+  return { agents, tree, harnesses };
 }

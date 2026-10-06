@@ -1,5 +1,5 @@
-// Your machines (M1.6, D1.6): a machine comes off the account with Remove on a
-// desktop, or a swipe left and Remove on a phone.
+// Your machines (M1.6, D1.6): a machine comes off the account with Remove and a
+// confirmation over the page on a desktop, or a swipe left and Remove on a phone.
 import { expect, test } from '@playwright/test';
 import { person, signIn } from './seed';
 
@@ -10,8 +10,25 @@ test('M1.6 D1.6: a machine is removed from the account, and stays removed', asyn
   await expect(list.getByRole('listitem')).toHaveCount(3);
   const laptop = list.getByRole('listitem').filter({ hasText: 'laptop' });
   if (info.project.name === 'desktop') {
+    const sure = page.getByRole('dialog', { name: 'Remove laptop from your account?' });
+    // Cancel, Esc and a click outside each keep the machine.
     await laptop.getByRole('button', { name: 'Remove', exact: true }).click();
-    await laptop.getByRole('button', { name: 'Remove laptop from your account' }).click();
+    await expect(sure).toBeVisible();
+    await expect(sure).toContainText('laptop leaves this list. Weft on laptop is not touched; it joins again with W → R.');
+    await expect(laptop.getByRole('button')).toHaveText(['laptophas not reported an address yet', 'Remove']);
+    await sure.getByRole('button', { name: 'Cancel' }).click();
+    await expect(sure).toHaveCount(0);
+    await laptop.getByRole('button', { name: 'Remove', exact: true }).click();
+    await expect(sure).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(sure).toHaveCount(0);
+    await laptop.getByRole('button', { name: 'Remove', exact: true }).click();
+    await expect(sure).toBeVisible();
+    await page.mouse.click(20, 20);
+    await expect(sure).toHaveCount(0);
+    await expect(list.getByRole('listitem')).toHaveCount(3);
+    await laptop.getByRole('button', { name: 'Remove', exact: true }).click();
+    await sure.getByRole('button', { name: 'Remove', exact: true }).click();
   } else {
     await expect(laptop.getByRole('button', { name: 'Remove' })).toHaveCount(0);
     await laptop.evaluate((el) => {

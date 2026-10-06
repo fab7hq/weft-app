@@ -11,6 +11,7 @@ import { Mark, NeedsYouPill, StartButton, TreeList } from './Tree';
 import { StartPanel } from './Start';
 import { LinkPill } from './Status';
 import { TreeBar } from './Bar';
+import { MenuButton } from './Settings';
 
 /** The empty right pane (D2.1): the woven mark, and the way to start an agent. */
 function Woven({ machine }: { machine: Machine }) {
@@ -34,6 +35,7 @@ export function Wide({ machine, agent, starting = null, view }: { machine: Machi
         {m.link.value !== 'connected' && <LinkPill />}
         <span class="spacer" />
         <NeedsYouPill machine={machine} />
+        <MenuButton />
       </div>
       <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
         <nav aria-label="Work" class="tree-side">

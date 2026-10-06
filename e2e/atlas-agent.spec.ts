@@ -137,9 +137,9 @@ test('D3.3 D3.11: while the pane is active the bar is Ask · Keys, and Keys send
   test.skip(info.project.name !== 'desktop', 'the desktop');
   const machine = await opened(page, context);
   const bar = page.locator('.tree-acts');
-  await expect(bar.getByRole('button')).toHaveText(['Ask', 'Eval', 'Seal', 'Weft ⌄']);
+  await expect(bar.getByRole('button')).toHaveText(['Ask', 'Eval', 'Seal']);
   await pane(page).click();
-  await expect(bar.getByRole('button')).toHaveText(['Ask', 'Keys', 'Weft ⌄']);
+  await expect(bar.getByRole('button')).toHaveText(['Ask', 'Keys']);
   await bar.getByRole('button', { name: 'Keys' }).click();
   await expect(pane(page)).toHaveAttribute('data-active', 'true');
   await page.getByRole('toolbar', { name: 'Keys' }).getByRole('button', { name: 'Esc', exact: true }).click();

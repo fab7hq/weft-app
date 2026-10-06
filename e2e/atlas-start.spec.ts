@@ -36,8 +36,8 @@ test('M2.1 D2.1 → M9.7 D9.7: start an agent from the empty tree; it opens', as
 test('M9.1 D9.1 → M9.7: start an agent from Settings or the menu; Cancel goes back', async ({ page, context }, info) => {
   const machine = await opened(page, context);
   const desktop = info.project.name === 'desktop';
-  await page.getByRole('button', { name: desktop ? 'Weft ⌄' : 'Menu' }).click();
-  // On a desktop Weft ⌄ opens the menu (D9.1), which starts one too.
+  await page.getByRole('button', { name: 'Menu' }).click();
+  // On a desktop ☰ opens the menu (D9.1), which starts one too.
   await (desktop ? page.getByRole('menu') : page).getByRole('button', { name: 'Start an agent' }).click();
   await expect(page.getByRole('radiogroup', { name: 'Start an agent' })).toBeVisible();
   await page.getByRole('button', { name: 'Cancel', exact: true }).click();

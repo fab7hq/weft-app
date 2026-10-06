@@ -10,7 +10,6 @@ import { asking } from './Ask';
 import { act } from './Asked';
 import { KeyBar } from './Keys';
 import { selected } from './Tree';
-import { Menu } from './Settings';
 import { fill, w } from '../words';
 
 export interface BarActs {
@@ -61,7 +60,6 @@ function selection() {
 export function TreeBar({ machine, wide }: { machine: Machine; wide: boolean }) {
   const [said, setSaid] = useState<string | null>(null);
   const [keys, setKeys] = useState(false);
-  const [menu, setMenu] = useState(false);
   // In the active pane the bar is the agent's, as the TUI's is (D3.3): a press
   // on it keeps the pane's focus.
   const inPane = wide && paneActive.value && openKeys.value;
@@ -102,13 +100,6 @@ export function TreeBar({ machine, wide }: { machine: Machine; wide: boolean }) 
           <>
             <button class="tree-act" type="button" onClick={() => void onWork('eval')}>{w('act.eval')}</button>
             <button class="tree-act" type="button" onClick={() => void onWork('seal')}>{w('act.seal')}</button>
-          </>
-        )}
-        {wide && (
-          <>
-            <span class="spacer" />
-            <button class="tree-act tree-act--menu" type="button" aria-expanded={menu} onClick={() => setMenu(!menu)}>{w('web.menu.weft')}</button>
-            {menu && <Menu onClose={() => setMenu(false)} />}
           </>
         )}
       </div>

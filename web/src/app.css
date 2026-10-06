@@ -88,7 +88,6 @@ a { color: var(--fab7-accent); }
 .pane-said { padding: 8px 16px 0; }
 .bar-sheet .fab7-keybar { flex-wrap: wrap; padding: 0; border: 0; background: none; }
 .bar-sheet .tree-act { flex: none; width: 100%; border: 1px solid var(--fab7-line); }
-.tree-act--menu { background: none; color: var(--fab7-accent); border: 0 !important; }
 .keys-pop { display: flex; flex-direction: column; gap: 10px; padding: 12px 20px; border-bottom: 1px solid var(--fab7-line); }
 .keys-pop .fab7-keybar { flex-wrap: wrap; padding: 0; border: 0; background: none; }
 .ended { flex: 1; display: flex; flex-direction: column; gap: 12px; align-items: flex-start; padding: 24px 20px; }
@@ -165,7 +164,7 @@ a { color: var(--fab7-accent); }
 
 /* Settings (M9.1, D9.2) and the desktop's menu (D9.1). */
 .settings { flex: 1; overflow: auto; display: flex; flex-direction: column; }
-.settings-row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 8px 16px; border: 0; border-bottom: 1px solid var(--fab7-line); background: none; color: var(--fab7-text); font: 15px var(--font-sans); text-align: left; cursor: pointer; }
+.settings-row { display: flex; align-items: center; gap: 12px; width: 100%; box-sizing: border-box; min-height: 56px; padding: 8px 16px; border: 0; border-bottom: 1px solid var(--fab7-line); background: none; color: var(--fab7-text); font: 15px var(--font-sans); text-align: left; cursor: pointer; }
 .settings-row--read { cursor: default; color: var(--fab7-muted); }
 .settings-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .settings-sub { font-size: 12px; color: var(--fab7-muted); }
@@ -173,9 +172,12 @@ a { color: var(--fab7-accent); }
 .settings-said { display: flex; flex-direction: column; gap: 6px; padding: 12px 16px; }
 .settings-field { display: flex; flex-direction: column; gap: 6px; padding: 8px 16px 16px; border-bottom: 1px solid var(--fab7-line); }
 .settings-acts { display: flex; flex-direction: column; gap: 12px; padding: 8px 16px; }
+.fab7-button--secondary.leave--warn, .fab7-button--secondary.leave--warn:hover { color: var(--fab7-amber-text); }
+.fab7-button--secondary.leave--danger, .fab7-button--secondary.leave--danger:hover { color: var(--fab7-danger); }
+.fab7-button--secondary.leave--sure { border-color: var(--fab7-danger); }
 .settings-foot { margin: auto 16px 24px; }
 .menu-backdrop { position: fixed; inset: 0; z-index: 30; }
-.menu-pop { position: absolute; right: 16px; bottom: 64px; width: 320px; max-height: calc(100vh - 140px); overflow: auto; border: 1px solid var(--fab7-line); border-radius: 12px; background: var(--fab7-panel); box-shadow: 0 12px 40px #0008; }
+.menu-pop { position: absolute; right: 16px; top: 64px; width: 320px; max-height: calc(100vh - 80px); overflow: auto; border: 1px solid var(--fab7-line); border-radius: 12px; background: var(--fab7-panel); box-shadow: 0 12px 40px #0008; }
 
 /* A page of its own on a tablet or a desktop (D1.x, D8.x, D9.2): one column,
    520 px, centred under the bar, as the cards draw it. */
@@ -191,4 +193,11 @@ a { color: var(--fab7-accent); }
 .machine-open { flex: 1; min-width: 0; background: none; border: 0 !important; text-align: left; font: inherit; color: inherit; cursor: pointer; }
 .machine-remove { flex: none; align-self: center; margin-right: 12px; padding: 8px 14px; border: 1px solid var(--fab7-line); border-radius: 10px; background: none; color: var(--fab7-muted); font: 600 13px var(--font-sans); cursor: pointer; }
 .machine-remove--sure { color: var(--fab7-amber-text); border-color: var(--fab7-amber-text); }
+.sure-backdrop { position: fixed; inset: 0; z-index: 40; display: flex; align-items: center; justify-content: center; background: rgba(5, 8, 14, 0.66); }
+.sure { width: 420px; max-width: calc(100% - 32px); box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; padding: 24px; border: 1px solid var(--fab7-line); border-radius: 14px; background: var(--fab7-surface); box-shadow: 0 18px 48px rgba(0, 0, 0, 0.5); }
+.sure-title { margin: 0; font-size: 17px; font-weight: 600; }
+.sure-what { margin: 0; font-size: 14px; line-height: 20px; color: var(--fab7-muted); }
+.sure-acts { display: flex; gap: 10px; justify-content: flex-end; padding-top: 6px; }
+.sure-acts .machine-remove { margin: 0; padding: 8px 16px; color: var(--fab7-text); }
+.sure-acts .machine-remove--sure { color: var(--fab7-amber-text); }
 @media (max-width: 767px) { .machine--swiped .machine-remove { align-self: stretch; margin: 0; border: 0; border-radius: 0; background: #b3261e; color: #fff; padding: 0 20px; } }

@@ -140,6 +140,11 @@ const SCREENS: Screen[] = [
   { ids: ['M1.6', 'D1.6'], run: async (at) => {
     await open(at, [{ name: 'laptop' }]);
     await expect(at.page.getByRole('heading', { name: 'Your machines' })).toBeVisible();
+    // The desktop's card draws the confirmation for laptop open.
+    if (at.wide) {
+      await at.page.getByRole('listitem').filter({ hasText: 'laptop' }).getByRole('button', { name: 'Remove', exact: true }).click();
+      await expect(at.page.getByRole('dialog')).toBeVisible();
+    }
   } },
   { ids: ['M1.7', 'D1.7'], run: async (at) => {
     at.machine.down = true;
@@ -374,11 +379,11 @@ const SCREENS: Screen[] = [
   { ids: ['D9.1'], run: async (at) => {
     await open(at, [{ name: 'laptop' }]);
     await at.page.getByRole('button', { name: /studio/ }).click();
-    await button(at, 'Weft ⌄').click();
+    await button(at, 'Menu').click();
   } },
   { ids: ['D9.2'], run: async (at) => {
     await tree(at);
-    await button(at, 'Weft ⌄').click();
+    await button(at, 'Menu').click();
     await button(at, 'Settings…').click();
   } },
   { ids: ['M9.2'], run: async (at) => {
@@ -392,7 +397,7 @@ const SCREENS: Screen[] = [
     // On the phone, as the app on the Home Screen; the machine gives no key yet.
     await at.page.addInitScript(() => Object.defineProperty(navigator, 'standalone', { value: true }));
     await tree(at);
-    await button(at, at.wide ? 'Weft ⌄' : 'Menu').click();
+    await button(at, 'Menu').click();
     await at.page.getByLabel(/Notifications from studio/).click();
     await expect(at.page.getByText('Connect to the machine first.')).toBeVisible();
   } },
@@ -403,7 +408,7 @@ const SCREENS: Screen[] = [
   } },
   { ids: ['M9.7', 'D9.7'], run: async (at) => {
     await tree(at);
-    await button(at, at.wide ? 'Weft ⌄' : 'Menu').click();
+    await button(at, 'Menu').click();
     await (at.wide ? at.page.getByRole('menu') : at.page).getByRole('button', { name: 'Start an agent' }).click();
     await expect(at.page.getByRole('radiogroup', { name: 'Start an agent' })).toBeVisible();
   } },

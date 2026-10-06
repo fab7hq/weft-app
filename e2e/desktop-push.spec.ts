@@ -29,7 +29,7 @@ test('notifications on: the subscription goes to the machine; its push shows and
   });
   await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
   await page.goto('/');
-  await page.getByRole('button', { name: 'Weft ⌄' }).click();
+  await page.getByRole('button', { name: 'Menu' }).click();
   await page.getByLabel(/Notifications from studio/).click();
   await expect.poll(() => machine.of('push').length).toBe(1);
   expect(machine.of('push')[0]).toEqual({ type: 'push', subscription: { endpoint: 'https://push.example/sub/1', keys: { p256dh: 'BPk', auth: 'au' } } });

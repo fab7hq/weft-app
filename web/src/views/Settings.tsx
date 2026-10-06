@@ -109,7 +109,7 @@ async function leave(how: 'out' | 'everywhere' | 'forget' | 'delete') {
   location.assign('/');
 }
 
-/** D9.1: what Weft ⌄ opens on a desktop. A click outside closes it. */
+/** D9.1: what ☰ opens on a desktop, dropping down from it. A click outside closes it. */
 export function Menu({ onClose }: { onClose: () => void }) {
   const [name] = useName();
   useEffect(() => {
@@ -130,6 +130,17 @@ export function Menu({ onClose }: { onClose: () => void }) {
         <button class="settings-row" type="button" onClick={() => void leave('out')}>{w('web.settings.sign_out')}</button>
       </div>
     </div>
+  );
+}
+
+/** ☰ at the top right of a desktop's tree: it opens the menu (D9.1). */
+export function MenuButton() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button class="menu" type="button" aria-label="Menu" aria-expanded={open} onClick={() => setOpen(!open)}>☰</button>
+      {open && <Menu onClose={() => setOpen(false)} />}
+    </>
   );
 }
 
@@ -169,11 +180,11 @@ export function Settings({ login, wide }: { login: string; wide: boolean }) {
         <div class="settings-acts">
           <button class="fab7-button fab7-button--secondary" type="button" onClick={() => void leave('out')}>{w('web.settings.sign_out')}</button>
           <button class="fab7-button fab7-button--secondary" type="button" onClick={() => void leave('everywhere')}>{w('web.settings.sign_out_everywhere')}</button>
-          <button class="fab7-button fab7-button--secondary" type="button" onClick={() => void leave('forget')}>{w('web.settings.forget')}</button>
+          <button class="fab7-button fab7-button--secondary leave--warn" type="button" onClick={() => void leave('forget')}>{w('web.settings.forget')}</button>
           {deleting ? (
-            <button class="fab7-button fab7-button--secondary needs" type="button" onClick={() => void leave('delete')}>{w('web.settings.delete_sure')}</button>
+            <button class="fab7-button fab7-button--secondary leave--danger leave--sure" type="button" onClick={() => void leave('delete')}>{w('web.settings.delete_sure')}</button>
           ) : (
-            <button class="fab7-button fab7-button--secondary" type="button" onClick={() => setDeleting(true)}>{w('web.settings.delete')}</button>
+            <button class="fab7-button fab7-button--secondary leave--danger" type="button" onClick={() => setDeleting(true)}>{w('web.settings.delete')}</button>
           )}
         </div>
         <p class="note settings-foot">

@@ -26,7 +26,7 @@ function Woven({ machine }: { machine: Machine }) {
   );
 }
 
-export function Wide({ machine, agent, starting = null, view }: { machine: Machine; agent: string | null; starting?: string | null; view: View }) {
+export function Wide({ login, machine, agent, starting = null, view }: { login: string; machine: Machine; agent: string | null; starting?: string | null; view: View }) {
   return (
     <div class="app">
       <div class="appbar">
@@ -35,7 +35,7 @@ export function Wide({ machine, agent, starting = null, view }: { machine: Machi
         {m.link.value !== 'connected' && <LinkPill />}
         <span class="spacer" />
         <NeedsYouPill machine={machine} />
-        <MenuButton />
+        <MenuButton login={login} />
       </div>
       <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
         <nav aria-label="Work" class="tree-side">

@@ -2,6 +2,7 @@
 // Start an agent, this device, its notifications, the machines, the account.
 import { useEffect, useState } from 'preact/hooks';
 import * as api from '../api';
+import { Confirm, type Cost } from './Confirm';
 import * as m from '../machine';
 import { back, go, reset } from '../nav';
 import { fill, w } from '../words';
@@ -91,8 +92,24 @@ export function MachineRows({ then }: { then?: () => void }) {
   );
 }
 
+type Leave = 'out' | 'everywhere' | 'forget' | 'delete';
+
+/** What each way of leaving asks first, and what it costs. */
+const ASKS: Record<Leave, [ask: string, what: string, cost: Cost]> = {
+  out: ['web.settings.sign_out_ask', 'web.settings.sign_out_what', 'go'],
+  everywhere: ['web.settings.everywhere_ask', 'web.settings.everywhere_what', 'go'],
+  forget: ['web.settings.forget_ask', 'web.settings.forget_what', 'warn'],
+  delete: ['web.settings.delete_ask', 'web.settings.delete_what', 'danger'],
+};
+
+/** The confirmation for one way of leaving; Proceed leaves. */
+function Leaving({ how, login, onClose }: { how: Leave; login: string; onClose: () => void }) {
+  const [ask, what, cost] = ASKS[how];
+  return <Confirm question={w(ask)} what={fill(what, { login })} cost={cost} onProceed={() => void leave(how)} onClose={onClose} />;
+}
+
 /** Leave: sign out here or everywhere, forget this device, delete the account. */
-async function leave(how: 'out' | 'everywhere' | 'forget' | 'delete') {
+async function leave(how: Leave) {
   if (how === 'forget') {
     // This browser drops its name, its tokens and its notifications; the
     // next time it opens a machine, the machine asks again.
@@ -110,7 +127,7 @@ async function leave(how: 'out' | 'everywhere' | 'forget' | 'delete') {
 }
 
 /** D9.1: what ☰ opens on a desktop, dropping down from it. A click outside closes it. */
-export function Menu({ onClose }: { onClose: () => void }) {
+export function Menu({ onClose, onSignOut }: { onClose: () => void; onSignOut: () => void }) {
   const [name] = useName();
   useEffect(() => {
     const esc = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -127,19 +144,21 @@ export function Menu({ onClose }: { onClose: () => void }) {
         <div class="fab7-group">{w('web.settings.machines')}</div>
         <MachineRows then={onClose} />
         <button class="settings-row" type="button" onClick={() => (onClose(), go({ name: 'settings' }))}>{w('web.menu.settings')}</button>
-        <button class="settings-row" type="button" onClick={() => void leave('out')}>{w('web.settings.sign_out')}</button>
+        <button class="settings-row" type="button" onClick={() => (onClose(), onSignOut())}>{w('web.settings.sign_out')}</button>
       </div>
     </div>
   );
 }
 
 /** ☰ at the top right of a desktop's tree: it opens the menu (D9.1). */
-export function MenuButton() {
+export function MenuButton({ login }: { login: string }) {
   const [open, setOpen] = useState(false);
+  const [out, setOut] = useState(false);
   return (
     <>
       <button class="menu" type="button" aria-label="Menu" aria-expanded={open} onClick={() => setOpen(!open)}>☰</button>
-      {open && <Menu onClose={() => setOpen(false)} />}
+      {open && <Menu onClose={() => setOpen(false)} onSignOut={() => setOut(true)} />}
+      {out && <Leaving how="out" login={login} onClose={() => setOut(false)} />}
     </>
   );
 }
@@ -147,7 +166,7 @@ export function MenuButton() {
 export function Settings({ login, wide }: { login: string; wide: boolean }) {
   const machine = m.current.value;
   const [name, setName, keep] = useName();
-  const [deleting, setDeleting] = useState(false);
+  const [asking, setAsking] = useState<Leave | null>(null);
   return (
     <div class="app">
       <div class="appbar">
@@ -178,15 +197,12 @@ export function Settings({ login, wide }: { login: string; wide: boolean }) {
         )}
         <div class="fab7-group">{fill('web.settings.account', { login })}</div>
         <div class="settings-acts">
-          <button class="fab7-button fab7-button--secondary" type="button" onClick={() => void leave('out')}>{w('web.settings.sign_out')}</button>
-          <button class="fab7-button fab7-button--secondary" type="button" onClick={() => void leave('everywhere')}>{w('web.settings.sign_out_everywhere')}</button>
-          <button class="fab7-button fab7-button--secondary leave--warn" type="button" onClick={() => void leave('forget')}>{w('web.settings.forget')}</button>
-          {deleting ? (
-            <button class="fab7-button fab7-button--secondary leave--danger leave--sure" type="button" onClick={() => void leave('delete')}>{w('web.settings.delete_sure')}</button>
-          ) : (
-            <button class="fab7-button fab7-button--secondary leave--danger" type="button" onClick={() => setDeleting(true)}>{w('web.settings.delete')}</button>
-          )}
+          <button class="fab7-button fab7-button--secondary" type="button" onClick={() => setAsking('out')}>{w('web.settings.sign_out')}</button>
+          <button class="fab7-button fab7-button--secondary" type="button" onClick={() => setAsking('everywhere')}>{w('web.settings.sign_out_everywhere')}</button>
+          <button class="fab7-button fab7-button--secondary leave--warn" type="button" onClick={() => setAsking('forget')}>{w('web.settings.forget')}</button>
+          <button class="fab7-button fab7-button--secondary leave--danger" type="button" onClick={() => setAsking('delete')}>{w('web.settings.delete')}</button>
         </div>
+        {asking && <Leaving how={asking} login={login} onClose={() => setAsking(null)} />}
         <p class="note settings-foot">
           {w('web.settings.stays')} <a href="/privacy">{w('web.settings.privacy')}</a>
         </p>

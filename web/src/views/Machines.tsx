@@ -1,8 +1,9 @@
 // Your machines (M1.6, D1.6): open one, or remove one from the account; on a
-// desktop with Remove and a confirmation over the page, on a phone by swiping
-// the row left. Weft on the machine is not touched: it joins again with W → R.
-import { useLayoutEffect, useRef, useState } from 'preact/hooks';
+// desktop with Remove, on a phone by swiping the row left, then Proceed in the
+// confirmation over the page. Weft on the machine is not touched: it joins again with W → R.
+import { useRef, useState } from 'preact/hooks';
 import * as api from '../api';
+import { Confirm } from './Confirm';
 import { go } from '../nav';
 import { fill, w } from '../words';
 
@@ -43,7 +44,7 @@ export function Machines({ list, wide, onRemoved }: { list: api.Machine[]; wide:
                 <span class="fab7-row__meta">{w(m.address ? 'web.machines.tunnel' : 'web.machines.no_address')}</span>
               </button>
               {(wide || shown === m.id) && (
-                <button type="button" class="machine-remove" onClick={() => (wide ? setSure(m) : void remove(m))}>
+                <button type="button" class="machine-remove" onClick={() => setSure(m)}>
                   {w('web.machines.remove')}
                 </button>
               )}
@@ -51,30 +52,16 @@ export function Machines({ list, wide, onRemoved }: { list: api.Machine[]; wide:
           ))}
         </ul>
       </div>
-      {sure && <Sure machine={sure} onRemove={() => void remove(sure)} onClose={() => setSure(null)} />}
+      {sure && (
+        <Confirm
+          question={fill('web.machines.remove_sure', { machine: sure.name })}
+          what={fill('web.machines.remove_what', { machine: sure.name })}
+          cost="warn"
+          onProceed={() => void remove(sure)}
+          onClose={() => setSure(null)}
+        />
+      )}
     </div>
   );
 }
 
-/** D1.6: Remove {machine} from your account? Cancel, Esc or a click outside closes it. */
-function Sure({ machine, onRemove, onClose }: { machine: api.Machine; onRemove: () => void; onClose: () => void }) {
-  // At commit, not after paint, so an Esc pressed as it shows still closes it.
-  useLayoutEffect(() => {
-    const esc = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
-    addEventListener('keydown', esc);
-    return () => removeEventListener('keydown', esc);
-  }, [onClose]);
-  const question = fill('web.machines.remove_sure', { machine: machine.name });
-  return (
-    <div class="sure-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div class="sure" role="dialog" aria-modal="true" aria-label={question}>
-        <h2 class="sure-title">{question}</h2>
-        <p class="sure-what">{fill('web.machines.remove_what', { machine: machine.name })}</p>
-        <div class="sure-acts">
-          <button type="button" class="machine-remove" onClick={onClose}>{w('act.cancel')}</button>
-          <button type="button" class="machine-remove machine-remove--sure" onClick={onRemove}>{w('web.machines.remove')}</button>
-        </div>
-      </div>
-    </div>
-  );
-}

@@ -162,7 +162,7 @@ export function App() {
       if (machine.link.value === 'refused') return <Refused name={m.name} />;
       if (view.name === 'tree') queueMicrotask(() => openWanted(m.id));
       const shown =
-        wide.value ? <Wide machine={m} agent={view.name === 'agent' ? view.agent : null} starting={view.name === 'start' ? view.harness ?? '' : null} view={view} />
+        wide.value ? <Wide login={a.login} machine={m} agent={view.name === 'agent' ? view.agent : null} starting={view.name === 'start' ? view.harness ?? '' : null} view={view} />
         : view.name === 'eval' ? <EvalView machine={m} unit={view.unit} at={view.at} files={view.files} />
         : view.name === 'detail' ? <Details machine={m} unit={view.unit} />
         : view.name === 'start' ? <StartPage machine={m} from={view.from} harness={view.harness} />

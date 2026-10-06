@@ -5,6 +5,10 @@ import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import { FakeMachine, atlas } from './fake-machine';
 import { person, signIn } from './seed';
 
+const AMBER = 'rgb(237, 187, 91)';
+const RED = 'rgb(248, 81, 73)';
+const BLUE = 'rgb(88, 166, 255)';
+
 async function opened(page: Page, context: BrowserContext) {
   const machine = await FakeMachine.start();
   Object.assign(machine, atlas());
@@ -69,17 +73,58 @@ test('D9.1 D9.2: ☰ at the top right opens the menu under it; a click outside c
   await machine.close();
 });
 
-test('M9.1 D9.2 M9.4: Forget this device is a warning, deleting the account is dangerous', async ({ page, context }, info) => {
+test('M9.1 D9.2: Forget this device is a warning, deleting the account is dangerous', async ({ page, context }, info) => {
   const machine = await opened(page, context);
   await page.getByRole('button', { name: 'Menu' }).click();
   if (info.project.name === 'desktop') await page.getByRole('menu').getByRole('button', { name: 'Settings…' }).click();
   const colour = (name: string) => page.getByRole('button', { name, exact: true }).evaluate((el) => getComputedStyle(el).color);
-  const amber = 'rgb(237, 187, 91)';
-  const red = 'rgb(248, 81, 73)';
-  expect(await colour('Sign out')).not.toBe(amber);
-  expect(await colour('Forget this device')).toBe(amber);
-  expect(await colour('Delete my account')).toBe(red);
-  await page.getByRole('button', { name: 'Delete my account', exact: true }).click();
-  expect(await colour('Delete my account and its machines')).toBe(red);
+  expect(await colour('Sign out')).not.toBe(AMBER);
+  expect(await colour('Forget this device')).toBe(AMBER);
+  expect(await colour('Delete my account')).toBe(RED);
+  await machine.close();
+});
+
+test('M9.4 M9.5 M9.6 D9.4: each act that leaves asks first, and Cancel, Esc or a press outside does nothing', async ({ page, context }, info) => {
+  const machine = await opened(page, context);
+  await page.getByRole('button', { name: 'Menu' }).click();
+  if (info.project.name === 'desktop') await page.getByRole('menu').getByRole('button', { name: 'Settings…' }).click();
+  const asks: [string, string, string, string][] = [
+    ['Sign out', 'Sign out of Weft here?', 'You sign out on this device. It stays allowed on your machines, so signing in again opens them.', BLUE],
+    ['Sign out everywhere', 'Sign out everywhere?', 'Every phone and browser signed in as octo signs out. Each stays allowed on your machines.', BLUE],
+    ['Forget this device', 'Forget this device?', 'This device drops its name, its tokens and its notifications.', AMBER],
+    ['Delete my account', 'Delete your account?', "Your account, its sign-ins and its machines leave Weft's service, on every device.", RED],
+  ];
+  for (const [act, question, what, colour] of asks) {
+    await page.getByRole('button', { name: act, exact: true }).click();
+    const sure = page.getByRole('dialog', { name: question });
+    await expect(sure).toContainText(what);
+    await expect(sure.getByRole('button')).toHaveText(['Cancel', 'Proceed']);
+    expect(await sure.getByRole('button', { name: 'Proceed' }).evaluate((el) => getComputedStyle(el).color)).toBe(colour);
+    await sure.getByRole('button', { name: 'Cancel' }).click();
+    await expect(sure).toHaveCount(0);
+    await page.getByRole('button', { name: act, exact: true }).click();
+    await expect(sure).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(sure).toHaveCount(0);
+    await page.getByRole('button', { name: act, exact: true }).click();
+    await expect(sure).toBeVisible();
+    await page.mouse.click(5, 5);
+    await expect(sure).toHaveCount(0);
+  }
+  // Nothing left: still signed in, on Settings.
+  await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole('link', { name: 'Sign in with GitHub' })).toHaveCount(0);
+  await machine.close();
+});
+
+test('D9.1: Sign out in the menu asks first', async ({ page, context }, info) => {
+  test.skip(info.project.name !== 'desktop', 'a desktop');
+  const machine = await opened(page, context);
+  await page.getByRole('button', { name: 'Menu' }).click();
+  await page.getByRole('menu').getByRole('button', { name: 'Sign out' }).click();
+  const sure = page.getByRole('dialog', { name: 'Sign out of Weft here?' });
+  await sure.getByRole('button', { name: 'Proceed' }).click();
+  await expect(page.getByRole('link', { name: 'Sign in with GitHub' })).toBeVisible();
   await machine.close();
 });

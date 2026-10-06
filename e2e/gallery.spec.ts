@@ -140,11 +140,18 @@ const SCREENS: Screen[] = [
   { ids: ['M1.6', 'D1.6'], run: async (at) => {
     await open(at, [{ name: 'laptop' }]);
     await expect(at.page.getByRole('heading', { name: 'Your machines' })).toBeVisible();
-    // The desktop's card draws the confirmation for laptop open.
-    if (at.wide) {
-      await at.page.getByRole('listitem').filter({ hasText: 'laptop' }).getByRole('button', { name: 'Remove', exact: true }).click();
-      await expect(at.page.getByRole('dialog')).toBeVisible();
+    // The cards draw the confirmation for laptop open; on the phone, over its swiped row.
+    const laptop = at.page.getByRole('listitem').filter({ hasText: 'laptop' });
+    if (!at.wide) {
+      await laptop.evaluate((el) => {
+        const r = el.getBoundingClientRect();
+        const t = (x: number) => [new Touch({ identifier: 1, target: el, clientX: x, clientY: r.y + 20 })];
+        el.dispatchEvent(new TouchEvent('touchstart', { bubbles: true, touches: t(r.right - 20), changedTouches: t(r.right - 20) }));
+        el.dispatchEvent(new TouchEvent('touchend', { bubbles: true, touches: [], changedTouches: t(r.right - 160) }));
+      });
     }
+    await laptop.getByRole('button', { name: 'Remove', exact: true }).click();
+    await expect(at.page.getByRole('dialog')).toBeVisible();
   } },
   { ids: ['M1.7', 'D1.7'], run: async (at) => {
     at.machine.down = true;
@@ -401,11 +408,16 @@ const SCREENS: Screen[] = [
     await at.page.getByLabel(/Notifications from studio/).click();
     await expect(at.page.getByText('Connect to the machine first.')).toBeVisible();
   } },
-  { ids: ['M9.4'], run: async (at) => {
-    await tree(at);
-    await button(at, 'Menu').click();
-    await button(at, 'Delete my account').click();
-  } },
+  ...([['M9.4', 'Delete my account'], ['M9.5', 'Sign out'], ['M9.6', 'Forget this device'], ['D9.4', 'Delete my account']] as const).map(([id, act]) => ({
+    ids: [id],
+    run: async (at: At) => {
+      await tree(at);
+      await button(at, 'Menu').click();
+      if (at.wide) await button(at, 'Settings…').click();
+      await button(at, act).click();
+      await expect(at.page.getByRole('dialog')).toBeVisible();
+    },
+  })),
   { ids: ['M9.7', 'D9.7'], run: async (at) => {
     await tree(at);
     await button(at, 'Menu').click();

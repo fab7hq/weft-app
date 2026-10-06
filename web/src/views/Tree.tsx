@@ -6,6 +6,7 @@ import type { Machine } from '../api';
 import * as m from '../machine';
 import { go, here } from '../nav';
 import { fill, stateWord, turnWord, w } from '../words';
+import { offerResume } from './Asked';
 import { TreeBar } from './Bar';
 import { LinkPill } from './Status';
 
@@ -179,7 +180,8 @@ function HarnessRows({ project, harness: h, onAgent, machine }: { project: m.Pro
         role="treeitem"
         aria-label={h.harness}
         aria-expanded={!closed}
-        onClick={() => (h.agent ? onAgent(h.agent) : fold(key))}
+        // Its agent, or, when it runs none, what resuming it would pick up.
+        onClick={() => (h.agent ? onAgent(h.agent) : !h.running ? offerResume(project.project, h.harness, h.session ?? null) : fold(key))}
       >
         <button
           class="tree-fold"

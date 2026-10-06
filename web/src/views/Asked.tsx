@@ -1,7 +1,8 @@
 // The confirmation bar (M4.5–M4.14, D4.5–D4.14), wherever the person is:
 // what the machine is about to type, Cancel beside Send; Send anyway when its
 // agent has not said it is ready; Resume, or Start an agent, when the work's
-// agent is not running. Answered on the machine first, it says so and closes.
+// agent is not running or a harness that is not running is tapped. Answered on
+// the machine first, it says so and closes.
 import { signal } from '@preact/signals';
 import { useEffect, useState } from 'preact/hooks';
 import * as m from '../machine';
@@ -12,15 +13,20 @@ import { fill, w } from '../words';
 /** The pending this device asked for and shows. */
 export const shown = signal<string | null>(null);
 
-/** An act the machine refused because no agent of the work's harness runs. */
+/** An act the machine refused because no agent of the work's harness runs, or a tap on such a harness. */
 interface Gone {
   harness: string;
   project: string;
   session: { at: number; last: string } | null;
-  /** The act, sent again once the agent is back. */
-  again: Record<string, unknown>;
+  /** The act, sent again once the agent is back; none after a tap on the harness. */
+  again: Record<string, unknown> | null;
 }
 const gone = signal<Gone | null>(null);
+
+/** A tap on a harness that is not running (M2.9): its latest session, or a fresh agent. */
+export function offerResume(project: string, harness: string, session: Gone['session']) {
+  gone.value = { harness, project, session, again: null };
+}
 
 /** The project a work is in. */
 const projectOf = (unit: unknown) => m.tree.value.find((p) => p.harnesses.some((h) => h.works.some((x) => x.unit === unit)))?.project ?? '';
@@ -106,8 +112,13 @@ function GoneBar({ gone: g }: { gone: Gone }) {
   const close = () => (gone.value = null);
   const resume = async () => {
     close();
-    const started = await m.request({ type: 'start', project: g.project, harness: g.harness, unit: g.again.unit });
-    if (started?.type === 'ok') void act(g.again);
+    // Weft's own resume: the work's session, else the harness's latest.
+    const which = g.again ? { unit: g.again.unit } : { resume: true };
+    const started = await m.request({ type: 'start', project: g.project, harness: g.harness, ...which });
+    if (started?.type !== 'ok') return;
+    const machine = m.current.value;
+    if (g.again) void act(g.again);
+    else if (machine && started.agent) go({ name: 'agent', machine: machine.id, agent: String(started.agent) });
   };
   const fresh = () => {
     close();

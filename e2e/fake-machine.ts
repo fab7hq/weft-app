@@ -46,6 +46,8 @@ export interface Harness {
   turn: Agent['turn'] | null;
   turbo: boolean;
   running: boolean;
+  /** Not running: the session a tap on it would resume (M2.9), else null. */
+  session?: { at: number; last: string } | null;
   works: Work[];
 }
 

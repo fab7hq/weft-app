@@ -7,7 +7,7 @@
     "test": "vitest run",
     "build": "vite build web",
     "dev": "wrangler dev",
-    "e2e": "playwright test --project iphone --project ipad --project desktop --project desktop-push",
+    "e2e": "playwright test --project iphone --project iphone-webkit --project ipad --project desktop --project desktop-push",
     "words": "node scripts/words.mjs",
     "gallery": "playwright test --project gallery-phone --project gallery-desktop"
   },

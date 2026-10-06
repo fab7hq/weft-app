@@ -2,6 +2,7 @@
 // desktop, or a swipe left and Remove on a phone, then Proceed in the
 // confirmation over the page.
 import { expect, test } from '@playwright/test';
+import { swipeLeft } from './touch';
 import { person, signIn } from './seed';
 
 test('M1.6 D1.6: a machine is removed from the account, and stays removed', async ({ page, context }, info) => {
@@ -15,12 +16,7 @@ test('M1.6 D1.6: a machine is removed from the account, and stays removed', asyn
   // On a phone Remove shows only once the row is swiped left; it stays shown after Cancel.
   const swipeRemove = async () => {
     if (await laptop.getByRole('button', { name: 'Remove' }).isVisible()) return laptop.getByRole('button', { name: 'Remove' }).tap();
-    await laptop.evaluate((el) => {
-      const r = el.getBoundingClientRect();
-      const t = (x: number) => [new Touch({ identifier: 1, target: el, clientX: x, clientY: r.y + 20 })];
-      el.dispatchEvent(new TouchEvent('touchstart', { bubbles: true, touches: t(r.right - 20), changedTouches: t(r.right - 20) }));
-      el.dispatchEvent(new TouchEvent('touchend', { bubbles: true, touches: [], changedTouches: t(r.right - 160) }));
-    });
+    await swipeLeft(laptop);
     await laptop.getByRole('button', { name: 'Remove' }).tap();
   };
   // Remove asks first, on every size; Cancel, Esc and a press outside each keep the machine.

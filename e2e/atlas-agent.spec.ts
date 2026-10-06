@@ -2,6 +2,7 @@
 // a double tap, or a click, makes it active; then history and the live screen scroll as one.
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import { FakeMachine, atlas } from './fake-machine';
+import { pull as finger } from './touch';
 import { person, signIn } from './seed';
 
 async function opened(page: Page, context: BrowserContext) {
@@ -17,13 +18,7 @@ async function opened(page: Page, context: BrowserContext) {
 
 /** A finger pulling the element down by `by` pixels: scrolling up. */
 async function pull(page: Page, by: number) {
-  await page.getByLabel("The agent's screen").evaluate((el, by) => {
-    const r = el.getBoundingClientRect();
-    const at = (y: number) => [new Touch({ identifier: 1, target: el, clientX: r.x + 50, clientY: y })];
-    el.dispatchEvent(new TouchEvent('touchstart', { bubbles: true, touches: at(r.y + 40), changedTouches: at(r.y + 40) }));
-    el.dispatchEvent(new TouchEvent('touchmove', { bubbles: true, touches: at(r.y + 40 + by), changedTouches: at(r.y + 40 + by) }));
-    el.dispatchEvent(new TouchEvent('touchend', { bubbles: true, touches: [], changedTouches: at(r.y + 40 + by) }));
-  }, by);
+  await finger(page.getByLabel("The agent's screen"), by);
 }
 
 const pane = (page: Page) => page.getByLabel('The agent', { exact: true });

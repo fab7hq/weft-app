@@ -1,7 +1,7 @@
 // Seeds the local D1 under `wrangler dev` with a user, a session and
 // machines, as the Worker writes them, and hands back the session cookie.
 import { execFileSync } from 'node:child_process';
-import { createHash, randomBytes } from 'node:crypto';
+import { createHash, randomBytes, randomInt } from 'node:crypto';
 import type { BrowserContext } from '@playwright/test';
 
 const sha256 = (s: string) => createHash('sha256').update(s).digest('hex');
@@ -21,12 +21,11 @@ export interface Seeded {
   machines: { id: string; name: string; address: string | null }[];
 }
 
-let next = Date.now() % 1_000_000;
 
 /** A signed-in person with these machines. */
 export function person(login: string, machines: { name: string; address?: string }[]): Seeded {
-  next += 1;
-  const githubId = next;
+  // Random, so no two people in one local D1 share a GitHub id.
+  const githubId = randomInt(1, 2 ** 31);
   const userId = `u_${randomBytes(6).toString('hex')}`;
   const cookie = randomBytes(32).toString('base64url');
   const now = Date.now();

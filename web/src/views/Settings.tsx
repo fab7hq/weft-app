@@ -114,7 +114,8 @@ async function leave(how: Leave) {
     // This browser drops its name, its tokens and its notifications; the
     // next time it opens a machine, the machine asks again.
     m.send({ type: 'push', subscription: null });
-    await (await navigator.serviceWorker?.getRegistration())?.pushManager.getSubscription().then((s) => s?.unsubscribe());
+    // Safari in a tab has no pushManager: there is nothing to drop, and forgetting goes on.
+    await (await navigator.serviceWorker?.getRegistration())?.pushManager?.getSubscription().then((s) => s?.unsubscribe()).catch(() => {});
     await store.clear('macs');
     await store.clear('devices');
     m.close();

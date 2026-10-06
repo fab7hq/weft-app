@@ -5,6 +5,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import { FakeMachine, atlas, type Agent, type Project } from './fake-machine';
+import { pull, swipeLeft } from './touch';
 import { person, signIn } from './seed';
 import { DETAILS, JUDGED, NOT_RUN, S7, SEALED, SENT, VIEW, detail, row, type Section } from './atlas-fixtures';
 
@@ -59,13 +60,7 @@ async function scrollBack(at: At, by: number) {
     await at.page.mouse.wheel(0, -by);
     return;
   }
-  await screen.evaluate((el, by) => {
-    const r = el.getBoundingClientRect();
-    const t = (y: number) => [new Touch({ identifier: 1, target: el, clientX: r.x + 50, clientY: y })];
-    el.dispatchEvent(new TouchEvent('touchstart', { bubbles: true, touches: t(r.y + 40), changedTouches: t(r.y + 40) }));
-    el.dispatchEvent(new TouchEvent('touchmove', { bubbles: true, touches: t(r.y + 40 + by), changedTouches: t(r.y + 40 + by) }));
-    el.dispatchEvent(new TouchEvent('touchend', { bubbles: true, touches: [], changedTouches: t(r.y + 40 + by) }));
-  }, by);
+  await pull(screen, by);
 }
 
 const history = (lines: number) => (m: Record<string, unknown>) => ({ type: 'ok', req: m.req, text: Array.from({ length: lines }, (_, i) => `line ${i + 1}`).join('\n') });
@@ -143,12 +138,7 @@ const SCREENS: Screen[] = [
     // The cards draw the confirmation for laptop open; on the phone, over its swiped row.
     const laptop = at.page.getByRole('listitem').filter({ hasText: 'laptop' });
     if (!at.wide) {
-      await laptop.evaluate((el) => {
-        const r = el.getBoundingClientRect();
-        const t = (x: number) => [new Touch({ identifier: 1, target: el, clientX: x, clientY: r.y + 20 })];
-        el.dispatchEvent(new TouchEvent('touchstart', { bubbles: true, touches: t(r.right - 20), changedTouches: t(r.right - 20) }));
-        el.dispatchEvent(new TouchEvent('touchend', { bubbles: true, touches: [], changedTouches: t(r.right - 160) }));
-      });
+      await swipeLeft(laptop);
     }
     await laptop.getByRole('button', { name: 'Remove', exact: true }).click();
     await expect(at.page.getByRole('dialog')).toBeVisible();

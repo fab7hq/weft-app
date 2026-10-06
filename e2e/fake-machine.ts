@@ -1,7 +1,17 @@
 // A fake machine: speaks the remote protocol (remote.md §6b) as `weft remote`
 // does, records every message, and lets a test drop and refuse connections,
 // change its epoch and send what the machine would.
+import { readFileSync } from 'node:fs';
+import { createServer, type Server } from 'node:https';
 import { WebSocketServer, type WebSocket } from 'ws';
+
+// A test-only certificate: a machine is reached over wss:// as through its
+// tunnel, and WebKit refuses ws:// from an https:// page. Playwright ignores
+// that it is self-signed.
+const TLS = {
+  key: readFileSync(new URL('./fixtures/fake-machine.key', import.meta.url)),
+  cert: readFileSync(new URL('./fixtures/fake-machine.crt', import.meta.url)),
+};
 
 export interface Agent {
   agent: string;
@@ -66,6 +76,7 @@ export interface Start {
 
 export class FakeMachine {
   readonly server: WebSocketServer;
+  private readonly tls: Server;
   readonly heard: Record<string, unknown>[] = [];
   epoch = 'e1';
   vapid: string | null = null;
@@ -91,11 +102,8 @@ export class FakeMachine {
   private sockets = new Set<WebSocket>();
 
   constructor() {
-    this.server = new WebSocketServer({
-      port: 0,
-      host: '127.0.0.1',
-      verifyClient: () => !this.down,
-    });
+    this.tls = createServer(TLS).listen(0, '127.0.0.1');
+    this.server = new WebSocketServer({ server: this.tls, verifyClient: () => !this.down });
     this.server.on('connection', (ws) => {
       this.sockets.add(ws);
       ws.on('close', () => this.sockets.delete(ws));
@@ -136,13 +144,13 @@ export class FakeMachine {
   /** A fake machine, listening. */
   static async start(): Promise<FakeMachine> {
     const m = new FakeMachine();
-    await new Promise<void>((done) => m.server.once('listening', () => done()));
+    if (!m.tls.listening) await new Promise<void>((done) => m.tls.once('listening', () => done()));
     return m;
   }
 
   get address(): string {
-    const a = this.server.address();
-    return `http://127.0.0.1:${typeof a === 'object' && a ? a.port : 0}`;
+    const a = this.tls.address();
+    return `https://127.0.0.1:${typeof a === 'object' && a ? a.port : 0}`;
   }
 
   welcome() {
@@ -179,7 +187,7 @@ export class FakeMachine {
 
   close(): Promise<void> {
     this.drop();
-    return new Promise((done) => this.server.close(() => done()));
+    return new Promise((done) => this.server.close(() => (this.tls.closeAllConnections(), this.tls.close(() => done()))));
   }
 }
 

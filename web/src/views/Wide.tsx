@@ -17,7 +17,9 @@ import { MenuButton } from './Settings';
 function Woven({ machine }: { machine: Machine }) {
   // While it connects the threads weave (D1.7), with nothing to start yet.
   const weaving = !m.welcomed.value;
-  if (!weaving && m.tree.value.some((p) => p.harnesses.length > 0)) return null;
+  // Only while nothing is in the tree: a project not set up, or a harness not
+  // set up, leaves the right side empty until an agent runs (D2.3, D2.4).
+  if (!weaving && m.tree.value.some((p) => p.harnesses.length > 0 || p.setup || (p.ask && p.ask.key !== 'why.start_an_agent'))) return null;
   return (
     <div class={weaving ? 'woven woven--weaving' : 'woven'}>
       <pre class="woven-mark">{'╸┃╺╸┃╺╸┃╺╸┃╺\n┃╺╸┃╺╸┃╺╸┃╺╸\n╺╸┃╺╸┃╺╸┃╺╸┃\n╸┃╺╸┃╺╸┃╺╸┃╺\n┃╺╸┃╺╸┃╺╸┃╺╸\n╺╸┃╺╸┃╺╸┃╺╸┃\n╸┃╺╸┃╺╸┃╺╸┃╺'}</pre>

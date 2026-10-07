@@ -12,6 +12,13 @@ import { HeaderPills } from './Status';
 
 /** The work the bar's acts are on, by its Ask id. */
 export const selected = signal<string | null>(null);
+/** Or the harness last tapped, as `project/harness` (M2.5, M7.1): a tap on a work or a harness moves the selection. */
+export const selectedHarness = signal<string | null>(null);
+
+/** Why a harness cannot record, as its project's machine said: it is not set up for RingFrame (M7.1). */
+export function unready(p: m.Project, harness: string): m.Why | null {
+  return p.ask && p.ask.harness === harness && p.ask.key !== 'why.start_an_agent' ? p.ask : null;
+}
 
 /** What this browser has folded: a project by name, a harness as `project/harness`. */
 const FOLDS = 'weft.folded';
@@ -76,16 +83,19 @@ export function StartButton({ machine }: { machine: Machine }) {
 /** What the empty tree says, as the TUI's empty list does. */
 function Empty({ machine }: { machine: Machine }) {
   const why = m.tree.value.find((p) => p.ask)?.ask;
-  const lines =
-    why && why.key !== 'why.start_an_agent'
-      ? [fill(why.key, { harness: why.harness ?? '' }), w('tree.runs_either_way'), fill('web.why.set_up_on', { machine: machine.name })]
-      : [w('tree.nothing_asked')];
+  // M2.3, D2.3: the harness is not set up; else M2.1, D2.1: nothing asked yet.
+  if (why && why.key !== 'why.start_an_agent')
+    return (
+      <div class="tree-empty">
+        <p class="tree-empty-why">{fill(why.key, { harness: why.harness ?? '' })}</p>
+        <p class="tree-empty-line">{w('tree.runs_either_way')}</p>
+        <p class="tree-empty-line tree-empty-line--faint">{fill('web.why.set_up_on', { machine: machine.name })}</p>
+      </div>
+    );
   return (
     <div class="tree-empty">
-      {lines.map((l) => (
-        <p key={l} class="note">{l}</p>
-      ))}
-      {!why || why.key === 'why.start_an_agent' ? <span class="phone-only"><StartButton machine={machine} /></span> : null}
+      <p class="tree-empty-said">{w('tree.nothing_asked')}</p>
+      <span class="phone-only"><StartButton machine={machine} /></span>
     </div>
   );
 }
@@ -101,20 +111,20 @@ const NEEDS = [
 function Checklist({ needs }: { needs: m.Needs }) {
   return (
     <div class="checklist">
-      <p class="note">{w('tree.not_set_up')}</p>
+      <p class="checklist-said">{w('tree.not_set_up')}</p>
       <ul aria-label={w('tree.not_set_up')}>
         {NEEDS.map(([fact, said, how]) => {
           const held = needs[fact];
           return (
             <li key={fact} data-held={String(held)}>
               <span class="checklist-mark">{held === null ? '?' : held ? '✓' : '✗'}</span>
-              <span>{w(said)}</span>
+              <span class="checklist-what">{w(said)}</span>
               <span class="checklist-how">{held === false ? w(how) : ''}</span>
             </li>
           );
         })}
       </ul>
-      <p class="note">{w('tree.sets_it_up')}</p>
+      <p class="checklist-said checklist-said--last">{w('tree.sets_it_up')}</p>
     </div>
   );
 }
@@ -159,8 +169,11 @@ export function TreeList({ machine, onAgent }: { machine: Machine; onAgent: (age
             </div>
             {!closed && p.harnesses.map((h) => <HarnessRows key={h.harness} project={p} harness={h} onAgent={onAgent} machine={machine} />)}
             {!closed && p.setup && <Checklist needs={p.setup} />}
-            {!closed && !p.setup && p.harnesses.length > 0 && p.harnesses.every((h) => h.works.length === 0) && (
-              <p class="note tree-next">{p.ask && p.ask.key !== 'why.start_an_agent' ? fill(p.ask.key, { harness: p.ask.harness ?? '' }) : w('web.tree.ask_for_something')}</p>
+            {/* M2.5: nothing asked yet, under the harnesses while one is unfolded (M2.7).
+                A harness not set up says so by its ⚠ instead (M7.1). */}
+            {!closed && !p.setup && p.harnesses.length > 0 && p.harnesses.every((h) => h.works.length === 0) &&
+              p.harnesses.some((h) => !fold_.includes(`${p.project}/${h.harness}`)) && !p.harnesses.some((h) => unready(p, h.harness)) && (
+              <p class="tree-next">{w('web.tree.ask_for_something')}</p>
             )}
           </div>
         );
@@ -173,6 +186,15 @@ function HarnessRows({ project, harness: h, onAgent, machine }: { project: m.Pro
   const key = `${project.project}/${h.harness}`;
   const closed = folded.value.includes(key);
   const waiting = h.turn === 'waiting';
+  // The tap selects it (M2.5, M7.1), and opens its agent, or, when it runs
+  // none, what resuming it would pick up.
+  const tap = () => {
+    selected.value = null;
+    selectedHarness.value = key;
+    if (h.agent) onAgent(h.agent);
+    else if (!h.running) offerResume(project.project, h.harness, h.session ?? null);
+    else fold(key);
+  };
   return (
     <>
       <div
@@ -180,8 +202,8 @@ function HarnessRows({ project, harness: h, onAgent, machine }: { project: m.Pro
         role="treeitem"
         aria-label={h.harness}
         aria-expanded={!closed}
-        // Its agent, or, when it runs none, what resuming it would pick up.
-        onClick={() => (h.agent ? onAgent(h.agent) : !h.running ? offerResume(project.project, h.harness, h.session ?? null) : fold(key))}
+        aria-selected={selectedHarness.value === key}
+        onClick={tap}
       >
         <button
           class="tree-fold"
@@ -194,10 +216,12 @@ function HarnessRows({ project, harness: h, onAgent, machine }: { project: m.Pro
         >
           {closed ? '▸' : '▾'}
         </button>
-        <span class="tree-name">
+        {/* M2.9: not running, the whole label grey; M7.1: ⚠ while it is not set up. */}
+        <span class={h.running ? 'tree-name' : 'tree-name tree-name--off'}>
           {h.harness}
           {h.turbo && ' ⚡'}
-          {!h.running && <span class="tree-aside">{` · ${w('tree.not_running')}`}</span>}
+          {unready(project, h.harness) && ' ⚠'}
+          {!h.running && ` · ${w('tree.not_running')}`}
         </span>
         {waiting && <span class="tree-aside needs" data-needs-you="true">{w('web.tree.needs_you')}</span>}
       </div>
@@ -209,7 +233,10 @@ function HarnessRows({ project, harness: h, onAgent, machine }: { project: m.Pro
             role="treeitem"
             aria-label={work.title}
             aria-selected={selected.value === work.unit}
-            onClick={() => (selected.value = work.unit)}
+            onClick={() => {
+              selectedHarness.value = null;
+              selected.value = work.unit;
+            }}
             onDblClick={() => go({ name: 'detail', machine: machine.id, unit: work.unit })}
           >
             <span class="tree-name">{work.title}</span>
@@ -230,6 +257,7 @@ function HarnessRows({ project, harness: h, onAgent, machine }: { project: m.Pro
               aria-label={`Details of ${work.title}`}
               onClick={(e) => {
                 e.stopPropagation();
+                selectedHarness.value = null;
                 selected.value = work.unit;
                 go({ name: 'detail', machine: machine.id, unit: work.unit });
               }}

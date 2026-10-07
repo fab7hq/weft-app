@@ -31,11 +31,11 @@ export function BarSheet({ acts, keys, onClose }: { acts: BarActs; keys: Compone
     f();
   };
   return (
-    <div class="sheet-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
+    <div class="sheet-backdrop bar-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div class="fab7-sheet bar-sheet" role="dialog" aria-label="Weft">
-        <span class="label">{acts.harness.toUpperCase()}</span>
+        <span class="sheet-label">{acts.harness.toUpperCase()}</span>
         <button class="tree-act" type="button" onClick={then(acts.onAsk)}>{w('act.ask')}</button>
-        <span class="label">{w('web.act.keys').toUpperCase()}</span>
+        <span class="sheet-label">{w('web.act.keys').toUpperCase()}</span>
         {keys}
       </div>
     </div>

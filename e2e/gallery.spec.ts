@@ -99,6 +99,32 @@ const withTree = (edit: (t: Project[], a: Agent[]) => void) => {
   return s;
 };
 
+/** The agent cards' moment: claude open and at work, beside codex; docs folded. */
+const calm = () => withTree((_, a) => {
+  a.splice(2);
+  a[0].turn = 'working';
+});
+
+/** What the cards draw in claude's pane: the desktop's lines, and the phone's as its narrower screen wraps them. */
+const WORKING = {
+  wide: ['● Read(src/login.rs)', '● Update(src/login.rs)', '  ⎿ Updated src/login.rs with 12 additions and 3 removals', '● Running cargo test…', '  test login::rejects_expired ... ok', '  test login::refreshes_token ... ok', '', '✻ Thinking… (esc to interrupt)', '', '❯'],
+  phone: ['● Read(src/login.rs)', '● Update(src/login.rs)', '  ⎿ Updated src/login.rs with', '    12 additions and 3 removals', '● Running cargo test…', '  test login::rejects_expired ok', '  test login::refreshes_token ok', '', '✻ Thinking… (esc to interrupt)', '', '❯'],
+};
+const BLUE = (s: string) => `\x1b[38;2;88;166;255m${s}\x1b[0m`;
+const ASKING = {
+  wide: ['● Write(src/login.rs)', 'Do you want to make this edit to login.rs?', BLUE('❯ 1. Yes'), "  2. Yes, and don't ask again this session (shift+tab)", '  3. No, and tell Claude what to do differently (esc)'],
+  phone: ['● Write(src/login.rs)', 'Do you want to make this edit', 'to login.rs?', BLUE('❯ 1. Yes'), "  2. Yes, and don't ask again", '     this session (shift+tab)', '  3. No, and tell Claude what to', '     do differently (esc)'],
+};
+
+/** Open claude with docs folded, and draw these lines on its screen as the machine would. */
+async function onClaude(at: At, lines: { wide: string[]; phone: string[] } = WORKING) {
+  await at.page.addInitScript(() => localStorage.setItem('weft.folded', '["docs"]'));
+  await agentOpen(at, 'claude');
+  const bytes = Buffer.from((at.wide ? lines.wide : lines.phone).join('\r\n')).toString('base64');
+  await expect.poll(() => at.machine.of('watch').some((m) => m.agent === CLAUDE)).toBe(true);
+  at.machine.send({ type: 'screen', agent: CLAUDE, seq: 1, full: true, rows: 30, cols: at.wide ? 117 : 47, bytes });
+}
+
 const GATHERED: Section = { act: 'eval', state: 'GATHERED', aside: '', lines: ['gathered by Weft', '[E]VAL  debate in codex'], open: true };
 const PROV = 'asked 2026-10-04 14:02 · sent · word for word';
 
@@ -187,50 +213,55 @@ const SCREENS: Screen[] = [
   }), run: tree },
 
   // 03 · The agent
-  { ids: ['M3.1', 'D3.1'], run: (at) => agentOpen(at, 'codex') },
-  { ids: ['M3.3', 'D3.3'], run: async (at) => {
-    await agentOpen(at, 'codex');
+  { ids: ['M3.1', 'D3.1'], sample: calm, run: (at) => onClaude(at) },
+  { ids: ['M3.3', 'D3.3'], sample: calm, run: async (at) => {
+    await onClaude(at);
     await activate(at);
   } },
-  { ids: ['M3.4', 'D3.4'], run: (at) => agentOpen(at, 'claude') },
-  { ids: ['M3.5', 'D3.5'], run: async (at) => {
+  { ids: ['M3.4', 'D3.4'], sample: () => ({ ...calm(), agents: atlas().agents.slice(0, 2) }), run: (at) => onClaude(at, ASKING) },
+  { ids: ['M3.5', 'D3.5'], sample: calm, run: async (at) => {
     at.machine.onRead = history(200);
-    await agentOpen(at, 'codex');
+    await onClaude(at);
     await activate(at);
     await scrollBack(at, 300);
   } },
-  { ids: ['M3.6'], run: async (at) => {
-    at.machine.onRead = history(3);
-    await agentOpen(at, 'codex');
+  { ids: ['M3.6'], sample: calm, run: async (at) => {
+    at.machine.onRead = (m) => ({ ...history(3)(m), transcript: 'Ctrl+O' });
+    await onClaude(at);
     await activate(at);
     await scrollBack(at, 600);
-    await scrollBack(at, 600);
+    await expect(at.page.getByText('claude keeps its own history: press Ctrl+O in the agent to read it.')).toBeVisible();
   } },
-  { ids: ['M3.7', 'D3.7'], run: async (at) => {
-    await agentOpen(at, 'codex');
-    const s = atlas();
-    s.agents[1].running = false;
-    Object.assign(s.tree[0].harnesses[1], { running: false, agent: null, turn: null });
+  { ids: ['M3.7', 'D3.7'], sample: calm, run: async (at) => {
+    await onClaude(at);
+    const s = calm();
+    s.agents[0].running = false;
+    Object.assign(s.tree[0].harnesses[0], { running: false, agent: null, turn: null });
     at.machine.send({ type: 'agents', agents: s.agents });
     at.machine.send({ type: 'tree', tree: s.tree });
-    await expect(at.page.getByText('codex has ended. Its work is still on the list.')).toBeVisible();
+    await expect(at.page.getByText('claude has ended. Its work is still on the list.')).toBeVisible();
   } },
-  { ids: ['M3.8'], sample: () => withTree((t) => (t[0].ask = { key: 'why.not_set_up', harness: 'codex' })), run: (at) => agentOpen(at, 'codex') },
-  { ids: ['M3.10'], run: async (at) => {
-    await agentOpen(at, 'codex');
-    await at.page.getByPlaceholder('Message codex…').focus();
+  { ids: ['M3.8'], sample: () => withTree((t, a) => {
+    t[0].ask = { key: 'why.not_set_up', harness: 'claude' };
+    a.splice(1);
+    a[0].turn = 'ready';
+  }), run: (at) => onClaude(at, { wide: ['❯'], phone: ['❯'] }) },
+  { ids: ['M3.10'], sample: calm, run: async (at) => {
+    await onClaude(at);
+    await at.page.getByPlaceholder('Message claude…').fill('yes, run the migration first');
+    await at.page.getByRole('button', { name: 'Ctrl', exact: true }).click();
   } },
-  { ids: ['M3.11'], run: async (at) => {
-    await agentOpen(at, 'codex');
+  { ids: ['M3.11'], sample: calm, run: async (at) => {
+    await onClaude(at);
     await button(at, 'The bar').click();
   } },
-  { ids: ['D3.11'], run: async (at) => {
-    await agentOpen(at, 'codex');
+  { ids: ['D3.11'], sample: calm, run: async (at) => {
+    await onClaude(at);
     await activate(at);
     await button(at, 'Keys').click();
   } },
-  { ids: ['M3.12', 'D3.12'], run: async (at) => {
-    await agentOpen(at, 'codex');
+  { ids: ['M3.12', 'D3.12'], sample: calm, run: async (at) => {
+    await onClaude(at);
     at.machine.down = true;
     at.machine.drop();
     await expect(at.page.getByText('Reconnecting')).toBeVisible();
@@ -421,13 +452,15 @@ const SCREENS: Screen[] = [
     await button(at, 'Eval').click();
     await expect(at.page.getByText('Nothing to work on yet.')).toBeVisible();
   } },
-  { ids: ['M10.2', 'D10.2'], run: async (at) => {
+  { ids: ['M10.2', 'D10.2'], sample: calm, run: async (at) => {
     at.machine.onText = (m) => ({ type: 'error', req: m.req, code: 'in_flight', message: 'still typing' });
-    await agentOpen(at, 'claude');
+    await onClaude(at);
     const box = at.page.getByPlaceholder('Message claude…');
     await box.fill('try again');
     await box.press('Enter');
     await expect(at.page.getByText('Weft did not type it: it is still typing the last one.')).toBeVisible();
+    // The card's moment: the keyboard put away.
+    await box.blur();
   } },
   { ids: ['M10.3'], note: 'Turbo and the TUI\'s other notices at the foot of the tree: the web has no notice line of its own. An agent that ends says so in its own view (M3.7), and a press that cannot go says why where it was pressed (M10.1, M10.2).' },
   { ids: ['M10.4'], note: 'A push notification, drawn by the phone itself; e2e/desktop-push.spec.ts checks that it shows and opens the agent.' },

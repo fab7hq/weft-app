@@ -51,18 +51,29 @@ test('watching at the Mac\'s size, the terminal is as large as fits: one side fu
 
 test('at its own size, once the machine gives it, the terminal fills the pane both ways', async ({ page, context }) => {
   const machine = await opened(page, context);
-  const watch = machine.of('watch').at(-1)!;
+  const first = machine.of('watch').length;
   // As weft remote does with nobody at the Mac: the keys, then a screen at the device's size.
   machine.send({ type: 'control', agent: CODEX, by: 'you' });
-  await expect.poll(() => machine.of('watch').length).toBeGreaterThan(1);
+  await expect.poll(() => machine.of('watch').length).toBeGreaterThan(first);
+  // The size the device gave last: in the Atlas's mono once it has loaded.
+  await page.evaluate(() => document.fonts.ready);
+  await page.waitForTimeout(100);
+  const watch = machine.of('watch').at(-1)!;
   machine.send(frame(Number(watch.rows), Number(watch.cols)));
   const c = await covered(page);
   expect(c.width, JSON.stringify(c)).toBeGreaterThan(0.93);
   expect(c.height, JSON.stringify(c)).toBeGreaterThan(0.93);
   expect(Math.max(c.width, c.height), JSON.stringify(c)).toBeLessThanOrEqual(1.001);
-  // The size sent before a first key is the one `watch` gave.
-  await page.getByLabel('Message').fill('hello');
-  await page.getByRole('button', { name: 'Send' }).click();
+  // The size sent before a first key is the one `watch` gave. (On a phone the
+  // key comes from ⌃: the message box's focus brings the key bar, and the
+  // pane is smaller while it shows.)
+  if (await page.getByRole('button', { name: 'The bar', exact: true }).count()) {
+    await page.getByRole('button', { name: 'The bar', exact: true }).click();
+    await page.getByRole('dialog', { name: 'Weft' }).getByRole('button', { name: 'Tab', exact: true }).click();
+  } else {
+    await page.getByLabel('Message').fill('hello');
+    await page.getByRole('button', { name: 'Send' }).click();
+  }
   await expect.poll(() => machine.of('size').length).toBe(1);
   expect(machine.of('size')[0]).toMatchObject({ rows: watch.rows, cols: watch.cols });
   await machine.close();

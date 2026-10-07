@@ -19,29 +19,40 @@ const MODIFIERS: [keyof Mods, string][] = [
   ['shift', '⇧'],
 ];
 
+/** The rows the cards draw the keys in (M3.11): the modifiers with Esc and
+ * Tab, the arrows with ⏎, then ^C PgUp PgDn. Where they stand is the CSS's:
+ * one scrolling line on the keyboard (M3.10), two rows in the desktop's
+ * popover (D3.11), three in the phone's sheet. */
+const ROWS = [BAR.slice(0, 2), BAR.slice(2, 7), BAR.slice(7)];
+
 export function KeyBar({ send }: { send: (bytes: number[]) => void }) {
   return (
-    <div class="fab7-keybar" role="toolbar" aria-label={w('web.act.keys')}>
-      {MODIFIERS.map(([which, label]) => {
-        const lit = mods.value[which];
-        return (
-          <button
-            key={which}
-            class={lit === 'off' ? 'fab7-key' : 'fab7-key key-lit'}
-            type="button"
-            aria-label={label}
-            aria-pressed={lit !== 'off'}
-            data-lit={lit}
-            onClick={() => (mods.value = tap(mods.value, which))}
-          >
-            {label}
-          </button>
-        );
-      })}
-      {BAR.map(({ label, name }) => (
-        <button key={name} class="fab7-key" type="button" aria-label={name} onClick={() => press(name, send)}>
-          {label}
-        </button>
+    <div class="agent-keys" role="toolbar" aria-label={w('web.act.keys')}>
+      {ROWS.map((row, i) => (
+        <div key={i} class="key-row">
+          {i === 0 &&
+            MODIFIERS.map(([which, label]) => {
+              const lit = mods.value[which];
+              return (
+                <button
+                  key={which}
+                  class={lit === 'off' ? 'agent-key' : 'agent-key key-lit'}
+                  type="button"
+                  aria-label={label}
+                  aria-pressed={lit !== 'off'}
+                  data-lit={lit}
+                  onClick={() => (mods.value = tap(mods.value, which))}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          {row.map(({ label, name }) => (
+            <button key={name} class="agent-key" type="button" aria-label={name} onClick={() => press(name, send)}>
+              {label}
+            </button>
+          ))}
+        </div>
       ))}
     </div>
   );

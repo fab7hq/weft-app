@@ -30,21 +30,30 @@ export function fit(el: HTMLElement): { rows: number; cols: number } {
   };
 }
 
-export function Screen({ agent, driving, history, onHistory, onLive, onKey, box }: { agent: string; driving: boolean; history: string | null; onHistory: () => void; onLive: () => void; onKey: (bytes: number[]) => void; box: { current: HTMLDivElement | null } }) {
+export function Screen({ agent, driving, history, onHistory, onTop, onLive, onKey, box }: { agent: string; driving: boolean; history: string | null; onHistory: () => void; onTop: () => void; onLive: () => void; onKey: (bytes: number[]) => void; box: { current: HTMLDivElement | null } }) {
   const host = useRef<HTMLDivElement>(null);
   const shown = useRef<HTMLPreElement>(null);
   const tapped = useRef(-Infinity);
-  // The history, inside the pane, starts at its newest line.
+  // The history, inside the pane, starts at its newest line; one that fits
+  // whole is already at the top of what Weft holds.
   useEffect(() => {
-    if (history !== null && shown.current) shown.current.scrollTop = shown.current.scrollHeight;
+    const el = shown.current;
+    if (history === null || !el) return;
+    el.scrollTop = el.scrollHeight;
+    if (el.scrollHeight <= el.clientHeight + 2) onTop();
   }, [history]);
   useEffect(() => {
     const el = host.current!;
+    // The Atlas's mono from the start once it has loaded, so the first size
+    // sent is measured in the cell the screen is drawn at.
+    const mono = () => getComputedStyle(document.documentElement).getPropertyValue('--font-mono');
+    const loaded = document.fonts?.check?.(`${DRIVING_FONT}px "JetBrains Mono"`) ?? false;
+    let gone = false;
     const term = new Terminal({
       disableStdin: true,
       scrollback: 0,
       cursorBlink: false,
-      fontFamily: MONO_FALLBACK,
+      fontFamily: loaded ? mono() : MONO_FALLBACK,
       fontSize: DRIVING_FONT,
       lineHeight: 1,
       // The pane's own colour, as the cards draw the screen inside it.
@@ -59,10 +68,20 @@ export function Screen({ agent, driving, history, onHistory, onLive, onKey, box 
     measure();
     // The Atlas's mono, once it has loaded: xterm.js measures its cell again
     // when the family changes, so it is set only then.
-    void document.fonts?.load(`${DRIVING_FONT}px "JetBrains Mono"`).then(() => {
-      term.options.fontFamily = getComputedStyle(document.documentElement).getPropertyValue('--font-mono');
-      requestAnimationFrame(measure);
-    });
+    // when the family changes, so it is set only then; the size `watch` gave
+    // is given again in the new cell.
+    if (!loaded)
+      void document.fonts?.load(`${DRIVING_FONT}px "JetBrains Mono"`).then(() => {
+        if (gone) return;
+        term.options.fontFamily = mono();
+        requestAnimationFrame(() => {
+          if (gone) return;
+          const before = fit(el);
+          measure();
+          const now = fit(el);
+          if (now.rows !== before.rows || now.cols !== before.cols) m.watch(agent, frame, now);
+        });
+      });
     // A double tap or click makes the pane active (M3.3); it never selects text.
     el.addEventListener('mousedown', (e) => e.detail > 1 && (e.preventDefault(), e.stopPropagation()), { capture: true });
     let cols = 80;
@@ -99,14 +118,15 @@ export function Screen({ agent, driving, history, onHistory, onLive, onKey, box 
     const has1006 = (params: (number | number[])[]) => params.some((p) => p === 1006);
     term.parser.registerCsiHandler({ prefix: '?', final: 'h' }, (p) => ((sgr ||= has1006(p)), false));
     term.parser.registerCsiHandler({ prefix: '?', final: 'l' }, (p) => ((sgr &&= !has1006(p)), false));
-    m.watch(agent, (f) => {
+    const frame = (f: m.Frame) => {
       if (f.full) {
         term.reset();
         sgr = false;
         size(f.rows, f.cols);
       }
       term.write(bytes(f.bytes));
-    }, fit(el));
+    };
+    m.watch(agent, frame, fit(el));
     /** An agent that asked for mouse reports (as Codex does in its full
      * screen) scrolls itself: the wheel goes to it as a terminal sends it,
      * button 64 up, 65 down, at the cell under the pointer. */
@@ -162,6 +182,7 @@ export function Screen({ agent, driving, history, onHistory, onLive, onKey, box 
       el.removeEventListener('wheel', wheel, { capture: true });
       el.removeEventListener('touchstart', start);
       el.removeEventListener('touchmove', move);
+      gone = true;
       m.watch(null, null);
       cancelAnimationFrame(settling);
       term.dispose();
@@ -210,6 +231,8 @@ export function Screen({ agent, driving, history, onHistory, onLive, onKey, box 
             aria-label="History"
             onWheel={(e) => {
               if (e.deltaY > 0 && atBottom(e.currentTarget)) onLive();
+              // Still going up at its oldest line: nothing older is here.
+              if (e.deltaY < 0 && e.currentTarget.scrollTop <= 0) onTop();
             }}
             onTouchStart={(e) => (historyFrom = e.touches[0]?.clientY ?? null)}
             onTouchMove={(e) => {
@@ -217,6 +240,10 @@ export function Screen({ agent, driving, history, onHistory, onLive, onKey, box 
               if (historyFrom !== null && y !== undefined && historyFrom - y > 60 && atBottom(e.currentTarget)) {
                 historyFrom = null;
                 onLive();
+              }
+              if (historyFrom !== null && y !== undefined && y - historyFrom > 40 && e.currentTarget.scrollTop <= 0) {
+                historyFrom = null;
+                onTop();
               }
             }}
           >

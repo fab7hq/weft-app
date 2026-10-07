@@ -7,3 +7,9 @@ dist/
 test-results/
 playwright-report/
 gallery/
+*.pem
+*.key
+!e2e/fixtures/fake-machine.key
+!worker/test/fixtures/test-assertion-key.pem
+.DS_Store
+.playwright-mcp/

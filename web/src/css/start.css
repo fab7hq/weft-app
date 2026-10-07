@@ -1,0 +1,17 @@
+/* start: its own rules, moved from app.css in their order. */
+.allow-key { min-width: 30px; height: 30px; margin: 0 6px; padding: 0 8px; font: 600 12px var(--font-mono); cursor: default; vertical-align: middle; }
+.machines { list-style: none; margin: 0; padding: 0; }
+.machine { display: flex; align-items: stretch; border-bottom: 1px solid var(--fab7-line); }
+.machine-open { flex: 1; min-width: 0; background: none; border: 0 !important; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.machine-remove { flex: none; align-self: center; margin-right: 12px; padding: 8px 14px; border: 1px solid var(--fab7-line); border-radius: 10px; background: none; color: var(--fab7-muted); font: 600 13px var(--font-sans); cursor: pointer; }
+.sure-backdrop { position: fixed; inset: 0; z-index: 40; display: flex; align-items: center; justify-content: center; background: rgba(5, 8, 14, 0.66); }
+.sure { width: 420px; max-width: calc(100% - 32px); box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; padding: 24px; border: 1px solid var(--fab7-line); border-radius: 14px; background: var(--fab7-surface); box-shadow: 0 18px 48px rgba(0, 0, 0, 0.5); }
+.sure-title { margin: 0; font-size: 17px; font-weight: 600; }
+.sure-what { margin: 0; font-size: 14px; line-height: 20px; color: var(--fab7-muted); }
+.sure-acts { display: flex; gap: 10px; justify-content: flex-end; padding-top: 6px; }
+.sure-act { padding: 8px 16px; border: 1px solid var(--fab7-line); border-radius: 10px; background: none; color: var(--fab7-text); font: 600 13px var(--font-sans); cursor: pointer; }
+.sure-act--go { color: var(--fab7-accent); border-color: var(--fab7-accent); }
+.sure-act--warn { color: var(--fab7-amber-text); border-color: var(--fab7-amber-text); }
+.sure-act--danger { color: var(--fab7-danger); border-color: var(--fab7-danger); }
+@media (max-width: 767px) { .sure-acts { flex-wrap: wrap-reverse; } .sure-act { flex: 1 1 auto; padding: 11px 16px; font-size: 14px; } }
+@media (max-width: 767px) { .machine--swiped .machine-remove { align-self: stretch; margin: 0; border: 0; border-radius: 0; background: #b3261e; color: #fff; padding: 0 20px; } }

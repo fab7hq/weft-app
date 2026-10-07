@@ -3,6 +3,13 @@ import { App } from './app';
 import { load } from './words';
 import './fab7.css';
 import './app.css';
+import './css/tree.css';
+import './css/agent.css';
+import './css/ask.css';
+import './css/detail.css';
+import './css/eval.css';
+import './css/settings.css';
+import './css/start.css';
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(() => {});

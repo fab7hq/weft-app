@@ -1,0 +1,33 @@
+/* agent: its own rules, moved from app.css in their order. */
+.message-row { display: flex; gap: 8px; align-items: center; padding: 8px 16px 16px; flex: none; }
+.bar-sheet { display: flex; flex-direction: column; gap: 12px; }
+.bar-row { display: flex; gap: 8px; }
+.bar-row .fab7-button { flex: 1; }
+.key-lit { border-color: var(--fab7-accent); color: var(--fab7-accent); }
+.key-lit[data-lit="locked"] { background: var(--fab7-accent); color: var(--fab7-on-button); }
+.keys-on-keyboard { flex: none; padding: 8px 0 0; border-top: 1px solid var(--fab7-line); }
+.answer-strip { display: flex; align-items: center; gap: 8px; padding: 8px 16px 0; flex: none; overflow-x: auto; }
+.answer-strip .label { color: var(--fab7-amber-text); margin-right: auto; white-space: nowrap; }
+.cue { display: flex; align-items: center; gap: 8px; padding: 8px 16px 0; flex: none; }
+.cue-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: var(--fab7-muted); }
+.tabs { display: flex; gap: 8px; padding: 8px 16px; border-bottom: 1px solid var(--fab7-line); overflow-x: auto; flex: none; scrollbar-width: none; }
+.tab { flex: none; min-height: 32px; padding: 6px 12px; border: 1px solid var(--fab7-line); border-radius: 16px; background: var(--fab7-surface); color: var(--fab7-text); font: 400 13px var(--font-sans); white-space: nowrap; cursor: pointer; }
+.tab[aria-current="page"] { color: var(--fab7-accent); border-color: var(--fab7-accent); background: #16233a; }
+.tab--needs-you { color: var(--fab7-amber-text); border-color: var(--fab7-amber); }
+.wide-bar { display: flex; align-items: center; gap: 16px; min-height: 44px; padding: 0 16px; border-top: 1px solid var(--fab7-line); flex: none; font-family: var(--font-mono); font-size: 13px; letter-spacing: 1px; }
+.wide-bar-hint { color: var(--fab7-muted); white-space: pre; }
+.bar-word { background: none; border: 0; padding: 8px 4px; min-height: 44px; color: var(--fab7-text); font: inherit; letter-spacing: inherit; cursor: pointer; }
+.bar-word:disabled { color: var(--fab7-faint); cursor: default; }
+.pane-history { position: absolute; inset: 0; display: flex; flex-direction: column; background: var(--fab7-canvas); border-radius: var(--fab7-radius-lg); }
+.pane-history pre { flex: 1; min-height: 0; margin: 0; padding: 8px; overflow: auto; -webkit-overflow-scrolling: touch; font: 400 12px/1.4 var(--font-mono); white-space: pre-wrap; }
+.pane-live { position: absolute; right: 8px; bottom: 8px; }
+.pane { position: relative; flex: 1; min-height: 0; margin: 10px 12px; padding: 12px; border: 1px solid var(--fab7-line); border-radius: 10px; background: #05080f; overflow: hidden; outline: none; }
+.pane[data-active="true"] { border-color: var(--fab7-accent); }
+.pane-said { padding: 8px 16px 0; }
+.bar-sheet .fab7-keybar { flex-wrap: wrap; padding: 0; border: 0; background: none; }
+.bar-sheet .tree-act { flex: none; width: 100%; border: 1px solid var(--fab7-line); }
+.keys-pop { display: flex; flex-direction: column; gap: 10px; padding: 12px 20px; border-bottom: 1px solid var(--fab7-line); }
+.keys-pop .fab7-keybar { flex-wrap: wrap; padding: 0; border: 0; background: none; }
+.ended { flex: 1; display: flex; flex-direction: column; gap: 12px; align-items: flex-start; padding: 24px 20px; }
+.ended-said { margin: 0; font-size: 15px; color: var(--fab7-amber-text); }
+.ended .tree-act { flex: none; border: 1px solid var(--fab7-line); }

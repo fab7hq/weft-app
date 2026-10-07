@@ -65,9 +65,9 @@ async function route(request: Request, env: Env): Promise<Response> {
     case 'POST /api/signout':
       return signOut(me, url.searchParams.get('all') === '1', env);
     case 'DELETE /api/me':
-      return forget(me, env);
+      return forget(me, env, request);
     default:
-      return machines.remove(me, machine!, env);
+      return machines.remove(me, machine!, env, request);
   }
 }
 

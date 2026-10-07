@@ -1,6 +1,7 @@
 // Fab7's own session (account.md §4): a random cookie, kept in D1 only as its
 // SHA-256, thirty days, fixed. Every call reads one row by its key.
 
+import { removed } from './machines';
 import { random, sha256Hex } from './crypto';
 import type { Env } from './index';
 import { SQL } from './sql';
@@ -65,7 +66,9 @@ export async function signOut(me: Who, everywhere: boolean, env: Env): Promise<R
 }
 
 /** DELETE /api/me: the user, their sessions and their machines, all at once. */
-export async function forget(me: Who, env: Env): Promise<Response> {
+export async function forget(me: Who, env: Env, request: Request): Promise<Response> {
+  const mine = await env.DB.prepare(SQL.machines).bind(me.userId).all<{ id: string }>();
+  for (const m of mine.results) removed('account', m.id, request);
   await env.DB.batch([
     env.DB.prepare(SQL.signOutEverywhere).bind(me.userId),
     env.DB.prepare(SQL.forgetMachines).bind(me.userId),

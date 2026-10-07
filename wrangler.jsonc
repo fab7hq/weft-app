@@ -18,6 +18,8 @@
     // The Fab7 Weft GitHub App (account.md §3); its client secret is a secret.
     "GITHUB_CLIENT_ID": "Iv23liun7wYzjax5d6p3"
   },
+  // Workers Logs: each request, and a line for every machine or account removed.
+  "observability": { "enabled": true },
   // Expired sessions are deleted once a day.
   "triggers": { "crons": ["0 3 * * *"] },
   "d1_databases": [

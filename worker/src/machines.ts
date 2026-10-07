@@ -59,6 +59,7 @@ export async function leave(request: Request, env: Env): Promise<Response> {
   const machine = await machineOf(request, env);
   if (!machine) return noMachine();
   await env.DB.prepare(SQL.leave).bind(machine.id).run();
+  removed('machine', machine.id, request);
   return new Response(null, { status: 204 });
 }
 
@@ -68,8 +69,14 @@ export async function list(me: Who, env: Env): Promise<Response> {
   return json(rows.results);
 }
 
+/** One log line for each machine that leaves an account: by whom, and from where. */
+export function removed(by: 'web' | 'machine' | 'account', machine: string, request: Request): void {
+  console.log(JSON.stringify({ event: 'machine_removed', by, machine, agent: request.headers.get('user-agent') ?? '' }));
+}
+
 /** DELETE /api/machines/:id */
-export async function remove(me: Who, id: string, env: Env): Promise<Response> {
+export async function remove(me: Who, id: string, env: Env, request: Request): Promise<Response> {
   const done = await env.DB.prepare(SQL.removeMachine).bind(id, me.userId).run();
+  if (done.meta.changes) removed('web', id, request);
   return done.meta.changes ? new Response(null, { status: 204 }) : refuse(404, 'not_found', 'No such machine on your account.');
 }

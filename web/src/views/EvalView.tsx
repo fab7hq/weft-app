@@ -61,8 +61,11 @@ function markTone(state: State): string {
 
 function Mark({ row }: { row: Row }) {
   if (!row.mark || row.kind === 'change' || row.kind === 'group') return null;
-  return <span class={markTone(row.state)}>{`${row.mark} `}</span>;
+  return <span class={`eval-mark ${markTone(row.state)}`}>{`${row.mark} `}</span>;
 }
+
+/** A change's place reads with one space, as the card writes it. */
+const said = (row: Row) => (row.kind === 'change' ? row.text.replace(/ {2,}/g, ' ') : row.text);
 
 /** A row to open, or to read. */
 function Item({ row, open, needs }: { row: Row; open?: () => void; needs?: boolean }) {
@@ -70,7 +73,7 @@ function Item({ row, open, needs }: { row: Row; open?: () => void; needs?: boole
     <>
       <span class="eval-text">
         <Mark row={row} />
-        {row.text}
+        {said(row)}
       </span>
       <Aside text={row.aside} needs={needs} />
       {open && <span class="eval-more">›</span>}
@@ -127,7 +130,7 @@ export function EvalView({ machine, unit, at, files = false, wide = false }: { m
             )}
             <span class="dim">{live ? w('web.eval.live') : parts.slice(2).join(' · ')}</span>
           </div>
-          <div class="chips">
+          <div class="eval-chips">
             {[false, true].map((f) => (
               <button key={String(f)} class={f === files ? 'eval-chip eval-chip--on' : 'eval-chip'} type="button" aria-pressed={f === files}
                 onClick={() => swap({ name: 'eval', machine: machine.id, unit, files: f })}>
@@ -151,23 +154,25 @@ export function EvalView({ machine, unit, at, files = false, wide = false }: { m
     } else if (at.startsWith('c:')) {
       const lines = v.changes[at.slice(2)] ?? [];
       const row = [...v.by_step, ...v.by_file, ...Object.values(v.steps).flat()].find((r) => r.key === at);
+      // The numbers as wide as the widest, so the lines stand in one column.
+      const width = Math.max(0, ...lines.map((l) => `${l.n ?? ''}`.length));
       page = (
-        <>
-          <div class="eval-head"><strong>{row?.text}</strong></div>
+        <div class="eval-change">
+          <div class="eval-head"><strong>{row && said(row)}</strong></div>
           <pre class="eval-code">
             {lines.map((l, i) => {
               const tag = l.text[0];
               return (
                 <div key={i}>
-                  {`${l.n ?? ''}`.padStart(3)}{' '}
+                  {`${l.n ?? ''}`.padStart(width)}{' '}
                   <span class={tag === '+' ? 'good' : tag === '-' ? 'needs' : undefined}>{tag === '+' || tag === '-' ? tag : ' '}</span>
                   <span class={l.lit ? 'eval-lit' : undefined}>{l.text.slice(1)}</span>
                 </div>
               );
             })}
           </pre>
-          {!wide && <p class="detail-line dim eval-caption">{w('web.eval.quoted')}</p>}
-        </>
+          {!wide && <p class="eval-caption">{w('web.eval.quoted')}</p>}
+        </div>
       );
     } else if (at.startsWith('s:')) {
       const [first, ...rest] = v.steps[at.slice(2)] ?? [];
@@ -180,18 +185,31 @@ export function EvalView({ machine, unit, at, files = false, wide = false }: { m
             <strong>{first && <Mark row={first} />}{first?.text}</strong>
             <span class="dim">{step?.aside ?? first?.aside}</span>
           </div>
-          <div class="eval-rows">
-            {rest.map((r, i) =>
-              r.kind === 'heading' ? <span key={i} class="label eval-label">{r.text}</span>
-              : r.kind === 'change' ? <Item key={i} row={r} open={() => open(r.key)} />
-              : (
-                <p key={i} class={`detail-line${r.depth > 1 || i < heads ? ' dim' : ''}${r.depth > 1 ? ' detail-under' : ''}`}>
-                  {r.text.replace(/ {2,}/, ' — ')}
-                  {r.aside && <span class="dim">{` · ${r.aside}`}</span>}
-                </p>
-              ),
-            )}
-          </div>
+          {/* What the step says, in one block; its changes as rows to open. */}
+          {rest.reduce<{ change: boolean; rows: [Row, number][] }[]>((runs, r, i) => {
+            const change = r.kind === 'change';
+            const last = runs[runs.length - 1];
+            if (last && last.change === change) last.rows.push([r, i]);
+            else runs.push({ change, rows: [[r, i]] });
+            return runs;
+          }, []).map((run) =>
+            run.change ? (
+              <div key={run.rows[0][1]} class="eval-rows">
+                {run.rows.map(([r, i]) => <Item key={i} row={r} open={() => open(r.key)} />)}
+              </div>
+            ) : (
+              <div key={run.rows[0][1]} class="eval-step">
+                {run.rows.map(([r, i]) =>
+                  r.kind === 'heading' ? <span key={i} class="eval-label">{r.text}</span> : (
+                    <p key={i} class={`eval-line${r.depth > 1 || i < heads ? ' dim' : ''}${r.depth > 1 ? ' eval-under' : ''}`}>
+                      {r.text.replace(/ {2,}/, ' — ')}
+                      {r.aside && ` · ${r.aside}`}
+                    </p>
+                  ),
+                )}
+              </div>
+            ),
+          )}
         </>
       );
     } else {
@@ -214,7 +232,7 @@ export function EvalView({ machine, unit, at, files = false, wide = false }: { m
   }
 
   const top = (
-    <div class={wide ? 'detail-top' : 'appbar'}>
+    <div class={wide ? 'detail-top eval-top' : 'appbar eval-top'}>
       <button class="back" type="button" onClick={back}>{`‹ ${crumb}`}</button>
       <span class="spacer" />
       <span class="dim eval-id">{v?.eval_id}</span>
@@ -224,7 +242,7 @@ export function EvalView({ machine, unit, at, files = false, wide = false }: { m
     return (
       <div class="detail-pane" role="region" aria-label={w('act.eval_view')}>
         {top}
-        <div class="detail eval">{page}</div>
+        <div class="detail eval eval--wide">{page}</div>
         <div class="detail-acts detail-acts--wide">
           <span class="dim eval-hint">{w('web.eval.click')}</span>
           <span class="spacer" />
@@ -236,7 +254,7 @@ export function EvalView({ machine, unit, at, files = false, wide = false }: { m
   return (
     <div class="app">
       {top}
-      <div class="page" role="region" aria-label={w('act.eval_view')}>
+      <div class="page eval-page" role="region" aria-label={w('act.eval_view')}>
         <div class="detail eval">{page}</div>
       </div>
     </div>

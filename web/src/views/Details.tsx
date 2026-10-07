@@ -51,7 +51,27 @@ function aside(s: Section, d: Detail, open: boolean): string {
 }
 
 /** A line as drawn: indented lines read as the line above them says. */
-type Drawn = { text: string; dim?: boolean; under?: boolean; rest?: string; mark?: string; judges?: string[] };
+type Drawn = { text: string; dim?: boolean; tone?: 'needs' | 'good' | 'loud'; rest?: string; mark?: string; judges?: string[] };
+
+/** A label the TUI sets in capitals and pads, as in `RECEIPT       rcp_7f3a2c`. */
+const labelled = (line: string) => /^[A-Z][A-Z ]*[A-Z] {2,}\S/.test(line);
+
+/** What a Seal's receipt says, toned by whether it holds (M5.7, M5.8): that it
+ * still matches in teal; that it no longer holds, and why, in amber. */
+function sealTones(out: Drawn[], d: Detail) {
+  let broke = false;
+  let said = false;
+  for (const l of out) {
+    if (labelled(l.text)) continue;
+    if (d.holds === true && !said) {
+      said = true;
+      l.tone = 'good';
+    } else if (d.holds === false && !broke && l.text === l.text.toUpperCase()) {
+      broke = true;
+      l.tone = 'loud';
+    } else if (broke && /^[a-z]/.test(l.text)) l.tone = 'needs';
+  }
+}
 
 /** The TUI's lines for one section, as the web draws them. */
 function drawn(s: Section, d: Detail, wide: boolean): Drawn[] {
@@ -59,7 +79,7 @@ function drawn(s: Section, d: Detail, wide: boolean): Drawn[] {
   if (s.state === 'GATHERED' && d.debate_in) lines = [...lines.slice(0, -1), fill('web.detail.debate_in', { harness: d.debate_in })];
   const out: Drawn[] = [];
   // The Eval's verdict is the first thing it says.
-  if (s.act === 'eval' && s.state === 'DONE' && s.aside.includes(', ')) out.push({ text: s.aside.slice(0, s.aside.lastIndexOf(', ')), mark: 'needs' });
+  if (s.act === 'eval' && s.state === 'DONE' && s.aside.includes(', ')) out.push({ text: s.aside.slice(0, s.aside.lastIndexOf(', ')), tone: 'needs' });
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const under: string[] = [];
@@ -74,13 +94,16 @@ function drawn(s: Section, d: Detail, wide: boolean): Drawn[] {
     // The Eval's and the Seal's readings are dim beside what they found; the
     // Ask's labels are dim beside the words.
     const dim = s.act !== 'ask' || line.endsWith(':') || (s.state === w('word.asking') && i === lines.length - 1);
-    if (mark) {
+    // A record the machine could not read says so in its place, in amber (M5.10).
+    if (/ is not on disk$/.test(line)) out.push({ text: line, tone: 'needs' });
+    else if (mark) {
       const said = { text: line.slice(2), mark };
       if (wide) out.push({ ...said, rest: under.map((u) => ` — ${u}`).join('') });
-      else out.push(said, ...under.map((u) => ({ text: u, dim: true, under: true })));
+      else out.push(said, ...under.map((u) => ({ text: u, dim: true })));
     } else if (under.length && line === line.toUpperCase()) out.push({ text: `${line}: ${under.join(', ')}`, dim: true });
-    else out.push({ text: line, dim }, ...under.map((u) => ({ text: u, dim: true, under: true })));
+    else out.push({ text: line, dim }, ...under.map((u) => ({ text: u, dim: true })));
   }
+  if (s.act === 'seal') sealTones(out, d);
   // On a desktop the Eval's first two readings share a line.
   if (wide && s.act === 'eval') {
     const at = out.findIndex((l) => l.judges);
@@ -91,7 +114,7 @@ function drawn(s: Section, d: Detail, wide: boolean): Drawn[] {
 
 function Line({ line }: { line: Drawn }) {
   const [shown, setShown] = useState(false);
-  const cls = `detail-line${line.dim ? ' dim' : ''}${line.under ? ' detail-under' : ''}`;
+  const cls = `detail-line${line.tone ? ` detail-line--${line.tone}` : line.dim ? ' dim' : ''}`;
   if (line.judges) {
     return (
       <>
@@ -100,10 +123,10 @@ function Line({ line }: { line: Drawn }) {
       </>
     );
   }
-  if (line.mark === 'needs') return <p class="detail-line needs">{line.text}</p>;
   return (
     <p class={cls}>
-      {line.mark && <span class={line.mark === '✗' ? 'needs' : 'good'}>{`${line.mark} `}</span>}
+      {line.mark && <span class={`detail-mark ${line.mark === '✗' ? 'needs' : 'good'}`}>{line.mark}</span>}
+      {line.mark && <span class="dim"> </span>}
       {line.text}
       {line.rest && <span class="dim">{line.rest}</span>}
     </p>
@@ -115,7 +138,7 @@ function Part({ s, d, wide }: { s: Section; d: Detail; wide: boolean }) {
   return (
     <section class="detail-section" aria-label={w(`act.${s.act}`)}>
       <button class="detail-head" type="button" aria-expanded={open} onClick={() => setOpen(!open)}>
-        <span class="tree-fold">{open ? '▾' : '▸'}</span>
+        <span class="detail-caret">{open ? '▾' : '▸'}</span>
         <span class="detail-name">{w(`act.${s.act}`)}</span>
         <span class="spacer" />
         <span class="detail-aside">{aside(s, d, open)}</span>
@@ -137,7 +160,7 @@ export function Details({ machine, unit, wide = false }: { machine: Machine; uni
     d && (asking.value = { project: place?.p.project, agent: place?.h.agent ?? undefined, follow: { unit, title: d.title, follows: d.follows } });
   const evalView = () => go({ name: 'eval', machine: machine.id, unit });
   const acts = d && (
-    <div class={wide ? 'detail-acts detail-acts--wide' : 'detail-acts'}>
+    <div class={wide ? 'detail-acts detail-acts--wide detail-work-acts' : 'detail-acts'}>
       {d.proceed && (
         <button class="tree-act tree-act--go" type="button" onClick={() => void act({ act: 'proceed', unit })}>{w('act.proceed')}</button>
       )}
@@ -152,26 +175,26 @@ export function Details({ machine, unit, wide = false }: { machine: Machine; uni
     </div>
   );
   const body = d && (
-    <div class="detail">
-      {!wide && <h2>{d.title}</h2>}
-      <div class="chips">
+    <div class="detail detail-work">
+      {!wide && <h2 class="detail-title">{d.title}</h2>}
+      <div class="detail-chips">
         {(['ask', 'eval', 'seal'] as const).map((a) => {
           // Until the Ask is sent the other two have not run, and have no section.
           const s = d.sections.find((x) => x.act === a) ?? { act: a, state: "HAVEN'T RUN", aside: '', lines: [], open: false };
           return <span key={a} class={tone(s, d)}>{`${a.toUpperCase()} ${s.state}`}</span>;
         })}
       </div>
-      <p class="detail-line dim">{d.provenance}</p>
+      <p class="detail-prov">{d.provenance}</p>
       {d.sections.map((s) => <Part key={s.act} s={s} d={d} wide={wide} />)}
     </div>
   );
   if (wide) {
     return (
       <div class="detail-pane" role="region" aria-label={d?.title ?? ''}>
-        <div class="detail-top">
+        <div class="detail-top detail-work-top">
           <strong>{d?.title}</strong>
           <span class="spacer" />
-          <span class="dim">{d?.harness}</span>
+          <span class="detail-harness">{d?.harness}</span>
         </div>
         {body}
         {acts}
@@ -183,9 +206,9 @@ export function Details({ machine, unit, wide = false }: { machine: Machine; uni
       <div class="appbar">
         <button class="back" type="button" onClick={back}>{`‹ ${place?.p.project ?? machine.name}`}</button>
         <span class="spacer" />
-        <span class="dim">{d?.harness}</span>
+        <span class="detail-harness">{d?.harness}</span>
       </div>
-      <div class="page" role="region" aria-label={d?.title ?? ''}>{body}</div>
+      <div class="page detail-page" role="region" aria-label={d?.title ?? ''}>{body}</div>
       {acts}
     </div>
   );

@@ -303,15 +303,17 @@ const SCREENS: Screen[] = [
   { ids: ['M5.4', 'D5.4'], run: (at) => details(at, 'ask_3', DETAILS.ask_3) },
   { ids: ['M5.5'], run: (at) => details(at, 'ask_3', detail('health endpoint', 'codex', PROV, [SENT, GATHERED, NOT_RUN('seal')], { eval_view: true, debate_in: 'codex' })) },
   { ids: ['M5.6', 'D5.6'], run: (at) => details(at, 'ask_3', detail('health endpoint', 'codex', `${PROV} · judged by codex`, [SENT, JUDGED, NOT_RUN('seal')], { eval_view: true, recorded: 'drifted, 0.67' })) },
-  { ids: ['M5.7', 'D5.7'], run: (at) => details(at, 'ask_4', detail('readme fix', 'codex', 'asked 2026-10-03 11:20 · sent · word for word · judged by codex · sealed 2026-10-03 12:05',
+  { ids: ['M5.7', 'D5.7'], run: (at) => details(at, 'ask_4', detail('readme fix', 'codex', '… judged by codex · sealed 2026-10-03 12:05',
     [SENT, { ...JUDGED, open: false }, SEALED], { eval_view: true, recorded: 'aligned, 1.00', holds: true })) },
-  { ids: ['M5.8'], run: (at) => details(at, 'ask_4', detail('readme fix', 'codex', '… · sealed 2026-10-03 12:05',
+  { ids: ['M5.8'], run: (at) => details(at, 'ask_4', detail('readme fix', 'codex', '… sealed 2026-10-03 12:05',
     [SENT, { ...JUDGED, open: false }, { ...SEALED, lines: ['RECEIPT       rcp_7f3a2c', 'THE RECEIPT NO LONGER HOLDS', 'the work has moved on since it was sealed'] }], { eval_view: true, holds: false })) },
-  { ids: ['M5.9'], run: (at) => details(at, 'ask_1', detail('fix login', 'claude', 'asked 2026-10-02 16:30 · cancelled',
+  { ids: ['M5.9'], sample: () => withTree((t) => t[0].harnesses[0].works.push({ unit: 'ask_9', title: 'old idea', word: 'cancelled', turn: null, eval: null, seal: null })),
+    run: (at) => details(at, 'ask_9', detail('old idea', 'claude', 'asked 2026-10-02 16:30 · cancelled',
     [{ act: 'ask', state: 'DONE', aside: '', lines: ['You asked:', 'Try a second login provider'], open: true }])) },
-  { ids: ['M5.10'], run: (at) => details(at, 'ask_3', detail('health endpoint', 'codex', `${PROV} · judged by codex`, [
+  // The card shows no provenance, no verdict beside the Eval and no Seal.
+  { ids: ['M5.10'], run: (at) => details(at, 'ask_3', detail('health endpoint', 'codex', '', [
     { act: 'ask', state: 'DONE', aside: '', lines: ['what you asked is not on disk', 'the prompt is not on disk'], open: true },
-    { ...JUDGED, lines: ["that check's record is not on disk"] }, NOT_RUN('seal')])) },
+    { ...JUDGED, aside: '', lines: ["that check's record is not on disk"] }])) },
 
   // 06 · The Eval view
   { ids: ['M6.1', 'D6.1'], run: (at) => evalView(at) },

@@ -17,7 +17,6 @@
 .start-bar { flex: none; display: flex; justify-content: flex-end; gap: 10px; padding: 10px 20px; border-top: 1px solid var(--fab7-line); }
 .start-bar .tree-act { flex: none; padding: 9px 18px; }
 .start-bar .tree-act:not(.tree-act--go) { border: 1px solid var(--fab7-line); }
-.start-bar .tree-act--go, .start ~ .tree-bar .tree-act--go { border: 0; }
 
 /* Settings: section labels, rows, the name, the account's rows, the footnote. */
 .settings { flex: 1; overflow: auto; display: flex; flex-direction: column; padding: 8px 0; }

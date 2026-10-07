@@ -146,7 +146,7 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
                 ref={input}
                 class="message-input"
                 value={message}
-                onInput={(e) => setMessage((e.target as HTMLInputElement).value)}
+                onInput={(e) => (setMessage((e.target as HTMLInputElement).value), setSaid(null))}
                 onFocus={() => setTyping(true)}
                 onBlur={() => setTyping(false)}
                 onBeforeInput={(e) => {
@@ -159,7 +159,8 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
                 }}
                 placeholder={a?.running ? fill('web.agent.message', { harness: a.harness }) : w('web.agent.message_box')}
               />
-              <button class="send-key" type="submit" aria-label={w('act.send')} onMouseDown={(e) => e.preventDefault()}>▶</button>
+              {/* After a refusal, on a phone, the box stands without ▶ until it is used again (M10.2). */}
+              {!(said && !wide) && <button class="send-key" type="submit" aria-label={w('act.send')} onMouseDown={(e) => e.preventDefault()}>▶</button>}
             </form>
           )}
         </div>

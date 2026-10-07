@@ -54,6 +54,13 @@ test('M10.2 D10.2: a text the machine did not type says why above the message bo
   await box.fill('try again');
   await box.press('Enter');
   await expect(page.getByRole('status')).toHaveText('Weft did not type it: it is still typing the last one.');
+  // On a phone the box stands without ▶ until it is used again (M10.2); a desktop keeps it (D10.2).
+  const send = page.getByRole('button', { name: 'Send', exact: true });
+  const wide = page.viewportSize()!.width >= 768;
+  await expect(send).toHaveCount(wide ? 1 : 0);
+  await box.pressSequentially('x');
+  await expect(send).toHaveCount(1);
+  await expect(page.getByText('Weft did not type it: it is still typing the last one.')).toHaveCount(0);
   await noneDisabled(page);
   // While the machine is away, nothing is disabled either: a press says why.
   machine.down = true;

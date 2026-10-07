@@ -44,7 +44,7 @@ test('test 2: allow, open an agent, press 1, send a message, read history', asyn
   await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
   await opened(page, machine);
   expect(machine.of('pair')).toHaveLength(1);
-  expect(machine.of('watch').at(-1)).toEqual({ type: 'watch', agent: '3f9a1c07b2de-0' });
+  expect(machine.of('watch').at(-1)).toMatchObject({ type: 'watch', agent: '3f9a1c07b2de-0', rows: expect.any(Number), cols: expect.any(Number) });
   expect(machine.of('size')).toHaveLength(0);
 
   await page.getByRole('button', { name: 'The bar', exact: true }).click();
@@ -95,7 +95,7 @@ test('test 2: a notification\'s agent opens from what it left in IndexedDB', asy
       }),
   );
   await page.reload();
-  await expect.poll(() => machine.of('watch').at(-1)).toEqual({ type: 'watch', agent: '3f9a1c07b2de-1' });
+  await expect.poll(() => machine.of('watch').at(-1)?.agent).toBe('3f9a1c07b2de-1');
   await expect(page.getByRole('navigation', { name: 'Tabs' }).getByRole('button', { name: '2 codex' })).toHaveAttribute('aria-current', 'page');
   const left = await page.evaluate(
     () =>

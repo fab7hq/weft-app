@@ -108,6 +108,8 @@ export const control = signal<Record<string, 'you' | 'mac'>>({});
 const waiting = new Map<number, (m: Record<string, unknown>) => void>();
 /** The agent whose screen this device watches, and who hears its frames. */
 let watching: string | null = null;
+/** The size this device would draw the open agent at: the machine gives it when nobody is at the Mac (remote.md §9). */
+let watchingSize: { rows: number; cols: number } | null = null;
 let onFrame: ((f: Frame) => void) | null = null;
 /** Pendings answered elsewhere, for a sheet that was showing one. */
 export const resolved = signal<{ id: string; yes: boolean } | null>(null);
@@ -207,7 +209,7 @@ function heard(s: WebSocket, m: api.Machine, msg: Record<string, unknown>): void
       clearInterval(pinger);
       pinger = window.setInterval(() => ping(s), 20_000);
       void store.get<store.Kept>('macs', m.id).then((k) => store.set('macs', m.id, { ...k, address: reached ?? undefined }));
-      if (watching) send({ type: 'watch', agent: watching });
+      if (watching) send({ type: 'watch', agent: watching, ...watchingSize });
       sendSeen();
       break;
     }
@@ -319,10 +321,11 @@ export function request(message: Record<string, unknown>): Promise<Record<string
 }
 
 /** Watch one agent's screen, or none. */
-export function watch(agent: string | null, frames: ((f: Frame) => void) | null): void {
+export function watch(agent: string | null, frames: ((f: Frame) => void) | null, size: { rows: number; cols: number } | null = null): void {
   watching = agent;
+  watchingSize = size;
   onFrame = frames;
-  send({ type: 'watch', agent });
+  send({ type: 'watch', agent, ...size });
   sendSeen();
 }
 

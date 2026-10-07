@@ -156,3 +156,36 @@ test('M3.7 D3.7: an ended agent says the TUI\'s sentence, from words.json', asyn
   await expect(page.getByRole('treeitem', { name: 'codex', exact: true })).toBeVisible();
   await machine.close();
 });
+
+/** A whole screen from an agent that asked for SGR mouse reports, as Codex does in its full screen. */
+const fullScreen = { type: 'screen', agent: '3f9a1c07b2de-1', seq: 1, full: true, rows: 20, cols: 60,
+  bytes: Buffer.from('\x1b[?1049h\x1b[?1000h\x1b[?1006h\x1b[Htranscript').toString('base64') };
+const wheels = (machine: FakeMachine) => machine.of('keys').map((k) => Buffer.from(String(k.bytes), 'base64').toString());
+
+test('an agent that asked for mouse reports gets the wheel, as in a terminal; no history is read', async ({ page, context }, info) => {
+  test.skip(info.project.name !== 'desktop', 'a mouse');
+  const machine = await opened(page, context);
+  machine.send(fullScreen);
+  await pane(page).click();
+  await expect(pane(page)).toHaveAttribute('data-active', 'true');
+  await page.mouse.wheel(0, -300);
+  await expect.poll(() => wheels(machine).some((b) => /^\x1b\[<64;\d+;\d+M$/.test(b))).toBe(true);
+  await page.mouse.wheel(0, 300);
+  await expect.poll(() => wheels(machine).some((b) => /^\x1b\[<65;\d+;\d+M$/.test(b))).toBe(true);
+  expect(machine.of('read')).toHaveLength(0);
+  await expect(pane(page).getByLabel('History')).toHaveCount(0);
+  await machine.close();
+});
+
+test('on a phone, a pull in an agent that asked for mouse reports scrolls it with the wheel', async ({ page, context }, info) => {
+  test.skip(info.project.name === 'desktop', 'a finger');
+  const machine = await opened(page, context);
+  machine.send(fullScreen);
+  await pane(page).tap();
+  await pane(page).tap();
+  await expect(pane(page)).toHaveAttribute('data-active', 'true');
+  await pull(page, 120);
+  await expect.poll(() => wheels(machine).filter((b) => b.startsWith('\x1b[<64;')).length).toBeGreaterThan(0);
+  expect(machine.of('read')).toHaveLength(0);
+  await machine.close();
+});

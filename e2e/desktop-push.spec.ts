@@ -59,7 +59,7 @@ test('notifications on: the subscription goes to the machine; its push shows and
     const [n] = await (self as unknown as ServiceWorkerGlobalScope).registration.getNotifications();
     self.dispatchEvent(new NotificationEvent('notificationclick', { notification: n }));
   });
-  await expect.poll(() => machine.of('watch').at(-1)).toEqual({ type: 'watch', agent: '3f9a1c07b2de-1' });
+  await expect.poll(() => machine.of('watch').at(-1)?.agent).toBe('3f9a1c07b2de-1');
   await expect(page.getByRole('navigation', { name: 'Tabs' }).getByRole('button', { name: '2 codex' })).toHaveAttribute('aria-current', 'page');
   await machine.close();
 });

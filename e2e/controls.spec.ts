@@ -122,7 +122,7 @@ test('step 50: the open agents as tabs; the one that needs you is amber; a tap o
   await expect(first).not.toHaveAttribute('data-needs-you', 'true');
 
   await second.click();
-  await expect.poll(() => machine.of('watch').at(-1)).toEqual({ type: 'watch', agent: '3f9a1c07b2de-1' });
+  await expect.poll(() => machine.of('watch').at(-1)?.agent).toBe('3f9a1c07b2de-1');
   await expect(second).toHaveAttribute('aria-current', 'page');
   if (info.project.name === 'iphone') {
     // A tab replaces the open agent: back goes to the list, as the TUI's tabs do.

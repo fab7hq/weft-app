@@ -33,7 +33,8 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
 
   const takeKeys = () => {
     if (sized.has(agent) || !box.current) return;
-    const { rows, cols } = fit(box.current);
+    // The terminal's own area, inside the pane's padding, as `watch` measured it.
+    const { rows, cols } = fit((box.current.firstElementChild as HTMLElement | null) ?? box.current);
     if (m.send({ type: 'size', agent, rows, cols })) sized.add(agent);
   };
   // Why nothing went, as the TUI says it (M10.2); the next press clears it.

@@ -1,33 +1,79 @@
-/* agent: its own rules, moved from app.css in their order. */
-.message-row { display: flex; gap: 8px; align-items: center; padding: 8px 16px 16px; flex: none; }
-.bar-sheet { display: flex; flex-direction: column; gap: 12px; }
-.bar-row { display: flex; gap: 8px; }
-.bar-row .fab7-button { flex: 1; }
-.key-lit { border-color: var(--fab7-accent); color: var(--fab7-accent); }
-.key-lit[data-lit="locked"] { background: var(--fab7-accent); color: var(--fab7-on-button); }
-.keys-on-keyboard { flex: none; padding: 8px 0 0; border-top: 1px solid var(--fab7-line); }
-.answer-strip { display: flex; align-items: center; gap: 8px; padding: 8px 16px 0; flex: none; overflow-x: auto; }
-.answer-strip .label { color: var(--fab7-amber-text); margin-right: auto; white-space: nowrap; }
-.cue { display: flex; align-items: center; gap: 8px; padding: 8px 16px 0; flex: none; }
-.cue-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: var(--fab7-muted); }
+/* agent: the agent's screen (M3.x, D3.x, M10.2, D10.2), drawn to the cards. */
+
+/* The tabs: amber while their agent needs you, blue-framed when open (M3.4). */
 .tabs { display: flex; gap: 8px; padding: 8px 16px; border-bottom: 1px solid var(--fab7-line); overflow-x: auto; flex: none; scrollbar-width: none; }
-.tab { flex: none; min-height: 32px; padding: 6px 12px; border: 1px solid var(--fab7-line); border-radius: 16px; background: var(--fab7-surface); color: var(--fab7-text); font: 400 13px var(--font-sans); white-space: nowrap; cursor: pointer; }
+.tab { flex: none; padding: 6px 12px; border: 1px solid var(--fab7-line); border-radius: 16px; background: var(--fab7-surface); color: var(--fab7-text); font: 400 13px var(--font-sans); white-space: nowrap; cursor: pointer; }
 .tab[aria-current="page"] { color: var(--fab7-accent); border-color: var(--fab7-accent); background: #16233a; }
-.tab--needs-you { color: var(--fab7-amber-text); border-color: var(--fab7-amber); }
-.wide-bar { display: flex; align-items: center; gap: 16px; min-height: 44px; padding: 0 16px; border-top: 1px solid var(--fab7-line); flex: none; font-family: var(--font-mono); font-size: 13px; letter-spacing: 1px; }
-.wide-bar-hint { color: var(--fab7-muted); white-space: pre; }
-.bar-word { background: none; border: 0; padding: 8px 4px; min-height: 44px; color: var(--fab7-text); font: inherit; letter-spacing: inherit; cursor: pointer; }
-.bar-word:disabled { color: var(--fab7-faint); cursor: default; }
-.pane-history { position: absolute; inset: 0; display: flex; flex-direction: column; background: var(--fab7-canvas); border-radius: var(--fab7-radius-lg); }
-.pane-history pre { flex: 1; min-height: 0; margin: 0; padding: 8px; overflow: auto; -webkit-overflow-scrolling: touch; font: 400 12px/1.4 var(--font-mono); white-space: pre-wrap; }
-.pane-live { position: absolute; right: 8px; bottom: 8px; }
-.pane { position: relative; flex: 1; min-height: 0; margin: 10px 12px; padding: 12px; border: 1px solid var(--fab7-line); border-radius: 10px; background: #05080f; overflow: hidden; outline: none; }
-.pane[data-active="true"] { border-color: var(--fab7-accent); }
-.pane-said { padding: 8px 16px 0; }
-.bar-sheet .fab7-keybar { flex-wrap: wrap; padding: 0; border: 0; background: none; }
-.bar-sheet .tree-act { flex: none; width: 100%; border: 1px solid var(--fab7-line); }
-.keys-pop { display: flex; flex-direction: column; gap: 10px; padding: 12px 20px; border-bottom: 1px solid var(--fab7-line); }
-.keys-pop .fab7-keybar { flex-wrap: wrap; padding: 0; border: 0; background: none; }
-.ended { flex: 1; display: flex; flex-direction: column; gap: 12px; align-items: flex-start; padding: 24px 20px; }
-.ended-said { margin: 0; font-size: 15px; color: var(--fab7-amber-text); }
-.ended .tree-act { flex: none; border: 1px solid var(--fab7-line); }
+.tab.tab--needs-you { color: var(--fab7-amber-text); }
+
+/* The pane, and what is said under it (M3.6, M3.8). */
+.pane-wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; }
+.agent--wide .pane-wrap { padding: 12px 14px; }
+.pane { position: relative; flex: 1; min-height: 0; padding: 12px; border: 1px solid var(--fab7-line); border-radius: 10px; background: #05080f; overflow: hidden; outline: none; }
+/* Active: a 2 px blue border, the screen where it was. */
+.pane[data-active="true"] { padding: 11px; border: 2px solid var(--fab7-accent); }
+.pane-said { margin: 0; flex: none; font: 400 13px var(--font-sans); color: var(--fab7-amber-text); }
+/* The history, inside the pane: its lines where the screen's are. */
+.pane-history { position: absolute; inset: 0; display: flex; flex-direction: column; padding: 11px; background: #05080f; }
+.pane-history pre { flex: 1; min-height: 0; margin: 0; padding: 0; overflow: auto; -webkit-overflow-scrolling: touch; font: 400 12px/18px var(--font-mono); color: var(--fab7-text); white-space: pre-wrap; }
+
+/* An ended agent (M3.7, D3.7). */
+.ended { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; align-items: flex-start; padding: 24px 20px; }
+.agent--wide .ended { padding: 20px; }
+.ended-said { margin: 0; align-self: stretch; font-size: 15px; color: var(--fab7-amber-text); }
+.ended .tree-act { flex: none; padding: 11px 16px; border: 1px solid var(--fab7-line); }
+
+/* A key, as the cards draw every key: the strip's, ⌃, the key bar's. */
+.agent-key { flex: none; display: inline-flex; align-items: center; justify-content: center; padding: 7px 12px; border: 1px solid var(--fab7-line); border-radius: 7px; background: var(--fab7-surface); color: var(--fab7-text); font: 400 12px/18px var(--font-mono); white-space: nowrap; cursor: pointer; }
+.agent-key:active { background: #16233a; }
+.key-lit { background: #16233a; border-color: var(--fab7-accent); color: var(--fab7-accent); }
+.key-lit[data-lit="locked"] { background: var(--fab7-accent); color: var(--fab7-on-button); }
+
+/* NEEDS YOU, and the keys that answer (M3.4, D3.4). */
+.answer-strip { display: flex; align-items: center; gap: 8px; padding: 8px 12px; flex: none; overflow-x: auto; background: var(--fab7-panel); border-top: 1px solid var(--fab7-line); }
+.agent--wide .answer-strip { padding: 8px 14px; }
+.answer-label { margin-right: auto; font: 600 11px var(--font-sans); letter-spacing: 0.08em; color: var(--fab7-amber-text); white-space: nowrap; }
+
+/* The message row: ⌃ on a phone, the pill, a round ▶ (M3.1, D3.1); a send
+   that did not go says why above it (M10.2, D10.2). */
+.message-foot { flex: none; display: flex; flex-direction: column; gap: 8px; padding: 8px 12px 30px; background: var(--fab7-panel); border-top: 1px solid var(--fab7-line); }
+.message-foot--said { padding: 10px 16px 30px; }
+.message-foot .message-said { margin: 0; padding: 0; border: 0; font-size: 13px; color: var(--fab7-amber-text); }
+.message-row { display: flex; gap: 8px; align-items: center; }
+.message-input { flex: 1; min-width: 0; box-sizing: border-box; margin: 0; padding: 10px 14px; border: 1px solid var(--fab7-line); border-radius: 20px; background: var(--fab7-surface); color: var(--fab7-text); font: 400 13px/18px var(--font-sans); outline: none; }
+.message-input::placeholder { color: var(--fab7-faint); opacity: 1; }
+.message-input:focus { border-color: var(--fab7-accent); }
+/* A phone zooms into a box under 16 px when it takes the focus: the words
+   typed are drawn at 16, the placeholder at the card's 13. */
+@media (pointer: coarse) { .message-input { font-size: 16px; } .message-input::placeholder { font-size: 13px; } }
+.send-key { flex: none; display: inline-flex; align-items: center; justify-content: center; padding: 8px 13px; border: 0; border-radius: 20px; background: var(--fab7-button); color: #fff; font: 400 13px var(--font-sans); cursor: pointer; }
+.send-key:hover { background: var(--fab7-accent); }
+.agent--wide .message-foot { gap: 0; padding: 0; }
+.agent--wide .message-foot .message-said { padding: 8px 14px; }
+.agent--wide .message-row { padding: 10px 14px; }
+.agent--wide .message-foot--said .message-row { border-top: 1px solid var(--fab7-line); }
+.agent--wide .message-input { padding: 9px 14px; }
+
+/* The key bar above the on-screen keyboard (M3.10): one line that scrolls. */
+.keys-on-keyboard { flex: none; background: var(--fab7-panel); border-top: 1px solid var(--fab7-line); }
+.agent-keys { display: flex; flex-direction: column; }
+.keys-on-keyboard .agent-keys { flex-direction: row; gap: 5px; padding: 6px 8px; overflow-x: auto; scrollbar-width: none; }
+.keys-on-keyboard .key-row { display: contents; }
+
+/* ⌃ (M3.11): the harness, Ask, and the keys in three rows. */
+.sheet-backdrop.bar-backdrop { background: rgba(0, 0, 0, 0.55); }
+.fab7-sheet.bar-sheet { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; padding: 18px 16px 34px; border: 0; border-radius: 16px 16px 0 0; background: var(--fab7-panel); box-shadow: none; }
+.sheet-label { font: 600 11px var(--font-sans); letter-spacing: 0.08em; color: var(--fab7-muted); }
+.bar-sheet .tree-act { flex: none; align-self: stretch; width: auto; padding: 11px 16px; border: 1px solid var(--fab7-line); }
+.bar-sheet .agent-keys { align-self: stretch; gap: 14px; }
+.key-row { display: flex; gap: 6px; align-items: center; }
+
+/* Keys on the desktop's bar (D3.11): a popover at the top right, two rows. */
+.keys-pop { position: fixed; z-index: 5; top: 64px; right: 20px; width: 520px; box-sizing: content-box; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; padding: 14px; border: 1px solid var(--fab7-line); border-radius: 12px; background: var(--fab7-panel); }
+.keys-pop .label { font: 600 11px var(--font-sans); letter-spacing: 0.08em; color: var(--fab7-muted); }
+.keys-pop .agent-keys { align-self: stretch; flex-direction: row; flex-wrap: wrap; gap: 10px 6px; }
+.keys-pop .key-row:first-child { flex-basis: 100%; }
+.keys-pop .key-row + .key-row { display: contents; }
+/* A desktop has its own keyboard, and its bar's Keys (D10.2, D3.11); a
+   tablet's on-screen keyboard still gets the bar on top of it. */
+@media (pointer: fine) { .agent--wide .keys-on-keyboard { display: none; } }

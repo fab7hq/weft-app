@@ -93,10 +93,10 @@ test('step 47: the key bar rides on the keyboard while the message box has focus
 
   await page.getByLabel('Message').focus();
   await expect(keys).toBeVisible();
-  // Just above the message row.
+  // Under the message row, on top of the keyboard (M3.10).
   const bar = (await keys.boundingBox())!;
   const row = (await page.getByLabel('Message').boundingBox())!;
-  expect(bar.y + bar.height).toBeLessThanOrEqual(row.y + 1);
+  expect(bar.y).toBeGreaterThanOrEqual(row.y + row.height - 1);
   // A key from it reaches the agent and leaves the keyboard up.
   await keys.getByRole('button', { name: 'Up', exact: true }).click();
   await expect.poll(() => machine.of('keys').map((k) => hex(k.bytes))).toEqual(['1b 5b 41']);

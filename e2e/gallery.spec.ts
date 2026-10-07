@@ -322,8 +322,6 @@ const SCREENS: Screen[] = [
       codex.works = codex.works.slice(0, 1);
       t.push({ project: 'site', open: 1, needs: 0, ask: null, harnesses: [{ ...t[1].harnesses[0], agent: 'site-0', works: [] }] });
       a[0].turn = 'ready';
-      // The desktop card has another agent asking for you.
-      if (id === 'D2.7') a[2].turn = 'waiting';
     }),
     run: async (at) => {
       await folded(at, ['docs', 'site/claude']);

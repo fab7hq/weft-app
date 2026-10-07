@@ -117,8 +117,9 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
           {!wide && <button class="tree-act" type="button" onClick={() => swap({ name: 'tree', machine: machine.id })}>{w('web.agent.back')}</button>}
         </div>
       )}
-      {a?.turn === 'waiting' && a.running && (
-        // While the agent waits for its person (its hooks say so; the screen is never read).
+      {a?.turn === 'waiting' && a.running && m.link.value === 'connected' && (
+        // While the agent waits for its person (its hooks say so; the screen is never read),
+        // as the machine says now: not while it is being reached again (M1.8, D1.8).
         <div class="answer-strip" role="toolbar" aria-label="Answer">
           <span class="answer-label">{w('title.needs_you').toUpperCase()}</span>
           {ANSWER.map(({ label, name }) => (

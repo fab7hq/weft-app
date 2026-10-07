@@ -93,6 +93,47 @@ async function evalView(at: At, view: Record<string, unknown> = VIEW) {
   await expect(at.page.getByRole('region', { name: 'Eval view' })).toBeVisible();
 }
 
+const BUILD = 'Read the build number from the environment and show it on /health';
+const sheet = (at: At) => at.page.getByRole('dialog', { name: 'What do you want done?' });
+
+/** Behind the area-4 cards: claude's view on a phone; claude open with health endpoint picked on a desktop. */
+async function behind(at: At) {
+  await folded(at);
+  await agentOpen(at, 'claude');
+  if (at.wide) await item(at, 'health endpoint').click();
+}
+
+/** Ask, over claude's view: ⌃'s Ask on a phone, the bar's on a desktop. */
+async function askOpen(at: At) {
+  await behind(at);
+  if (at.wide) await button(at, 'Ask').click();
+  else {
+    await button(at, 'The bar').click();
+    await at.page.getByRole('dialog', { name: 'Weft' }).getByRole('button', { name: 'Ask', exact: true }).click();
+  }
+  await expect(sheet(at)).toBeVisible();
+}
+
+/** Pick an agent in SEND TO. */
+async function sendTo(at: At, harness: string) {
+  await sheet(at).getByRole('button', { name: /^SEND TO/ }).click();
+  await sheet(at).getByRole('option', { name: harness, exact: true }).click();
+}
+
+/** Eval on the tree's bar with health endpoint picked; on a desktop with claude open beside it. */
+async function barOn(at: At) {
+  if (at.wide) {
+    await behind(at);
+    await button(at, 'Eval').click();
+  } else {
+    await folded(at);
+    await evalOn(at);
+  }
+}
+
+/** docs folded, as the cards draw it. */
+const folded = (at: At) => at.page.addInitScript(() => localStorage.setItem('weft.folded', '["docs"]'));
+
 const withTree = (edit: (t: Project[], a: Agent[]) => void) => {
   const s = atlas();
   edit(s.tree, s.agents);
@@ -237,28 +278,42 @@ const SCREENS: Screen[] = [
   } },
 
   // 04 · Ask and the bar
+  // Behind each card: on a phone claude's view (or the tree with health
+  // endpoint picked); on a desktop claude open with health endpoint picked.
   { ids: ['M4.1', 'D4.1'], run: async (at) => {
-    await tree(at);
-    await button(at, 'Ask').click();
+    await askOpen(at);
+    if (at.wide) {
+      await sheet(at).getByRole('textbox').fill(BUILD);
+      await sendTo(at, 'claude');
+      await sheet(at).getByRole('textbox').focus();
+    }
   } },
   { ids: ['M4.2'], run: async (at) => {
-    await tree(at);
-    await button(at, 'Ask').click();
-    await at.page.getByRole('dialog', { name: 'What do you want done?' }).getByRole('textbox').fill('Read the build number from the environment and show it on /health');
+    await askOpen(at);
+    await sheet(at).getByRole('textbox').fill(BUILD);
   } },
   { ids: ['M4.3', 'D4.3'], run: async (at) => {
-    await tree(at);
-    await item(at, 'health endpoint').click();
-    await button(at, 'Ask').click();
-    await at.page.getByRole('dialog', { name: 'What do you want done?' }).getByRole('textbox').fill('Add a test for the fallback');
+    await askOpen(at);
+    await sheet(at).getByRole('textbox').fill(BUILD);
+    await sendTo(at, 'codex');
+    await sheet(at).getByRole('button', { name: /^SEND TO/ }).click();
   } },
   { ids: ['M4.4', 'D4.4'], run: async (at) => {
+    await folded(at);
     await details(at, 'ask_3', { ...DETAILS.ask_3, follows: 'evl_2' });
     await button(at, 'Follow up').click();
+    await sheet(at).getByRole('textbox').fill('Read the build number from the environment, not a literal');
+  } },
+  { ids: ['M4.5', 'D4.5'], run: async (at) => {
+    at.machine.onAct = staging(CLAUDE, 'Ready to ask claude', 'Weft will type  /rf:ask  into claude.\nThe agent will ask you which approach to take, in its own pane.', BUILD);
+    await askOpen(at);
+    await sheet(at).getByRole('textbox').fill(BUILD);
+    await sendTo(at, 'claude');
+    await sheet(at).getByRole('button', { name: 'Ask', exact: true }).click();
+    await expect(at.page.getByRole('dialog', { name: 'Ready to ask claude' })).toBeVisible();
   } },
   ...([
-    ['M4.5', 'D4.5', CLAUDE, 'Ready to ask claude', 'Weft will type  /rf:ask  into claude.\nThe agent will ask you which approach to take, in its own pane.', 'Read the build number from the environment and show it on /health'],
-    ['M4.6', 'D4.6', CODEX, 'Ready to send to codex', 'This is the exact wording. Weft will not change it.', 'Implement /health: read BUILD_NUMBER from the environment at startup; fall back to "unknown".'],
+    ['M4.6', 'D4.6', CODEX, 'Ready to send to codex', 'This is the exact wording. Weft will not change it.', 'Implement /health: read BUILD_NUMBER from the environment at startup; fall back to "unknown". Add a test …'],
     ['M4.7', '', CODEX, 'Ready to send to codex', 'This is the exact wording. Weft will not change it.\ncodex asked you about this and never got an answer, so it is still waiting. Sending it records your yes first.', 'Implement /health: read BUILD_NUMBER …'],
     ['M4.8', 'D4.8', CODEX, 'Eval this work?', "Weft will type  /rf:eval debate evl_2  into codex.\nWeft has gathered the change. The agent will run RingFrame's\njudging tasks on it; none of the judges did the work.", '/rf:eval debate evl_2 coverage contract'],
     ['M4.9', 'D4.9', CODEX, 'Seal this work?', 'Weft will type  /rf:seal evl_2  into codex.\nThe agent will ask what you decided, and write a receipt.', '/rf:seal evl_2'],
@@ -267,29 +322,47 @@ const SCREENS: Screen[] = [
     ids: [m, d].filter(Boolean),
     run: async (at) => {
       at.machine.onAct = staging(agent, what, why, text);
-      await evalOn(at);
+      await barOn(at);
       await expect(at.page.getByRole('dialog', { name: what })).toBeVisible();
     },
   })),
   { ids: ['M4.11', 'D4.11'], run: async (at) => {
     at.machine.onAct = staging(CODEX, 'Eval this work?', 'The agent will run the judges.', '/rf:eval debate evl_2');
     at.machine.onResolve = (m) => [{ type: 'error', req: m.req, code: 'not_ready', message: 'Weft did not type it: the agent is working.' }];
-    await evalOn(at);
-    await button(at, 'Send').click();
+    await barOn(at);
+    await at.page.getByRole('dialog', { name: 'Eval this work?' }).getByRole('button', { name: 'Send', exact: true }).click();
     await expect(at.page.getByRole('dialog', { name: 'The agent has not said it is ready' })).toBeVisible();
+    // On a phone the card shows it over claude's view.
+    if (!at.wide) await item(at, 'claude').click();
   } },
-  { ids: ['M4.12', 'D4.12'], run: async (at) => {
-    at.machine.onAct = (m) => [{ type: 'error', req: m.req, code: 'not_running', message: 'codex is not running.', harness: 'codex', session: { at: Date.now() - 3_600_000, last: 'Implement /health: read BUILD_NUMBER' } }];
-    await evalOn(at);
-  } },
+  ...(['M4.12', 'D4.12'] as const).map((id): Screen => ({
+    ids: [id],
+    // The desktop card: codex not running, claude ready with fix login, docs gone.
+    sample: id === 'D4.12' ? () => withTree((t, a) => {
+      t.splice(1);
+      Object.assign(t[0], { open: 2, needs: 0 });
+      const [claude, codex] = t[0].harnesses;
+      Object.assign(claude, { turn: 'ready', works: [{ ...claude.works[0], turn: 'ready' }] });
+      Object.assign(codex, { running: false, agent: null, turn: null, works: [{ ...codex.works[0], turn: null }] });
+      a.splice(1);
+      a[0].turn = 'ready';
+    }) : undefined,
+    run: async (at) => {
+      at.machine.onAct = (m) => [{ type: 'error', req: m.req, code: 'not_running', message: 'codex is not running.', harness: 'codex', session: { at: (14 * 60 + 2) * 60_000, last: 'Implement /health: read BUILD_NUMBER' } }];
+      await barOn(at);
+    },
+  })),
   { ids: ['M4.13'], run: async (at) => {
     at.machine.onAct = (m) => [{ type: 'error', req: m.req, code: 'not_running', message: 'codex is not running.', harness: 'codex', session: null }];
-    await evalOn(at);
+    await barOn(at);
   } },
   { ids: ['M4.14', 'D4.14'], run: async (at) => {
-    at.machine.onAct = staging(CODEX, 'Eval this work?', 'The agent will run the judges.', '/rf:eval debate evl_2');
-    await evalOn(at);
-    await expect(at.page.getByRole('dialog', { name: 'Eval this work?' })).toBeVisible();
+    at.machine.onAct = staging(CLAUDE, 'Ready to ask claude', 'The agent will ask you which approach to take, in its own pane.', BUILD);
+    await askOpen(at);
+    await sheet(at).getByRole('textbox').fill(BUILD);
+    await sendTo(at, 'claude');
+    await sheet(at).getByRole('button', { name: 'Ask', exact: true }).click();
+    await expect(at.page.getByRole('dialog', { name: 'Ready to ask claude' })).toBeVisible();
     at.machine.send({ type: 'resolved', id: 'pnd_1', yes: true });
     await expect(at.page.getByText('Answered on the machine')).toBeVisible();
   } },

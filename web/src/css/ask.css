@@ -1,17 +1,59 @@
-/* ask: its own rules, moved from app.css in their order. */
-.ask-sheet { display: flex; flex-direction: column; gap: 12px; padding: 18px 16px 30px; background: var(--fab7-panel); border-radius: 16px 16px 0 0; }
+/* ask: the Ask sheet and panel (M4.1–M4.4, D4.1–D4.4), and the bar (M4.5–M4.14, D4.5–D4.14).
+   Sizes are the cards' own, content-box: a width or height leaves out padding and border. */
+
+/* Ask: a sheet over the backdrop on a phone, a panel docked under the main column's view on a desktop. */
+.ask-backdrop { background: rgba(0, 0, 0, 0.55); }
+.ask-panel { display: flex; flex-direction: column; gap: 12px; background: var(--fab7-panel); box-sizing: border-box; }
+.ask-sheet { padding: 18px 16px calc(30px + env(safe-area-inset-bottom, 0px)); border: 0; border-radius: 16px 16px 0 0; box-shadow: none; }
+.sheet-backdrop.ask-backdrop { padding-bottom: 0; }
+.ask-panel--docked { flex: none; padding: 16px; border-top: 2px solid var(--fab7-accent); }
 .ask-title { font-size: 16px; font-weight: 600; }
-.ask-text { min-height: 110px; box-sizing: border-box; padding: 12px; border: 1px solid var(--fab7-accent); border-radius: 10px; background: var(--fab7-surface); color: var(--fab7-text); font: 400 15px var(--font-sans); resize: vertical; }
-.ask-to { min-height: 44px; padding: 0 12px; border: 1px solid var(--fab7-accent); border-radius: 10px; background: var(--fab7-surface); color: var(--fab7-text); font: 400 15px var(--font-sans); }
+.ask-eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: var(--fab7-muted); }
+.ask-text { height: 110px; box-sizing: content-box; padding: 12px; border: 1px solid var(--fab7-line); border-radius: 10px; background: var(--fab7-surface); color: var(--fab7-text); font: 400 15px var(--font-sans); resize: none; outline: none; }
+.ask-text:focus, .ask-text--said { border-color: var(--fab7-accent); }
+.ask-panel--docked .ask-text { height: 84px; }
 .ask-acts { display: flex; gap: 10px; }
-.ask-acts .tree-act { border: 1px solid var(--fab7-line); }
-.pending-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 9; display: flex; flex-direction: column; gap: 10px; padding: 14px 16px calc(30px + env(safe-area-inset-bottom, 0px)); background: var(--fab7-panel); border-top: 2px solid var(--fab7-accent); }
-.pending-head { display: flex; gap: 8px; align-items: baseline; }
+.ask-row { display: flex; gap: 10px; align-items: flex-start; }
+.ask-row .tree-act { flex: none; padding: 9px 18px; }
+.ask-panel .tree-act--go, .pending-acts .tree-act--go { border-color: transparent; }
+/* The view above gives the panel its place: the message row goes while it is open, as on D4.1. */
+main:has(> .ask-panel--docked) .message-row { display: none; }
+main:has(> .ask-panel--docked) > :not(.ask-panel) { flex: 1; min-height: 0; height: auto !important; }
+
+/* SEND TO: the picked agent and ▾; open, the list in its place with the picked one ✓ (M4.3, D4.3). */
+.ask-to { display: flex; align-items: center; gap: 8px; box-sizing: border-box; margin: 0; padding: 11px 12px; border: 1px solid var(--fab7-line); border-radius: 10px; background: var(--fab7-surface); color: var(--fab7-text); font: 400 15px var(--font-sans); text-align: left; cursor: pointer; }
+.ask-to:focus-visible { outline: none; border-color: var(--fab7-accent); }
+.ask-to-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ask-to-arrow { font-size: 13px; color: var(--fab7-muted); }
+.ask-to--open { flex-direction: column; align-items: stretch; gap: 0; padding: 4px 0; list-style: none; border-color: var(--fab7-accent); outline: none; cursor: default; }
+.ask-to-option { display: flex; align-items: center; gap: 8px; padding: 10px 12px; cursor: pointer; }
+.ask-to-option--active { background: #16233a; color: var(--fab7-accent); }
+.ask-to-option[aria-selected="true"]::after { content: '✓'; content: '✓' / ''; margin-left: auto; font-size: 13px; color: var(--fab7-accent); }
+.ask-row .ask-to { width: 220px; box-sizing: content-box; flex: none; gap: 10px; padding: 9px 12px; }
+.ask-row .ask-to--open { gap: 0; padding: 4px 0; }
+.ask-row .ask-to-option { padding: 9px 12px; }
+
+/* The bar: in the place of the message row or the tree's bar, the view above it shrinking to make room (M4.5, D4.5). */
+#app:has(> .pending-bar) { display: flex; flex-direction: column; }
+#app:has(> .pending-bar) > .app { flex: 1; min-height: 0; height: auto; padding-bottom: 0; }
+#app:has(> .pending-bar) .message-row, #app:has(> .pending-bar) .tree-bar { display: none; }
+.pending-bar { flex: none; display: flex; flex-direction: column; gap: 10px; padding: 14px 16px calc(30px + env(safe-area-inset-bottom, 0px)); background: var(--fab7-panel); border-top: 2px solid var(--fab7-accent); }
+.pending-head { display: flex; gap: 8px; align-items: center; }
 .pending-what { font-size: 15px; font-weight: 600; }
+.pending-head .pending-what { flex: 1; min-width: 0; }
 .pending-into, .pending-why { font-size: 13px; color: var(--fab7-muted); }
 .pending-why { margin: 0; }
 .pending-text { margin: 0; padding: 10px; border: 1px solid var(--fab7-line); border-radius: 8px; background: #05080f; font: 400 12px/18px var(--font-mono); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 30vh; overflow: auto; }
 .pending-acts { display: flex; gap: 10px; align-items: center; }
-.pending-acts .tree-act { flex: none; padding: 9px 18px; border: 1px solid var(--fab7-line); }
-.pending-acts .tree-act--go { border-color: transparent; }
-@media (min-width: 768px) { .pending-bar { padding: 14px 20px; gap: 8px; } }
+.pending-acts .spacer { display: none; }
+.pending-acts .tree-act { flex: 1; }
+.pending-bar--answered { gap: 6px; padding: 18px 16px calc(34px + env(safe-area-inset-bottom, 0px)); }
+.pending-answered { margin: 0; font-size: 15px; color: var(--fab7-teal); }
+@media (min-width: 768px) {
+  .pending-bar { gap: 8px; padding: 14px 20px; }
+  .pending-bar--answered { gap: 4px; padding: 14px 20px; }
+  .pending-head .pending-what { flex: none; }
+  .pending-head::after { content: ''; flex: 1; }
+  .pending-acts .spacer { display: block; }
+  .pending-acts .tree-act { flex: none; padding: 9px 18px; }
+}

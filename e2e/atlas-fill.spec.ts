@@ -13,14 +13,16 @@ function frame(rows: number, cols: number) {
   return { type: 'screen', agent: CODEX, seq: 1, full: true, rows, cols, bytes: Buffer.from(text).toString('base64') };
 }
 
-/** How much of its pane the terminal covers, each way. */
-async function covered(page: Page) {
+/** How much of its pane the terminal covers, each way, and whether a row a
+ * pixel taller (xterm.js draws rows in whole pixels) would still fit. */
+async function covered(page: Page, rows: number) {
   await page.waitForTimeout(300);
-  return page.evaluate(() => {
+  return page.evaluate((rows) => {
     const host = document.querySelector('[aria-label="The agent\'s screen"]')!.getBoundingClientRect();
     const drawn = document.querySelector('.xterm-screen')!.getBoundingClientRect();
-    return { width: drawn.width / host.width, height: drawn.height / host.height };
-  });
+    const taller = (Math.round(drawn.height / rows) + 1) * rows <= host.height;
+    return { width: drawn.width / host.width, height: drawn.height / host.height, taller };
+  }, rows);
 }
 
 async function opened(page: Page, context: Parameters<typeof signIn>[0]) {
@@ -42,8 +44,9 @@ test('watching at the Mac\'s size, the terminal is as large as fits: one side fu
   const sizes = page.viewportSize()!.width < 768 ? [[30, 100], [24, 80]] : [[30, 100], [44, 158], [24, 80]];
   for (const [rows, cols] of sizes) {
     machine.send(frame(rows, cols));
-    const c = await covered(page);
-    expect(Math.max(c.width, c.height), `${cols}×${rows}: ${JSON.stringify(c)}`).toBeGreaterThan(0.93);
+    const c = await covered(page, rows);
+    // As large as fits: one side nearly full, or no whole-pixel row taller fits.
+    expect(c.width > 0.93 || (c.height > 0.85 && !c.taller), `${cols}×${rows}: ${JSON.stringify(c)}`).toBe(true);
     expect(Math.max(c.width, c.height), `${cols}×${rows}: ${JSON.stringify(c)}`).toBeLessThanOrEqual(1.001);
   }
   await machine.close();
@@ -60,7 +63,7 @@ test('at its own size, once the machine gives it, the terminal fills the pane bo
   await page.waitForTimeout(100);
   const watch = machine.of('watch').at(-1)!;
   machine.send(frame(Number(watch.rows), Number(watch.cols)));
-  const c = await covered(page);
+  const c = await covered(page, Number(watch.rows));
   expect(c.width, JSON.stringify(c)).toBeGreaterThan(0.93);
   expect(c.height, JSON.stringify(c)).toBeGreaterThan(0.93);
   expect(Math.max(c.width, c.height), JSON.stringify(c)).toBeLessThanOrEqual(1.001);

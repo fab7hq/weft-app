@@ -19,7 +19,8 @@ test('the list beside the agent; typing goes to the agent; Cmd+R stays the brows
   await expect(screen).toBeVisible();
   const [l, s] = [await list.boundingBox(), await screen.boundingBox()];
   expect(l!.x + l!.width).toBeLessThanOrEqual(s!.x);
-  expect(l!.width).toBe(380);
+  // 380 and its line, as the cards draw the list.
+  expect(l!.width).toBe(381);
 
   await screen.click();
   await page.keyboard.type('ls');

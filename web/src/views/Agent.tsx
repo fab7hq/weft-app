@@ -140,7 +140,7 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
                   ⌃
                 </button>
               )}
-              <label for="message" style={{ position: 'absolute', left: '-9999px' }}>Message</label>
+              <label for="message" style={{ position: 'absolute', left: '-9999px' }}>{w('web.agent.message_box')}</label>
               <input
                 id="message"
                 ref={input}
@@ -157,7 +157,7 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
                   key(bytes);
                   mods.value = sent(mods.value);
                 }}
-                placeholder={a?.running ? fill('web.agent.message', { harness: a.harness }) : w('web.agent.message_ended')}
+                placeholder={a?.running ? fill('web.agent.message', { harness: a.harness }) : w('web.agent.message_box')}
               />
               <button class="send-key" type="submit" aria-label={w('act.send')} onMouseDown={(e) => e.preventDefault()}>▶</button>
             </form>

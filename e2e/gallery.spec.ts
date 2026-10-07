@@ -29,6 +29,41 @@ async function open(at: At, others: { name: string; address?: string }[] = []) {
   await at.page.goto('/');
 }
 
+/** Settings' cards: signed in as 0xnairb, the tree of studio open. */
+async function settingsOpen(at: At, others: { name: string; address?: string }[] = []) {
+  await signIn(at.context, person('0xnairb', [{ name: 'studio', address: at.machine.address }, ...others]));
+  await at.page.goto('/');
+  if (others.length > 0) await at.page.getByRole('button', { name: /studio/ }).click();
+  await expect(at.page.getByRole('tree', { name: 'Work' })).toBeVisible();
+}
+
+/** What this browser keeps, as the card shows it: the device's name, notifications on. */
+async function kept(at: At, { name, push }: { name?: string; push?: boolean }) {
+  await at.page.evaluate(
+    async ({ name, push }) => {
+      const db = await new Promise<IDBDatabase>((done, fail) => {
+        const r = indexedDB.open('weft', 1);
+        r.onsuccess = () => done(r.result);
+        r.onerror = () => fail(r.error);
+      });
+      const asked = <T,>(r: IDBRequest<T>) => new Promise<T>((done, fail) => ((r.onsuccess = () => done(r.result)), (r.onerror = () => fail(r.error))));
+      const devices = db.transaction('devices', 'readwrite').objectStore('devices');
+      const me = await asked(devices.get('this'));
+      if (name && me) await asked(db.transaction('devices', 'readwrite').objectStore('devices').put({ ...me, name }, 'this'));
+      if (push) {
+        const macs = db.transaction('macs', 'readwrite').objectStore('macs');
+        const keys = await asked(macs.getAllKeys());
+        for (const k of keys) {
+          const s = db.transaction('macs', 'readwrite').objectStore('macs');
+          const v = await asked(s.get(k));
+          await asked(db.transaction('macs', 'readwrite').objectStore('macs').put({ ...v, push: true }, k));
+        }
+      }
+    },
+    { name, push },
+  );
+}
+
 async function tree(at: At) {
   await open(at);
   await expect(at.page.getByRole('tree', { name: 'Work' })).toBeVisible();
@@ -378,39 +413,49 @@ const SCREENS: Screen[] = [
 
   // 09 · Settings
   { ids: ['M9.1'], run: async (at) => {
-    await open(at, [{ name: 'laptop' }]);
-    await at.page.getByRole('button', { name: /studio/ }).click();
+    await settingsOpen(at, [{ name: 'laptop' }]);
+    await kept(at, { push: true });
     await button(at, 'Menu').click();
+    await expect(at.page.getByLabel(/Notifications from studio/)).toBeChecked();
   } },
   { ids: ['D9.1'], run: async (at) => {
-    await open(at, [{ name: 'laptop' }]);
-    await at.page.getByRole('button', { name: /studio/ }).click();
+    await settingsOpen(at, [{ name: 'laptop' }]);
+    await item(at, 'claude').click();
+    await kept(at, { name: 'Mac · Chrome', push: true });
     await button(at, 'Menu').click();
+    await expect(at.page.getByLabel(/Notifications from studio/)).toBeChecked();
   } },
   { ids: ['D9.2'], run: async (at) => {
-    await tree(at);
+    await settingsOpen(at);
+    await kept(at, { name: 'Mac · Chrome' });
     await button(at, 'Menu').click();
     await button(at, 'Settings…').click();
   } },
   { ids: ['M9.2'], run: async (at) => {
     at.machine.vapid = 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U';
-    await tree(at);
+    await settingsOpen(at);
     await button(at, 'Menu').click();
     await at.page.getByLabel(/Notifications from studio/).click();
     await expect(at.page.getByText('Add Weft to your Home Screen first')).toBeVisible();
   } },
   { ids: ['M9.3', 'D9.3'], run: async (at) => {
-    // On the phone, as the app on the Home Screen; the machine gives no key yet.
-    await at.page.addInitScript(() => Object.defineProperty(navigator, 'standalone', { value: true }));
-    await tree(at);
+    // On the phone, as the app on the Home Screen; notifications are blocked for Weft.
+    at.machine.vapid = 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U';
+    await at.page.addInitScript(() => {
+      Object.defineProperty(navigator, 'standalone', { value: true });
+      Notification.requestPermission = async () => 'denied';
+    });
+    await settingsOpen(at);
+    if (at.wide) await item(at, 'claude').click();
     await button(at, 'Menu').click();
     await at.page.getByLabel(/Notifications from studio/).click();
-    await expect(at.page.getByText('Connect to the machine first.')).toBeVisible();
+    await expect(at.page.getByText('Notifications are turned off for Weft in this browser.')).toBeVisible();
   } },
   ...([['M9.4', 'Delete my account'], ['M9.5', 'Sign out'], ['M9.6', 'Forget this device'], ['D9.4', 'Delete my account']] as const).map(([id, act]) => ({
     ids: [id],
     run: async (at: At) => {
-      await tree(at);
+      await settingsOpen(at, at.wide ? [] : [{ name: 'laptop' }]);
+      await kept(at, at.wide ? { name: 'Mac · Chrome' } : { push: true });
       await button(at, 'Menu').click();
       if (at.wide) await button(at, 'Settings…').click();
       await button(at, act).click();

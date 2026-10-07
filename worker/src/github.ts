@@ -56,7 +56,13 @@ export async function finish(request: Request, env: Env): Promise<Response> {
       code_verifier: verifier,
     }),
   });
-  const answer = (await exchanged.json()) as { access_token?: string; error?: string };
+  // An answer that is not GitHub's JSON (an outage page, a rate limit) is
+  // said as such, never a 500.
+  const answer = (await exchanged.json().catch(() => null)) as { access_token?: string; error?: string } | null;
+  if (!answer) {
+    console.error(JSON.stringify({ event: 'github_token', status: exchanged.status }));
+    return refuse(502, 'github', `GitHub did not answer the sign-in (${exchanged.status}). Try again.`);
+  }
   const token = answer.access_token;
   // GitHub's error code is not a secret, and tells a used code from a misconfigured App.
   const why = /^[a-z_]{1,64}$/.test(answer.error ?? '') ? ` (${answer.error})` : '';
@@ -97,8 +103,11 @@ export async function whoIs(token: string): Promise<GitHubUser | null> {
   const r = await fetch(USER, {
     headers: { authorization: `Bearer ${token}`, accept: 'application/vnd.github+json', 'user-agent': 'weft-app' },
   });
-  if (!r.ok) return null;
-  const u = (await r.json()) as Partial<GitHubUser>;
+  if (!r.ok) {
+    console.error(JSON.stringify({ event: 'github_user', status: r.status }));
+    return null;
+  }
+  const u = ((await r.json().catch(() => null)) ?? {}) as Partial<GitHubUser>;
   return typeof u.id === 'number' && typeof u.login === 'string' ? { id: u.id, login: u.login } : null;
 }
 

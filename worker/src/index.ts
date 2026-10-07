@@ -85,7 +85,13 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/auth/')) {
-      return route(request, env);
+      // Whatever fails is said in a sentence and logged with a reference,
+      // never left as a bare 500 page.
+      return route(request, env).catch((e: unknown) => {
+        const reference = crypto.randomUUID().slice(0, 8);
+        console.error(JSON.stringify({ event: 'failed', reference, path: url.pathname, error: String(e).slice(0, 300) }));
+        return refuse(500, 'failed', `Weft's service failed on that (reference ${reference}). Try again.`);
+      });
     }
     if (url.pathname === '/words.json') return words(request, env);
     return env.ASSETS.fetch(request);

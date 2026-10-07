@@ -17,7 +17,7 @@ body { font-family: var(--font-sans); color: var(--fab7-text); }
 .page h2 { margin: 0; font-size: 19px; line-height: normal; font-weight: 600; }
 .lede { margin: 0; font-size: 15px; line-height: normal; color: var(--fab7-muted); }
 .note { margin: 0; font-size: 13px; line-height: normal; color: var(--fab7-muted); }
-.label { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fab7-muted); }
+.label { margin: 0; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fab7-muted); }
 a { color: var(--fab7-accent); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 .sheet-backdrop { position: fixed; inset: 0; z-index: 10; display: flex; flex-direction: column; justify-content: flex-end; background: rgba(9, 13, 22, 0.7); padding-bottom: env(safe-area-inset-bottom, 0px); }
@@ -27,7 +27,9 @@ a { color: var(--fab7-accent); }
 .mark { display: inline-flex; align-items: center; gap: 8px; color: var(--fab7-teal); }
 .mark-weave { font: 700 12px/18px var(--font-mono); }
 .mark-word { font-size: 15px; font-weight: 600; }
-.menu { display: flex; align-items: center; justify-content: flex-end; background: none; border: 0; padding: 0; color: var(--fab7-text); font: 600 19px var(--font-sans); min-width: 36px; min-height: 36px; cursor: pointer; }
+.menu { display: flex; align-items: center; justify-content: flex-end; background: none; border: 0; padding: 0; color: var(--fab7-text); font: 600 19px var(--font-sans); cursor: pointer; }
+/* ☰ takes the glyph's room, as the cards draw it; its press reaches 8 px around. */
+.menu { padding: 8px; margin: -8px; }
 .needs-pill { padding: 3px 10px; border-radius: 20px; background: #3a2c0c; color: var(--fab7-amber-text); font-size: 12px; white-space: nowrap; }
 .needs { color: var(--fab7-amber-text); }
 .needs-pill { border: 0; cursor: pointer; font-family: inherit; }

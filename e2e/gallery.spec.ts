@@ -1,5 +1,5 @@
 // The gallery (`npm run gallery`): every web screen of the Atlas by its ID, at
-// its frame (390×844 for M, 1280×800 for D), drawn against the fake machine
+// its frame less the card's status or browser bar (390×803 for M, 1280×754 for D), drawn against the fake machine
 // and written to gallery/<ID>.png. A screen the browser cannot draw (a
 // notification the system shows) is written as gallery/<ID>.txt, saying why.
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -665,7 +665,17 @@ const SCREENS: Screen[] = [
     // The card's moment: the keyboard put away.
     await box.blur();
   } },
-  { ids: ['M10.3'], note: 'Turbo and the TUI\'s other notices at the foot of the tree: the web has no notice line of its own. An agent that ends says so in its own view (M3.7), and a press that cannot go says why where it was pressed (M10.1, M10.2).' },
+  { ids: ['M10.3'], run: async (at) => {
+    await folded(at, ['docs']);
+    await tree(at);
+    // Turbo on, then docs' claude ends: the notice at the foot of the tree.
+    const s = atlas();
+    s.tree[0].turbo = true;
+    s.agents[2].running = false;
+    at.machine.send({ type: 'agents', agents: s.agents });
+    at.machine.send({ type: 'tree', tree: s.tree });
+    await expect(at.page.getByText('claude has ended. Its work is still on the list.')).toBeVisible();
+  } },
   { ids: ['M10.4'], note: 'A push notification, drawn by the phone itself; e2e/desktop-push.spec.ts checks that it shows and opens the agent.' },
   { ids: ['D10.3'], note: 'A browser notification, drawn by the system; e2e/desktop-push.spec.ts checks that it shows and opens the agent.' },
 ];
@@ -678,8 +688,11 @@ for (const s of SCREENS) {
       if (s.note) return writeFileSync(`${OUT}/${id}.txt`, `${s.note}\n`);
       const machine = await FakeMachine.start();
       Object.assign(machine, s.sample ? s.sample() : atlas());
+      const at = { page, context, wide, machine };
+      // Every card that draws docs draws it folded; a screen may fold otherwise.
+      await folded(at);
       try {
-        await s.run!({ page, context, wide, machine });
+        await s.run!(at);
         await page.waitForTimeout(400);
         await page.screenshot({ path: `${OUT}/${id}.png` });
       } finally {

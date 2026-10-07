@@ -28,7 +28,7 @@ test('M9.1: Settings has Start an agent, this device, its notifications, the mac
   await expect(page.getByText('It runs on studio, with your own settings.')).toBeVisible();
   await expect(page.getByLabel(/Notifications from studio/)).toBeVisible();
   const rows = page.locator('.settings-row').filter({ hasText: /^(studio|laptop)/ });
-  await expect(rows).toHaveText(['studioconnected›', 'laptop›']);
+  await expect(rows).toHaveText(['studioconnected ›', 'laptop›']);
   await expect(page.getByText('Projects, setup, turbo and Remote stay on your machine.', { exact: false })).toBeVisible();
   // A machine opens its tree.
   await rows.nth(1).click();

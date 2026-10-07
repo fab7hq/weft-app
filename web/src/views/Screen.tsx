@@ -55,7 +55,8 @@ export function Screen({ agent, driving, history, onHistory, onTop, onLive, onKe
       cursorBlink: false,
       fontFamily: loaded ? mono() : MONO_FALLBACK,
       fontSize: DRIVING_FONT,
-      lineHeight: 1,
+      // The cards' rows: 18 px for a 12 px mono, a row a little taller than the font's own.
+      lineHeight: 1.125,
       // The pane's own colour, as the cards draw the screen inside it.
       theme: { background: '#05080f', foreground: '#f1f3f7', cursor: '#f1f3f7', selectionBackground: '#2e4c76' },
       linkHandler: null,

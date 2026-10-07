@@ -65,3 +65,15 @@ test('M10.2 D10.2: a text the machine did not type says why above the message bo
   await expect(page.locator('.tree-said')).toHaveText('Not connected to the machine.');
   await machine.close();
 });
+
+test('M10.3: an agent that ends says so at the foot of the tree, in the TUI\'s words; the next tap clears it', async ({ page, context }) => {
+  const machine = await opened(page, context);
+  const said = fill(WORDS['agent.ended'], { harness: 'claude' });
+  const s = atlas();
+  s.agents[2].running = false;
+  machine.send({ type: 'agents', agents: s.agents });
+  await expect(page.locator('.tree-bar').getByRole('status')).toHaveText(said);
+  await page.getByRole('treeitem', { name: 'weft', exact: true }).click();
+  await expect(page.getByText(said)).toHaveCount(0);
+  await machine.close();
+});

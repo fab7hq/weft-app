@@ -1,7 +1,7 @@
 // The bars: the tree's (Ask, Eval and Seal on the selected work) and, on a
 // phone, the agent's sheet behind ⌃ (Ask and the keys).
 import type { ComponentChildren } from 'preact';
-import { signal } from '@preact/signals';
+import { effect, signal } from '@preact/signals';
 import { useEffect, useState } from 'preact/hooks';
 import type { Machine } from '../api';
 import * as m from '../machine';
@@ -46,6 +46,17 @@ export function BarSheet({ acts, keys, onClose }: { acts: BarActs; keys: Compone
 export const paneActive = signal(false);
 /** Where the open agent's keys go, for the desktop bar's Keys. */
 export const openKeys = signal<((bytes: number[]) => void) | null>(null);
+
+/** The TUI's notices, one line at the foot of the tree (M10.3): an agent that
+ * has ended, in the TUI's words. The next tap clears it. */
+export const notice = signal<{ agent: string; text: string } | null>(null);
+let running = new Set<string>();
+effect(() => {
+  const now = m.agents.value;
+  for (const a of now) if (!a.running && running.has(a.agent)) notice.value = { agent: a.agent, text: fill('agent.ended', { harness: a.harness }) };
+  running = new Set(now.filter((a) => a.running).map((a) => a.agent));
+});
+addEventListener('pointerdown', () => (notice.value = null), { capture: true });
 
 /** A why-not, in the web's words. */
 const sentence = (why: m.Why, machine: Machine) => fill(why.key, { harness: why.harness ?? '', title: why.title ?? '', machine: machine.name });
@@ -101,9 +112,12 @@ export function TreeBar({ machine, wide }: { machine: Machine; wide: boolean }) 
     if (why) return setSaid(notReady(why, machine));
     asking.value = { agent, project: m.agents.value.find((a) => a.agent === agent)?.project };
   };
+  // A notice about the agent open beside the tree is said in its own view (D3.7).
+  const view = here();
+  const told = notice.value && !(view?.name === 'agent' && view.agent === notice.value.agent) ? notice.value.text : null;
   return (
     <div class={wide ? 'tree-bar tree-bar--wide' : 'tree-bar'}>
-      {said && <p class="tree-said" role="status">{said}</p>}
+      {said ? <p class="tree-said" role="status">{said}</p> : told && <p class="tree-said" role="status">{told}</p>}
       {inPane && keys && (
         <div class="keys-pop" onPointerDown={(e) => e.preventDefault()}>
           <span class="label">{w('web.act.keys').toUpperCase()}</span>

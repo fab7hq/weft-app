@@ -11,8 +11,7 @@
 .start-list { display: flex; flex-direction: column; padding: 4px 0; border: 1px solid var(--fab7-line); border-radius: 10px; background: var(--fab7-surface); }
 .start-option { display: flex; gap: 10px; align-items: center; padding: 12px; border: 0; background: none; color: var(--fab7-text); font: 400 15px var(--font-sans); text-align: left; cursor: pointer; }
 .start-radio { color: var(--fab7-muted); }
-/* The card's hollow dot is small beside the filled one. */
-.start-radio--off { font-size: 9px; line-height: 15px; }
+.start-radio--off { line-height: 15px; }
 .start-option[aria-checked="true"] { background: #16233a; color: var(--fab7-accent); }
 .start-option[aria-checked="true"] > .start-radio { color: var(--fab7-accent); }
 .start-bar { flex: none; display: flex; justify-content: flex-end; gap: 10px; padding: 10px 20px; border-top: 1px solid var(--fab7-line); }

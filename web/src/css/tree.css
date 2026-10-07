@@ -41,7 +41,7 @@
 /* The why above the acts: one panel with them on a phone (M10.1), a line between them on a desktop (D10.1). */
 .tree-bar .tree-said { border-bottom: 0; }
 .tree-bar--wide .tree-said { padding: 8px 20px; border-bottom: 1px solid var(--fab7-line); }
-.tree-act--go { background: var(--fab7-button); color: #fff; }
+.tree-act--go { border-color: transparent; background: var(--fab7-button); color: #fff; }
 .tree-act--start { flex: none; border: 1px solid var(--fab7-line); }
 .woven { flex: 1; display: flex; flex-direction: column; gap: 24px; align-items: center; justify-content: center; }
 .woven .tree-act--start { padding: 9px 18px; }

@@ -40,7 +40,7 @@
 }
 /* The confirmation over the page (Remove a machine, and others' acts). */
 .sure-backdrop { position: fixed; inset: 0; z-index: 40; display: flex; align-items: center; justify-content: center; background: rgba(5, 8, 14, 0.66); }
-.sure { width: 420px; max-width: calc(100% - 32px); box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; padding: 24px; border: 1px solid var(--fab7-line); border-radius: 14px; background: var(--fab7-surface); box-shadow: 0 18px 48px rgba(0, 0, 0, 0.5); }
+.sure { width: 420px; max-width: calc(100% - 82px); display: flex; flex-direction: column; gap: 12px; padding: 24px; border: 1px solid var(--fab7-line); border-radius: 14px; background: var(--fab7-surface); box-shadow: 0 18px 48px rgba(0, 0, 0, 0.5); }
 .sure-title { margin: 0; font-size: 17px; font-weight: 600; }
 .sure-what { margin: 0; font-size: 14px; line-height: 20px; color: var(--fab7-muted); }
 .sure-acts { display: flex; gap: 10px; justify-content: flex-end; padding-top: 6px; }

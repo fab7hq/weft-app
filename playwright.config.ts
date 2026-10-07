@@ -25,9 +25,10 @@ export default defineConfig({
     { name: 'desktop', use: { ...devices['Desktop Chrome'], ...trusting }, testMatch: /(shell|desktop|atlas-.*)\.spec/ },
     // Notifications need the whole browser, which the default headless shell is not.
     { name: 'desktop-push', use: { ...devices['Desktop Chrome'], ...trusting, channel: 'chromium' }, testMatch: /desktop-push\.spec/ },
-    // `npm run gallery`: every web screen at its Atlas frame.
-    { name: 'gallery-phone', use: { ...as('iPhone 15'), viewport: { width: 390, height: 844 } }, testMatch: /gallery\.spec/ },
-    { name: 'gallery-desktop', use: { ...devices['Desktop Chrome'], ...trusting, viewport: { width: 1280, height: 800 } }, testMatch: /gallery\.spec/ },
+    // `npm run gallery`: every web screen at its Atlas frame, less the card's
+    // status bar (41 px) or browser bar (46 px): the room the page has.
+    { name: 'gallery-phone', use: { ...as('iPhone 15'), viewport: { width: 390, height: 803 } }, testMatch: /gallery\.spec/ },
+    { name: 'gallery-desktop', use: { ...devices['Desktop Chrome'], ...trusting, viewport: { width: 1280, height: 754 } }, testMatch: /gallery\.spec/ },
   ],
   webServer: {
     command:

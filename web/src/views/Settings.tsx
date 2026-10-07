@@ -119,8 +119,9 @@ export function MachineRows({ then, menu = false }: { then?: () => void; menu?: 
         return (
           <button key={x.id} class={menu ? 'menu-row menu-machine' : 'settings-row'} type="button" onClick={() => (then?.(), reset({ name: 'tree', machine: x.id }))}>
             <span class="settings-text">{x.name}</span>
-            {here && <span class="settings-connected">{w('web.settings.connected')}</span>}
-            {!(menu && here) && <span class={here ? 'eval-more settings-connected' : 'eval-more'}>›</span>}
+            {/* "connected ›", one line of words as the cards set it (M9.1). */}
+            {here && <span class="settings-connected">{menu ? w('web.settings.connected') : `${w('web.settings.connected')} ›`}</span>}
+            {!here && <span class="eval-more">›</span>}
           </button>
         );
       })}

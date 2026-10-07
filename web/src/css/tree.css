@@ -1,34 +1,55 @@
 /* tree: its own rules, moved from app.css in their order. */
+/* The cards draw in Sora alone, so a symbol (▾ ● ✓ ✗ ⚠ ⚡) comes from the
+   browser's own fallback, not the system UI font, and text is not thinned. */
+.tree, .tree-empty, .tree-bar, .woven { --font-sans: 'Sora', serif; font-family: var(--font-sans); -webkit-font-smoothing: auto; }
 .tree { flex: 1; overflow: auto; padding: 8px 0; }
 .tree-side { flex: 0 0 380px; width: 380px; box-sizing: border-box; border-right: 1px solid var(--fab7-line); display: flex; flex-direction: column; min-height: 0; }
 .tree-row { display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 16px; box-sizing: border-box; cursor: pointer; }
 .tree-row--harness { padding-left: 32px; }
 .tree-row--work { padding-left: 50px; }
-.tree-row[aria-selected="true"] { background: #16233a; border-left: 3px solid var(--fab7-accent); padding-left: 47px; }
-.tree-fold { font-size: 13px; color: var(--fab7-muted); background: none; border: 0; padding: 0; cursor: pointer; }
+.tree-row[aria-selected="true"] { background: #16233a; border-left: 3px solid var(--fab7-accent); }
+.tree-fold { font-family: inherit; font-size: 13px; line-height: normal; color: var(--fab7-muted); background: none; border: 0; padding: 0; cursor: pointer; }
 .tree-name { flex: 1; min-width: 0; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tree-row--project .tree-name { font-weight: 600; }
+.tree-name--off { color: var(--fab7-muted); }
 .tree-aside { font-size: 12px; color: var(--fab7-muted); white-space: nowrap; }
 .tree-aside.needs { color: var(--fab7-amber-text); }
 .tree-more { font: 600 16px var(--font-sans); color: var(--fab7-faint); background: none; border: 0; padding: 0 0 0 10px; margin-left: -10px; min-height: 44px; cursor: pointer; }
-.tree-empty, .tree-next { padding: 12px 16px; }
-.tree-empty { flex: 1; display: flex; flex-direction: column; gap: 12px; }
-.checklist { padding: 4px 16px 12px 32px; }
-.checklist ul { list-style: none; margin: 6px 0; padding: 0; display: grid; grid-template-columns: auto auto 1fr; column-gap: 10px; row-gap: 2px; font-size: 13px; line-height: 1.7; color: var(--fab7-text); }
-.checklist li { display: contents; }
-.checklist-mark { color: var(--fab7-muted); }
-.checklist-how { font-family: var(--font-mono); color: var(--fab7-muted); }
+/* The empty tree (M2.1, D2.1) and a harness not set up (M2.3, D2.3), under the tree's 8 px. */
+.tree-empty { flex: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 32px 20px 0; box-sizing: border-box; }
+.tree-side .tree-empty { gap: 6px; padding: 28px 20px 0; }
+.tree-empty p { margin: 0; align-self: stretch; }
+.tree-empty-said { font-size: 15px; color: var(--fab7-muted); }
+.tree-empty-why { font-size: 15px; color: var(--fab7-amber-text); }
+.tree-empty-line { font-size: 13px; color: var(--fab7-muted); }
+.tree-empty-line--faint { color: var(--fab7-faint); }
+.tree-next { margin: 0; padding: 16px 20px; font-size: 13px; color: var(--fab7-muted); }
+/* RingFrame not set up here (M2.4, D2.4): a glyph, what, and how, per line. */
+.checklist { display: flex; flex-direction: column; gap: 4px; padding: 4px 16px 12px 32px; }
+.checklist-said { margin: 0; padding-bottom: 4px; font-size: 13px; color: var(--fab7-muted); }
+.checklist-said--last { padding: 4px 0 0; }
+.checklist ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.checklist li { display: flex; align-items: center; gap: 10px; font-size: 13px; line-height: 22px; }
+.checklist-mark { flex: none; width: 14px; color: var(--fab7-muted); }
+.checklist-what { flex: none; width: 160px; color: var(--fab7-text); }
+.checklist-how { font: 12px var(--font-mono); color: var(--fab7-muted); }
 .tree-bar { flex: none; background: var(--fab7-panel); border-top: 1px solid var(--fab7-line); }
 .tree-said { margin: 0; padding: 10px 16px; font-size: 13px; color: var(--fab7-amber-text); border-bottom: 1px solid var(--fab7-line); }
 .tree-acts { display: flex; align-items: center; gap: 10px; padding: 10px 16px 30px; }
 .tree-act { flex: 1; min-width: 0; padding: 11px 16px; border: 1px solid var(--fab7-line); border-radius: 10px; background: var(--fab7-surface); color: var(--fab7-text); font: 600 14px var(--font-sans); cursor: pointer; }
 .tree-bar--wide .tree-acts { padding: 10px 20px; }
 .tree-bar--wide .tree-act { flex: none; padding: 9px 18px; border: 1px solid var(--fab7-line); }
-.tree-bar--wide .tree-said { padding: 8px 20px; }
+/* The why above the acts: one panel with them on a phone (M10.1), a line between them on a desktop (D10.1). */
+.tree-bar .tree-said { border-bottom: 0; }
+.tree-bar--wide .tree-said { padding: 8px 20px; border-bottom: 1px solid var(--fab7-line); }
 .tree-act--go { background: var(--fab7-button); color: #fff; }
 .tree-act--start { flex: none; border: 1px solid var(--fab7-line); }
 .woven { flex: 1; display: flex; flex-direction: column; gap: 24px; align-items: center; justify-content: center; }
+.woven .tree-act--start { padding: 9px 18px; }
 .woven-mark { margin: 0; font: 700 22px/26px var(--font-mono); color: var(--fab7-teal); }
+.tree-skeleton { display: flex; flex-direction: column; gap: 4px; padding: 12px 0; }
+.tree-side .tree-skeleton { gap: 0; padding: 8px 0; }
+.tree-skeleton .tree-row { flex: none; }
 .skeleton-bar { display: block; height: 12px; border-radius: 6px; background: var(--fab7-surface); }
 .woven--weaving .woven-mark { animation: weave 1.6s ease-in-out infinite alternate; }
 @keyframes weave { from { opacity: 0.35; letter-spacing: 0; } to { opacity: 1; letter-spacing: 1px; } }

@@ -149,3 +149,21 @@ test('M2.8: a tree longer than the screen scrolls, with no markers', async ({ pa
   await expect(page.getByText(/above|more$/)).toHaveCount(0);
   await machine.close();
 });
+
+test('M7.1 D7.1: a harness not set up is marked ⚠; a tap selects it, and its acts say where to set it up', async ({ page, context }) => {
+  const [claude] = atlas().tree[0].harnesses;
+  const t: Project[] = [{ project: 'weft', open: 1, needs: 0, ask: { key: 'why.not_set_up', harness: 'claude' }, harnesses: [{ ...claude, turn: 'ready', works: [] }] }];
+  const machine = await opened(page, context, t, atlas().agents.slice(0, 1).map((a) => ({ ...a, turn: 'ready' as const })));
+  await expect(row(page, 'claude')).toContainText('claude ⚠');
+  // The ⚠ says it: no line under it.
+  await expect(page.getByText('Ask for something and Weft writes it down.')).toHaveCount(0);
+  await row(page, 'claude').click();
+  await expect(page.getByLabel("The agent's screen")).toBeVisible();
+  if (!(await page.getByRole('tree', { name: 'Work' }).isVisible())) await page.goBack();
+  await expect(row(page, 'claude')).toHaveAttribute('aria-selected', 'true');
+  for (const act of ['Ask', 'Eval', 'Seal']) {
+    await page.getByRole('button', { name: act, exact: true }).first().click();
+    await expect(page.locator('.tree-said')).toHaveText('claude is not set up for RingFrame. Set it up in Weft on studio: U.');
+  }
+  await machine.close();
+});

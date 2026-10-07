@@ -9,7 +9,7 @@ import { go, here } from '../nav';
 import { asking } from './Ask';
 import { act } from './Asked';
 import { KeyBar } from './Keys';
-import { selected } from './Tree';
+import { selected, selectedHarness, unready } from './Tree';
 import { fill, w } from '../words';
 
 export interface BarActs {
@@ -52,9 +52,18 @@ const sentence = (why: m.Why, machine: Machine) => fill(why.key, { harness: why.
 
 /** The selected work, with the harness it was asked of. */
 function selection() {
-  for (const p of m.tree.value) for (const h of p.harnesses) for (const work of h.works) if (work.unit === selected.value) return { h, work };
+  for (const p of m.tree.value) for (const h of p.harnesses) for (const work of h.works) if (work.unit === selected.value) return { p, h, work };
   return null;
 }
+
+/** The selected harness (M2.5, M7.1), with its project. */
+function harnessSelection() {
+  for (const p of m.tree.value) for (const h of p.harnesses) if (`${p.project}/${h.harness}` === selectedHarness.value) return { p, h };
+  return null;
+}
+
+/** A harness not set up (M7.1): what it is, and where to set it up. */
+const notReady = (why: m.Why, machine: Machine) => `${sentence(why, machine)} ${fill('web.why.set_up_on', { machine: machine.name })}`;
 
 /** The tree's bar (M2.6, D2.6): Ask, and Eval and Seal on the selected work; where one cannot run, why. */
 export function TreeBar({ machine, wide }: { machine: Machine; wide: boolean }) {
@@ -67,7 +76,11 @@ export function TreeBar({ machine, wide }: { machine: Machine; wide: boolean }) 
   const onWork = async (which: 'eval' | 'seal') => {
     setSaid(null);
     const at = selection();
-    if (!at) return setSaid(w('why.nothing_to_work_on'));
+    if (!at) {
+      const on = harnessSelection();
+      const why = on && unready(on.p, on.h.harness);
+      return setSaid(why ? notReady(why, machine) : w('why.nothing_to_work_on'));
+    }
     if (at.work[which]) return setSaid(sentence(at.work[which]!, machine));
     const refused = await act({ act: which, unit: at.work.unit });
     if (refused) setSaid(String(refused.message));
@@ -75,12 +88,17 @@ export function TreeBar({ machine, wide }: { machine: Machine; wide: boolean }) 
   /** Ask, of the selected work's project: its agent first, else the open one, else the first running. */
   const onAsk = () => {
     setSaid(null);
-    const at = selection();
+    const at = selection() ?? harnessSelection();
     const view = here();
     const open = view?.name === 'agent' ? m.agents.value.find((a) => a.agent === view.agent && a.running) : undefined;
     const first = m.agents.value.find((a) => a.running);
     const agent = at?.h.agent ?? open?.agent ?? first?.agent;
     if (!agent) return setSaid(fill('web.why.start_an_agent', { machine: machine.name }));
+    // Its harness not set up for RingFrame, nothing it is asked is written down (M7.1).
+    const of = m.agents.value.find((a) => a.agent === agent);
+    const project = of && m.tree.value.find((p) => p.project === of.project);
+    const why = project && unready(project, of.harness);
+    if (why) return setSaid(notReady(why, machine));
     asking.value = { agent, project: m.agents.value.find((a) => a.agent === agent)?.project };
   };
   return (

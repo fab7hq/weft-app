@@ -64,6 +64,21 @@ async function kept(at: At, { name, push }: { name?: string; push?: boolean }) {
   );
 }
 
+/** What this browser has folded, before the app opens. */
+async function folded(at: At, keys: string[]) {
+  await at.page.addInitScript((k) => localStorage.setItem('weft.folded', k), JSON.stringify(keys));
+}
+
+/** A tap on a harness opens its agent, and selects it; back on the phone, the tree shows it selected. */
+async function harnessTapped(at: At, harness: string) {
+  await item(at, harness).click();
+  await expect(at.page.getByLabel("The agent's screen")).toBeVisible();
+  if (!at.wide) {
+    await at.page.goBack();
+    await expect(item(at, harness)).toHaveAttribute('aria-selected', 'true');
+  }
+}
+
 async function tree(at: At) {
   await open(at);
   await expect(at.page.getByRole('tree', { name: 'Work' })).toBeVisible();
@@ -183,8 +198,26 @@ const SCREENS: Screen[] = [
     await open(at);
     await expect(at.page.locator('.tree-skeleton')).toBeVisible();
   } },
-  { ids: ['M1.8', 'D1.8'], run: async (at) => {
+  { ids: ['M1.8'], sample: () => withTree((t, a) => {
+    t.splice(1);
+    Object.assign(t[0], { needs: 0 });
+    for (const h of t[0].harnesses) {
+      h.works = h.works.slice(0, 1).map((x) => ({ ...x, turn: null }));
+      h.turn = 'ready';
+    }
+    for (const x of a) x.turn = 'ready';
+  }), run: async (at) => {
     await tree(at);
+    await item(at, 'fix login').click();
+    at.machine.down = true;
+    at.machine.drop();
+    await expect(at.page.getByText('Reconnecting')).toBeVisible();
+  } },
+  { ids: ['D1.8'], run: async (at) => {
+    await folded(at, ['docs']);
+    await tree(at);
+    await button(at, 'NEEDS YOU 1').click();
+    await expect(at.page.getByLabel("The agent's screen")).toBeVisible();
     at.machine.down = true;
     at.machine.drop();
     await expect(at.page.getByText('Reconnecting')).toBeVisible();
@@ -195,31 +228,69 @@ const SCREENS: Screen[] = [
     await open(at);
     await expect(at.page.getByText('Nothing asked for yet.')).toBeVisible();
   } },
-  { ids: ['M2.3', 'D2.3'], sample: () => {
-    const s = atlas();
-    s.agents = [s.agents[0]];
-    s.tree = [{ ...s.tree[0], open: 0, needs: 0, ask: { key: 'why.not_set_up', harness: 'claude' }, harnesses: [{ ...s.tree[0].harnesses[0], turn: 'ready', works: [] }] }];
-    return s;
-  }, run: tree },
-  { ids: ['M2.4'], sample: () => ({ ...atlas(), agents: [], tree: [{ project: 'weft', open: 0, needs: 0, ask: { key: 'why.start_an_agent' }, setup: { ringframe: true, git: false, commit: false }, harnesses: [] }] }), run: tree },
+  // No agent runs, and the harness the project routes to is not set up (as T2.3).
+  { ids: ['M2.3', 'D2.3'], sample: () => ({ ...atlas(), agents: [], tree: [{ project: 'weft', open: 0, needs: 0, ask: { key: 'why.not_set_up', harness: 'claude' }, harnesses: [] }] }), run: async (at) => {
+    await open(at);
+    await expect(at.page.getByText('claude is not set up for RingFrame.')).toBeVisible();
+  } },
+  { ids: ['M2.4', 'D2.4'], sample: () => ({ ...atlas(), agents: [], tree: [{ project: 'weft', open: 0, needs: 0, ask: { key: 'why.start_an_agent' }, setup: { ringframe: true, git: false, commit: false }, harnesses: [] }] }), run: tree },
   { ids: ['M2.5'], sample: () => {
     const s = atlas();
-    return { ...s, agents: [s.agents[2]], tree: [s.tree[1]] };
-  }, run: tree },
-  { ids: ['M2.6', 'D2.6'], run: tree },
-  { ids: ['M2.7', 'D2.7'], run: async (at) => {
-    await at.page.addInitScript(() => localStorage.setItem('weft.folded', '["docs"]'));
+    return { ...s, agents: [{ ...s.agents[0], turn: 'ready' }], tree: [{ project: 'weft', open: 1, needs: 0, ask: null, harnesses: [{ ...s.tree[0].harnesses[0], turn: 'ready', works: [] }] }] };
+  }, run: async (at) => {
     await tree(at);
+    await harnessTapped(at, 'claude');
   } },
-  { ids: ['M2.8'], sample: () => withTree((t) => {
+  { ids: ['M2.6', 'D2.6'], run: async (at) => {
+    await folded(at, ['docs']);
+    await tree(at);
+    if (at.wide) await harnessTapped(at, 'codex');
+    await item(at, 'health endpoint').click();
+  } },
+  ...(['M2.7', 'D2.7'] as const).map((id): Screen => ({
+    ids: [id],
+    sample: () => withTree((t, a) => {
+      // weft as the card has it, docs folded, and site with its claude folded.
+      const [claude, codex] = t[0].harnesses;
+      Object.assign(t[0], { needs: 0 });
+      Object.assign(claude, { turn: 'ready', works: [{ ...claude.works[0], turn: 'ready' }] });
+      codex.works = codex.works.slice(0, 1);
+      t.push({ project: 'site', open: 1, needs: 0, ask: null, harnesses: [{ ...t[1].harnesses[0], agent: 'site-0', works: [] }] });
+      a[0].turn = 'ready';
+      // The desktop card has another agent asking for you.
+      if (id === 'D2.7') a[2].turn = 'waiting';
+    }),
+    run: async (at) => {
+      await folded(at, ['docs', 'site/claude']);
+      await tree(at);
+      if (at.wide) await harnessTapped(at, 'claude');
+      await item(at, 'fix login').click();
+    },
+  })),
+  { ids: ['M2.8'], sample: () => withTree((t, a) => {
     const h = t[0].harnesses[0];
-    for (let i = 5; i < 19; i++) h.works.push({ unit: `ask_${i}`, title: `work ${i}`, word: 'asked', turn: null, eval: null, seal: null });
-  }), run: tree },
+    Object.assign(t[0], { open: 24, needs: 0 });
+    h.turn = 'ready';
+    a[0].turn = 'ready';
+    h.works = Array.from({ length: 24 }, (_, i) => ({ unit: `ask_${i + 6}`, title: `task ${i + 6}`, word: 'asked' as const, turn: i === 2 ? 'ready' as const : null, eval: null, seal: null }));
+  }), run: async (at) => {
+    await tree(at);
+    await item(at, 'task 8').click();
+  } },
   { ids: ['M2.9', 'D2.9'], sample: () => withTree((t, a) => {
-    t[0].harnesses[0].turbo = true;
-    Object.assign(t[0].harnesses[1], { running: false, agent: null, turn: null });
+    // The project has turbo on (the header's ⚡ turbo); claude was started in it.
+    t.splice(1);
+    const [claude, codex] = t[0].harnesses;
+    Object.assign(t[0], { needs: 0, turbo: true });
+    Object.assign(claude, { turbo: true, turn: 'ready', works: [{ ...claude.works[0], turn: 'ready' }] });
+    Object.assign(codex, { running: false, agent: null, turn: null, works: [{ ...codex.works[0], turn: null }] });
+    a[0].turn = 'ready';
     a[1].running = false;
-  }), run: tree },
+  }), run: async (at) => {
+    await tree(at);
+    if (at.wide) await harnessTapped(at, 'claude');
+    await item(at, 'health endpoint').click();
+  } },
 
   // 03 · The agent
   { ids: ['M3.1', 'D3.1'], run: (at) => agentOpen(at, 'codex') },
@@ -389,13 +460,18 @@ const SCREENS: Screen[] = [
       row('step', 's:p1/8', 1, '8  /health returns the build number', 'met, so far · 2 changes', '✓', { read: 'met' })],
   }) },
 
-  // 07 · A harness not set up
-  { ids: ['M7.1', 'D7.1'], sample: () => withTree((t) => {
-    t[0].ask = { key: 'why.not_set_up', harness: 'codex' };
-    t[0].harnesses[1].works[0].eval = { key: 'why.not_set_up', harness: 'codex' };
-  }), run: async (at) => {
-    await evalOn(at);
-    await expect(at.page.getByText('codex is not set up for RingFrame.', { exact: false })).toBeVisible();
+  // 07 · A harness not set up: it broke after its agent started (as T3.8).
+  { ids: ['M7.1', 'D7.1'], sample: () => {
+    const s = atlas();
+    return { ...s, agents: [{ ...s.agents[0], turn: 'ready' }], tree: [{ project: 'weft', open: 1, needs: 0, ask: { key: 'why.not_set_up', harness: 'claude' }, harnesses: [{ ...s.tree[0].harnesses[0], turn: 'ready', works: [] }] }] };
+  }, run: async (at) => {
+    await tree(at);
+    await harnessTapped(at, 'claude');
+    // On the phone the bar says it; on a desktop the agent beside the tree does.
+    if (!at.wide) {
+      await button(at, 'Eval').click();
+      await expect(at.page.getByText('claude is not set up for RingFrame. Set it up in Weft on studio: U.')).toBeVisible();
+    }
   } },
 
   // 08 · Allowing a device
@@ -471,7 +547,9 @@ const SCREENS: Screen[] = [
 
   // 10 · Notices
   { ids: ['M10.1', 'D10.1'], run: async (at) => {
+    await folded(at, ['docs']);
     await tree(at);
+    if (at.wide) await button(at, 'NEEDS YOU 1').click();
     await button(at, 'Eval').click();
     await expect(at.page.getByText('Nothing to work on yet.')).toBeVisible();
   } },

@@ -5,6 +5,7 @@ import type { Machine } from '../api';
 import * as m from '../machine';
 import { swap, type View } from '../nav';
 import { Agent } from './Agent';
+import { AskDock } from './Ask';
 import { Details } from './Details';
 import { EvalView } from './EvalView';
 import { Mark, StartButton, TreeList } from './Tree';
@@ -46,6 +47,7 @@ export function Wide({ login, machine, agent, starting = null, view }: { login: 
           {view.name === 'eval' ? <EvalView key={`${view.at}${view.files}`} machine={machine} unit={view.unit} at={view.at} files={view.files} wide />
           : view.name === 'detail' ? <Details key={view.unit} machine={machine} unit={view.unit} wide />
           : starting !== null ? <StartPanel machine={machine} harness={starting} /> : agent ? <Agent key={agent} machine={machine} agent={agent} embedded /> : <Woven machine={machine} />}
+          <AskDock />
         </main>
       </div>
       <TreeBar machine={machine} wide />

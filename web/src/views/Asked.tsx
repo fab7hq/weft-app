@@ -2,7 +2,8 @@
 // what the machine is about to type, Cancel beside Send; Send anyway when its
 // agent has not said it is ready; Resume, or Start an agent, when the work's
 // agent is not running or a harness that is not running is tapped. Answered on
-// the machine first, it says so and closes.
+// the machine first, it says so and closes. On a phone Cancel and the go are
+// halves of the width; on a desktop they sit at the right.
 import { signal } from '@preact/signals';
 import { useEffect, useState } from 'preact/hooks';
 import * as m from '../machine';
@@ -78,7 +79,9 @@ function SendBar() {
   if (unready && !answered) {
     return (
       <div class="pending-bar" role="dialog" aria-label={w('not_ready.title')}>
-        <span class="pending-what">{w('not_ready.title')}</span>
+        <div class="pending-head">
+          <span class="pending-what">{w('not_ready.title')}</span>
+        </div>
         <p class="pending-why">{unready}</p>
         <p class="pending-why">{w('not_ready.why')}</p>
         <Acts cancel={() => void answer(false)} go={[w('act.send_anyway'), () => void answer(true, true)]} />
@@ -86,23 +89,25 @@ function SendBar() {
     );
   }
   const harness = m.agents.value.find((a) => a.agent === showing.agent)?.harness ?? '';
+  if (answered) {
+    return (
+      <div class="pending-bar pending-bar--answered" role="dialog" aria-label={showing.what}>
+        <span class="pending-what">{showing.what}</span>
+        <p class="pending-answered" role="status">{w('web.bar.answered')}</p>
+      </div>
+    );
+  }
   return (
     <div class="pending-bar" role="dialog" aria-label={showing.what}>
       <div class="pending-head">
         <span class="pending-what">{showing.what}</span>
-        {!answered && <span class="pending-into">{fill('web.bar.into', { harness })}</span>}
+        <span class="pending-into">{fill('web.bar.into', { harness })}</span>
       </div>
-      {answered ? (
-        <p class="note" role="status">{w('web.bar.answered')}</p>
-      ) : (
-        <>
-          {why(showing.why).map((s) => (
-            <p key={s} class="pending-why">{s}</p>
-          ))}
-          <pre class="pending-text">{showing.text}</pre>
-          <Acts cancel={() => void answer(false)} go={[w('act.send'), () => void answer(true)]} />
-        </>
-      )}
+      {why(showing.why).map((s) => (
+        <p key={s} class="pending-why">{s}</p>
+      ))}
+      <pre class="pending-text">{showing.text}</pre>
+      <Acts cancel={() => void answer(false)} go={[w('act.send'), () => void answer(true)]} />
     </div>
   );
 }
@@ -127,7 +132,9 @@ function GoneBar({ gone: g }: { gone: Gone }) {
   };
   return (
     <div class="pending-bar" role="dialog" aria-label={fill('resume.title', { harness: g.harness })}>
-      <span class="pending-what">{fill('resume.title', { harness: g.harness })}</span>
+      <div class="pending-head">
+        <span class="pending-what">{fill('resume.title', { harness: g.harness })}</span>
+      </div>
       {g.session ? (
         <>
           <p class="pending-why">{`${w('resume.session')} · ${clock(g.session.at)} · "${clip(g.session.last, 28)}"`}</p>
@@ -137,6 +144,7 @@ function GoneBar({ gone: g }: { gone: Gone }) {
       ) : (
         <>
           <p class="pending-why">{w('resume.nothing')}</p>
+          <p class="pending-why">{w('resume.either_way')}</p>
           <Acts cancel={close} go={[w('start.title'), fresh]} />
         </>
       )}

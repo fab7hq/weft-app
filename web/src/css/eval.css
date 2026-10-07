@@ -1,18 +1,43 @@
-/* eval: its own rules, moved from app.css in their order. */
-.eval-head { display: flex; flex-direction: column; gap: 4px; }
+/* eval: the Eval view's own rules, to the cards M6.1–M6.7 and D6.1–D6.7. */
+/* Its pages set their own insets: the rows' rules run across the whole panel. */
+.page.eval-page { padding: 0; gap: 0; }
+.detail.eval, .detail-pane .detail.eval { gap: 0; padding: 0; }
+.eval-top .eval-id { font: 11px/17px var(--font-mono); color: var(--fab7-muted); }
+.detail-top.eval-top { gap: 10px; }
+.detail-top.eval-top .back { min-height: 0; }
+
+.eval-head { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px 6px; }
 .eval-head strong { font-size: 16px; font-weight: 600; white-space: pre-wrap; }
 .eval-head .dim { font-size: 12px; }
-.eval-id { font: 11px var(--font-mono); }
-.eval-chip { padding: 5px 12px; border: 1px solid var(--fab7-line); border-radius: 16px; background: none; color: var(--fab7-text); font: 13px var(--font-sans); cursor: pointer; }
-.eval-chip--on { border-color: var(--fab7-accent); color: var(--fab7-accent); background: rgba(56, 139, 253, 0.12); }
+.eval-chips { display: flex; gap: 8px; padding: 10px 16px; }
+.eval-chip { padding: 6px 12px; border: 1px solid var(--fab7-line); border-radius: 16px; background: var(--fab7-surface); color: var(--fab7-text); font: 13px var(--font-sans); cursor: pointer; }
+.eval-chip--on { border-color: var(--fab7-accent); color: var(--fab7-accent); background: #16233a; }
 .eval-rows { display: flex; flex-direction: column; }
-.eval-row { display: flex; align-items: center; gap: 10px; width: 100%; padding: 13px 0; border: 0; border-bottom: 1px solid var(--fab7-line); background: none; color: var(--fab7-text); font: 15px var(--font-sans); text-align: left; cursor: pointer; }
+.eval-row { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 16px; border: 0; border-bottom: 1px solid var(--fab7-line); background: none; color: var(--fab7-text); font: 400 15px var(--font-sans); text-align: left; cursor: pointer; }
 .eval-row--read { cursor: default; font-size: 13px; }
 .eval-text { flex: 1; min-width: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+/* The marks fall back as the cards' do: past Sora to the system's ✓ ✗, not the UI font's. */
+.eval-mark { font-family: 'Sora', sans-serif; }
 .eval-aside { flex: none; max-width: 50%; font-size: 12px; color: var(--fab7-muted); text-align: right; }
-.eval-more { flex: none; font-size: 16px; color: var(--fab7-faint); }
-.eval-label { margin-top: 14px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: var(--fab7-muted); }
+.eval-more { flex: none; font-size: 16px; font-weight: 600; color: var(--fab7-faint); }
+
+/* A step: what it asks, what was found, the readings, evenly spaced. */
+.eval-step { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 4px 16px; }
+.eval-line { margin: 0; align-self: stretch; font-size: 13px; overflow-wrap: anywhere; }
+.eval-under { padding-left: 1.5em; }
+.eval-label { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: var(--fab7-muted); }
+
+/* A change's lines. */
+.eval-change { display: flex; flex-direction: column; gap: 8px; padding: 0 12px; }
 .eval-code { margin: 0; padding: 12px; border-radius: 8px; background: #05080f; font: 11px/17px var(--font-mono); white-space: pre-wrap; overflow-x: auto; }
 .eval-lit { color: var(--fab7-amber-text); font-weight: 700; }
-.eval-caption { font-size: 12px; color: var(--fab7-faint); }
+.eval-caption { margin: 0; font-size: 12px; color: var(--fab7-faint); }
 .eval-hint { font-size: 12px; color: var(--fab7-faint); align-self: center; }
+
+/* On a desktop: 20 px in from the panel's sides. */
+.eval--wide .eval-head { padding: 14px 20px 6px; }
+.eval--wide .eval-chips { padding: 8px 20px; }
+.eval--wide .eval-row { padding: 11px 20px; }
+.eval--wide .eval-step { padding: 4px 20px; }
+.eval--wide .eval-change { gap: 0; padding: 0; }
+.eval--wide .eval-code { margin: 0 20px; font-size: 12px; line-height: 18px; }

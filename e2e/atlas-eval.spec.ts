@@ -62,10 +62,10 @@ test('M6.3 M6.4 M6.5 D6.4 D6.5: a group, a step, a change, and the crumbs back',
 
   await view.getByRole('button', { name: /src\/send\.rs/ }).click();
   await expect(page.getByRole('button', { name: '‹ A step' })).toBeVisible();
-  await expect(view.locator('.eval-head strong')).toHaveText('src/send.rs  L88–L97');
+  await expect(view.locator('.eval-head strong')).toHaveText('src/send.rs L88–L97');
   const code = view.locator('.eval-code > div');
   await expect(code).toHaveCount(5);
-  await expect(code.nth(1)).toHaveText(' 89 -    let _ = self.sock.write(msg);');
+  await expect(code.nth(1)).toHaveText('89 -    let _ = self.sock.write(msg);');
   await expect(view.locator('.eval-lit')).toHaveText('        log::debug!("send failed");');
 
   // The crumbs walk back the way in, then to the Details.

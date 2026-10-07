@@ -329,7 +329,14 @@ const SCREENS: Screen[] = [
     await at.page.getByRole('button', { name: /A failed send is told/ }).click();
   } },
   { ids: ['M6.5', 'D6.5'], run: async (at) => {
-    await evalView(at);
+    // The lines each card draws: the phone's without the return type, indented less.
+    const lines = (wide: boolean) => (wide
+      ? [[88, ' fn send(&self, msg: &Msg) -> Result<()> {'], [89, '-     let _ = self.sock.write(msg);'], [89, '+     if let Err(e) = self.sock.write(msg) {'],
+        [90, '+         log::debug!("send failed");'], [91, '+         return Err(e.into());'], [92, '+     }'], [93, '        Ok(())']]
+      : [[88, ' fn send(&self, msg: &Msg) {'], [89, '-   let _ = self.sock.write(msg);'], [89, '+   if let Err(e) = self.sock.write(msg) {'],
+        [90, '+     log::debug!("send failed");'], [91, '+     return Err(e.into());'], [92, '+   }'], [93, '     Ok(())']]
+    ).map(([n, text]) => ({ n, text, lit: n === 90 }));
+    await evalView(at, { ...VIEW, changes: { w_s: lines(at.wide) } });
     await at.page.getByRole('button', { name: /Phase 1/ }).click();
     await at.page.getByRole('button', { name: /A failed send is told/ }).click();
     await at.page.getByRole('button', { name: /src\/send\.rs/ }).click();

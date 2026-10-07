@@ -2,10 +2,10 @@
 // moves on by itself once one joins.
 import { useEffect } from 'preact/hooks';
 import * as api from '../api';
-import { go } from '../nav';
 import { fill, w } from '../words';
+import { MachinesBar } from './Machines';
 
-export function AddMachine({ login, onJoined }: { login: string; onJoined: () => void }) {
+export function AddMachine({ login, wide, onJoined }: { login: string; wide: boolean; onJoined: () => void }) {
   // Asked every few seconds, so the machine shows as soon as it joins.
   useEffect(() => {
     const t = setInterval(() => {
@@ -20,24 +20,20 @@ export function AddMachine({ login, onJoined }: { login: string; onJoined: () =>
   ];
   return (
     <div class="app">
-      <div class="appbar">
-        <h1>{w('web.machines.title')}</h1>
-        <span class="spacer" />
-        <button class="back" type="button" onClick={() => go({ name: 'settings' })}>{w('web.settings.title')}</button>
-      </div>
+      <MachinesBar wide={wide} />
       <div class="page">
         <p class="label" style={{ margin: 0 }}>{fill('web.add.signed_in', { login })}</p>
         <h2>{w('web.add.title')}</h2>
         <p class="lede">{w('web.add.none')}</p>
-        <ol style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <ol class="add-steps">
           {steps.map(([key, text]) => (
-            <li key={key} style={{ display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
-              <span class="fab7-key" style={{ minWidth: '36px', height: '36px', cursor: 'default' }} aria-hidden="true">{key}</span>
-              <span style={{ paddingTop: '7px', fontSize: '15px', lineHeight: 1.6 }}>{text}</span>
+            <li key={key} class="add-step">
+              <span class="add-key" aria-hidden="true">{key}</span>
+              <span>{text}</span>
             </li>
           ))}
         </ol>
-        <p class="note" style={{ marginTop: 'auto' }}>{w('web.add.joins')}</p>
+        <p class="note">{w('web.add.joins')}</p>
       </div>
     </div>
   );

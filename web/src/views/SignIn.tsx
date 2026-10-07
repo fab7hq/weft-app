@@ -1,26 +1,18 @@
+// Sign in (M1.3, D1.3): what Weft on the web is, and GitHub to sign in.
+// Its words stay here: they show before the words are fetched.
+import { Mark } from './Tree';
+
 export function SignIn() {
   return (
     <div class="app">
-      <div class="page" style={{ justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <img src="/icons/weft-mark.svg" alt="" width={28} height={28} />
-          <span style={{ fontSize: '18px', fontWeight: 700, letterSpacing: '1px', color: 'var(--fab7-teal)' }}>WEFT</span>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <p class="label" style={{ margin: 0, color: 'var(--fab7-accent)' }}>Weft on the web</p>
-          <h1 style={{ margin: 0, fontSize: '40px', lineHeight: 1.1, fontWeight: 550, letterSpacing: '-0.045em' }}>
-            The agents on your working machine, from here.
-          </h1>
-          <p class="lede">See what each one is doing, answer the one that needs you, and get a push when you are away.</p>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <a class="fab7-button" href="/auth/github" style={{ textDecoration: 'none', minHeight: '52px', fontSize: '15px' }}>
-            Sign in with GitHub
-          </a>
-          <p class="note">
-            GitHub says who you are. Your machine says which devices get in. <a href="/privacy">What Fab7 keeps</a>
-          </p>
-        </div>
+      <div class="page">
+        <div><Mark /></div>
+        <p class="label">Weft on the web</p>
+        <h1 class="signin-title">The agents on your working machine, from here.</h1>
+        <p class="lede">See what each one is doing, answer the one that needs you, and get a push when you are away.</p>
+        <a class="start-button start-button--go start-button--wide" href="/auth/github">Sign in with GitHub</a>
+        <p class="note">GitHub says who you are. Your machine says which devices get in.</p>
+        <div><a class="start-link" href="/privacy">What Fab7 keeps</a></div>
       </div>
     </div>
   );

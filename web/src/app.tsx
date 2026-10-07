@@ -83,10 +83,10 @@ const joined = () => void lookWho();
 export function NoConnection() {
   return (
     <div class="app">
-      <div class="page" style={{ justifyContent: 'center' }}>
+      <div class="page">
         <h2>No connection</h2>
         <p class="lede">Weft needs the network to reach your machines. It will try again when you are back online.</p>
-        <button class="fab7-button" type="button" onClick={() => void lookWho()}>Try again</button>
+        <button class="start-button start-button--plain" type="button" onClick={() => void lookWho()}>Try again</button>
       </div>
     </div>
   );
@@ -102,16 +102,17 @@ function Asking({ name }: { name: string }) {
       <div class="appbar">
         <Mark />
         <h1>{name}</h1>
-        <span class="fab7-pill">{w('web.link.asking')}</span>
+        <span class="spacer" />
+        <span class="link-pill">{w('web.link.asking')}</span>
       </div>
-      <div class="page">
+      <div class="page allow">
         <h2>{w(`web.allow.${where}`)}</h2>
         <p class="lede">
           {before}
-          <span class="fab7-key allow-key">Y</span>
+          <span class="allow-key">Y</span>
           {after}
         </p>
-        <p class="note">{w(`web.allow.waits_${where}`)}</p>
+        <p class="allow-waits">{w(`web.allow.waits_${where}`)}</p>
       </div>
     </div>
   );
@@ -128,12 +129,13 @@ function Refused({ name }: { name: string }) {
       <div class="appbar">
         <Mark />
         <h1>{name}</h1>
-        <span class="fab7-pill">{w('web.link.refused')}</span>
+        <span class="spacer" />
+        <span class="link-pill">{w('web.link.refused')}</span>
       </div>
-      <div class="page">
+      <div class="page allow">
         <h2>{w('web.refused.title')}</h2>
         <p class="lede">{w(machine.refusal.value ?? 'web.refused.other')}</p>
-        <button class="fab7-button fab7-button--secondary" type="button" onClick={machines}>{w('web.machines.title')}</button>
+        <button class="start-button start-button--go start-button--wide" type="button" onClick={machines}>{w('web.machines.title')}</button>
       </div>
     </div>
   );
@@ -147,7 +149,7 @@ export function App() {
   if (a.state === 'signed_out' || !view || view.name === 'signin') return <SignIn />;
   switch (view.name) {
     case 'add':
-      return <AddMachine login={a.login} onJoined={joined} />;
+      return <AddMachine login={a.login} wide={wide.value} onJoined={joined} />;
     case 'machines':
       return <Machines list={a.machines} wide={wide.value} onRemoved={removed} />;
     case 'tree':

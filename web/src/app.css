@@ -12,16 +12,17 @@ body { font-family: var(--font-sans); color: var(--fab7-text); -webkit-font-smoo
 .turbo-pill { padding: 3px 10px; border-radius: 20px; background: #16233a; color: var(--fab7-accent); font-size: 12px; white-space: nowrap; }
 .spacer { flex: 1; }
 .back { color: var(--fab7-accent); font: inherit; font-size: 15px; background: none; border: 0; padding: 0; min-height: 44px; cursor: pointer; }
-.page { flex: 1; display: flex; flex-direction: column; gap: 24px; padding: 32px 24px; overflow: auto; }
-.page h2 { margin: 0; font-size: 28px; line-height: 1.18; font-weight: 400; letter-spacing: -0.04em; }
-.lede { margin: 0; font-size: 16px; line-height: 1.75; color: var(--fab7-muted); }
-.note { margin: 0; font-size: 12px; line-height: 1.7; color: var(--fab7-muted); }
-.label { font-size: 12px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase; color: var(--fab7-muted); }
+.page { flex: 1; display: flex; flex-direction: column; gap: 16px; padding: 24px 20px; overflow: auto; }
+.page h2 { margin: 0; font-size: 19px; line-height: normal; font-weight: 600; }
+.lede { margin: 0; font-size: 15px; line-height: normal; color: var(--fab7-muted); }
+.note { margin: 0; font-size: 13px; line-height: normal; color: var(--fab7-muted); }
+.label { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fab7-muted); }
 a { color: var(--fab7-accent); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 .sheet-backdrop { position: fixed; inset: 0; z-index: 10; display: flex; flex-direction: column; justify-content: flex-end; background: rgba(9, 13, 22, 0.7); padding-bottom: env(safe-area-inset-bottom, 0px); }
 .sheet-backdrop .fab7-sheet { max-width: 640px; width: 100%; margin: 0 auto; box-sizing: border-box; }
-.field { min-height: 44px; box-sizing: border-box; padding: 0 14px; border: 1px solid var(--fab7-line); border-radius: var(--fab7-radius-md); background: var(--fab7-canvas); color: var(--fab7-text); font: 400 16px var(--font-sans); }
+/* 16 px, not the cards' 15: iOS zooms the page into a smaller field on focus. */
+.field { box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--fab7-line); border-radius: 8px; background: var(--fab7-surface); color: var(--fab7-text); font: 400 16px var(--font-sans); }
 .mark { display: inline-flex; align-items: center; gap: 8px; color: var(--fab7-teal); }
 .mark-weave { font: 700 12px/18px var(--font-mono); }
 .mark-word { font-size: 15px; font-weight: 600; }
@@ -39,7 +40,6 @@ a { color: var(--fab7-accent); }
    520 px, centred under the bar, as the cards draw it. */
 @media (min-width: 768px) {
   .page, .settings { flex: 1; width: 520px; max-width: calc(100% - 40px); margin: 0 auto; padding: 70px 0 32px; gap: 16px; justify-content: flex-start !important; }
-  .page .note[style*="margin-top: auto"] { margin-top: 0 !important; }
 }
 /* Your machines: a row opens its machine; Remove sits at its end (always on a
    desktop, after a swipe left on a phone). */

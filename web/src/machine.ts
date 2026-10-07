@@ -62,6 +62,8 @@ export interface Project {
   ask: Why | null;
   /** Null when RingFrame is set up there. */
   setup: Needs | null;
+  /** Agents started here from now on run in turbo mode (the header's ⚡ turbo). */
+  turbo?: boolean;
   harnesses: Harness[];
 }
 

@@ -7,7 +7,7 @@ import type { BrowserContext } from '@playwright/test';
 const sha256 = (s: string) => createHash('sha256').update(s).digest('hex');
 
 function sql(statements: string): void {
-  execFileSync('npx', ['wrangler', 'd1', 'execute', 'weft', '--local', '--persist-to', '.wrangler/e2e', '--command', statements], {
+  execFileSync('npx', ['wrangler', 'd1', 'execute', 'weft', '--local', '--persist-to', `.wrangler/e2e-${process.env.E2E_PORT ?? 8788}`, '--command', statements], {
     stdio: 'pipe',
     env: { ...process.env, WRANGLER_SEND_METRICS: 'false' },
   });

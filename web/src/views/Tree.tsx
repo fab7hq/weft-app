@@ -8,7 +8,7 @@ import { go, here } from '../nav';
 import { fill, stateWord, turnWord, w } from '../words';
 import { offerResume } from './Asked';
 import { TreeBar } from './Bar';
-import { LinkPill } from './Status';
+import { HeaderPills } from './Status';
 
 /** The work the bar's acts are on, by its Ask id. */
 export const selected = signal<string | null>(null);
@@ -249,9 +249,8 @@ export function TreePage({ machine }: { machine: Machine }) {
       <div class="appbar">
         <Mark />
         <h1>{machine.name}</h1>
-        {m.link.value !== 'connected' && <LinkPill />}
         <span class="spacer" />
-        <NeedsYouPill machine={machine} />
+        <HeaderPills machine={machine} />
         <button class="menu" type="button" aria-label="Menu" onClick={() => go({ name: 'settings' })}>☰</button>
       </div>
       <TreeList machine={machine} onAgent={(agent) => go({ name: 'agent', machine: machine.id, agent })} />

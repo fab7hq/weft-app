@@ -13,6 +13,8 @@ export const DRIVING_FONT = 13;
 /** The cell xterm.js draws at the driving size, in px: measured once a
  * terminal is open, since each browser rounds its font differently. */
 let cell = { width: DRIVING_FONT * 0.6, height: DRIVING_FONT * 1.2 };
+/** The terminal's family until the Atlas's mono has loaded. */
+const MONO_FALLBACK = "ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace";
 
 function bytes(b64: string): Uint8Array {
   const s = atob(b64);
@@ -42,15 +44,27 @@ export function Screen({ agent, driving, history, onHistory, onLive, onKey, box 
       disableStdin: true,
       scrollback: 0,
       cursorBlink: false,
-      fontFamily: getComputedStyle(document.documentElement).getPropertyValue('--font-mono'),
+      fontFamily: MONO_FALLBACK,
       fontSize: DRIVING_FONT,
       lineHeight: 1,
-      theme: { background: '#090d16', foreground: '#f1f3f7', cursor: '#f1f3f7', selectionBackground: '#2e4c76' },
+      // The pane's own colour, as the cards draw the screen inside it.
+      theme: { background: '#05080f', foreground: '#f1f3f7', cursor: '#f1f3f7', selectionBackground: '#2e4c76' },
       linkHandler: null,
     });
     term.open(el);
-    const opened = el.querySelector('.xterm-screen')?.getBoundingClientRect();
-    if (opened?.width && opened.height) cell = { width: opened.width / term.cols, height: opened.height / term.rows };
+    const measure = () => {
+      const opened = el.querySelector('.xterm-screen')?.getBoundingClientRect();
+      if (opened?.width && opened.height && term.options.fontSize === DRIVING_FONT) cell = { width: opened.width / term.cols, height: opened.height / term.rows };
+    };
+    measure();
+    // The Atlas's mono, once it has loaded: xterm.js measures its cell again
+    // when the family changes, so it is set only then.
+    void document.fonts?.load(`${DRIVING_FONT}px "JetBrains Mono"`).then(() => {
+      term.options.fontFamily = getComputedStyle(document.documentElement).getPropertyValue('--font-mono');
+      requestAnimationFrame(measure);
+    });
+    // A double tap or click makes the pane active (M3.3); it never selects text.
+    el.addEventListener('mousedown', (e) => e.detail > 1 && (e.preventDefault(), e.stopPropagation()), { capture: true });
     let cols = 80;
     // Until nothing is cut off: shrink the font by what overflows, once
     // xterm.js has drawn at it (two frames), and look again.

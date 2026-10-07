@@ -43,7 +43,7 @@ test('notifications on: the subscription goes to the machine; its push shows and
   await expect.poll(() => registrations.length).toBeGreaterThan(0);
   const payload = { agent: '3f9a1c07b2de-1', title: 'Codex in docs', body: 'needs your input', count: 1 };
   await cdp.send('ServiceWorker.deliverPushMessage', {
-    origin: 'https://localhost:8788',
+    origin: `https://localhost:${process.env.E2E_PORT ?? 8788}`,
     registrationId: registrations[0].registrationId,
     data: JSON.stringify(payload),
   });

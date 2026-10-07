@@ -7,9 +7,8 @@ import { asking } from './Ask';
 import { KeyBar, mods, press } from './Keys';
 import { Tabs } from './Tabs';
 import { ANSWER, sent, typed } from '../keys';
-import { NeedsYouPill } from './Tree';
 import { Screen, fit } from './Screen';
-import { LinkPill } from './Status';
+import { HeaderPills } from './Status';
 import { fill, w } from '../words';
 
 export const b64 = (bytes: number[]) => btoa(String.fromCharCode(...bytes));
@@ -84,8 +83,7 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
         <div class="appbar">
           <button class="back" type="button" onClick={back}>{`‹ ${a?.project ?? machine.name}`}</button>
           <span class="spacer" />
-          <NeedsYouPill machine={machine} />
-          {m.link.value !== 'connected' && <LinkPill />}
+          <HeaderPills machine={machine} />
         </div>
       )}
       <Tabs machine={machine.id} open={agent} />

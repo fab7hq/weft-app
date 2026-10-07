@@ -8,11 +8,15 @@ import { defineConfig, devices } from '@playwright/test';
 const trusting = { launchOptions: { args: ['--ignore-certificate-errors'] } };
 const as = (name: keyof typeof devices) => ({ ...devices[name], ...trusting, browserName: 'chromium' as const, defaultBrowserType: 'chromium' as const });
 
+// One server per checkout: a worktree sets E2E_PORT so two can test at once.
+const PORT = Number(process.env.E2E_PORT ?? 8788);
+const STATE = `.wrangler/e2e-${PORT}`;
+
 export default defineConfig({
   testDir: 'e2e',
   fullyParallel: false,
   workers: 1,
-  use: { baseURL: 'https://localhost:8788', serviceWorkers: 'allow', ignoreHTTPSErrors: true },
+  use: { baseURL: `https://localhost:${PORT}`, serviceWorkers: 'allow', ignoreHTTPSErrors: true },
   projects: [
     { name: 'iphone', use: as('iPhone 15'), testIgnore: /(desktop.*|layout|gallery)\.spec/ },
     { name: 'ipad', use: as('iPad Pro 11'), testMatch: /(shell|layout)\.spec/ },
@@ -27,8 +31,8 @@ export default defineConfig({
   ],
   webServer: {
     command:
-      'node e2e/dev-vars.mjs && npx vite build web && npx wrangler d1 migrations apply weft --local --persist-to .wrangler/e2e && npx wrangler dev --port 8788 --local-protocol https --persist-to .wrangler/e2e',
-    url: 'https://localhost:8788/',
+      `node e2e/dev-vars.mjs && npx vite build web && npx wrangler d1 migrations apply weft --local --persist-to ${STATE} && npx wrangler dev --port ${PORT} --local-protocol https --persist-to ${STATE}`,
+    url: `https://localhost:${PORT}/`,
     ignoreHTTPSErrors: true,
     reuseExistingServer: false,
     timeout: 120_000,

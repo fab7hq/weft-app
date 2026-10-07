@@ -7,9 +7,9 @@ import { swap, type View } from '../nav';
 import { Agent } from './Agent';
 import { Details } from './Details';
 import { EvalView } from './EvalView';
-import { Mark, NeedsYouPill, StartButton, TreeList } from './Tree';
+import { Mark, StartButton, TreeList } from './Tree';
 import { StartPanel } from './Start';
-import { LinkPill } from './Status';
+import { HeaderPills } from './Status';
 import { TreeBar } from './Bar';
 import { MenuButton } from './Settings';
 
@@ -32,9 +32,8 @@ export function Wide({ login, machine, agent, starting = null, view }: { login: 
       <div class="appbar">
         <Mark />
         <h1>{machine.name}</h1>
-        {m.link.value !== 'connected' && <LinkPill />}
         <span class="spacer" />
-        <NeedsYouPill machine={machine} />
+        <HeaderPills machine={machine} />
         <MenuButton login={login} />
       </div>
       <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>

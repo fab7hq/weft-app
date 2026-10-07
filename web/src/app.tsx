@@ -141,7 +141,7 @@ function Refused({ name }: { name: string }) {
 
 export function App() {
   const a = account.value;
-  if (a.state === 'loading') return <div class="app" aria-busy="true"></div>;
+  if (a.state === 'loading') return <div class="app loading" aria-busy="true"><Mark /></div>;
   if (a.state === 'offline') return <NoConnection />;
   const view = here();
   if (a.state === 'signed_out' || !view || view.name === 'signin') return <SignIn />;

@@ -410,7 +410,7 @@ const SCREENS: Screen[] = [
   { ids: ['M5.5'], run: (at) => details(at, 'ask_3', detail('health endpoint', 'codex', PROV, [SENT, GATHERED, NOT_RUN('seal')], { eval_view: true, debate_in: 'codex' })) },
   { ids: ['M5.6', 'D5.6'], run: (at) => details(at, 'ask_3', detail('health endpoint', 'codex', `${PROV} · judged by codex`, [SENT, JUDGED, NOT_RUN('seal')], { eval_view: true, recorded: 'drifted, 0.67' })) },
   { ids: ['M5.7', 'D5.7'], run: (at) => details(at, 'ask_4', detail('readme fix', 'codex', '… judged by codex · sealed 2026-10-03 12:05',
-    [SENT, { ...JUDGED, open: false }, SEALED], { eval_view: true, recorded: 'aligned, 1.00', holds: true })) },
+    [SENT, { ...JUDGED, open: false }, SEALED], { eval_view: true, recorded: 'aligned, 1.0', holds: true })) },
   { ids: ['M5.8'], run: (at) => details(at, 'ask_4', detail('readme fix', 'codex', '… sealed 2026-10-03 12:05',
     [SENT, { ...JUDGED, open: false }, { ...SEALED, lines: ['RECEIPT       rcp_7f3a2c', 'THE RECEIPT NO LONGER HOLDS', 'the work has moved on since it was sealed'] }], { eval_view: true, holds: false })) },
   { ids: ['M5.9'], sample: () => withTree((t) => t[0].harnesses[0].works.push({ unit: 'ask_9', title: 'old idea', word: 'cancelled', turn: null, eval: null, seal: null })),

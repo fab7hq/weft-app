@@ -17,7 +17,7 @@ export const JUDGED: Section = {
 };
 export const SEALED: Section = {
   act: 'seal', state: 'DONE', aside: 'accepted', open: true,
-  lines: ['ON THE EVAL   recorded as aligned, 1.00 agreed', 'RECEIPT       rcp_7f3a2c', 'The receipt still matches what RingFrame wrote.', 'A Seal records what was decided. It does not make the work right.'],
+  lines: ['ON THE EVAL   recorded as aligned, 1.0 agreed', 'RECEIPT       rcp_7f3a2c', 'The receipt still matches what RingFrame wrote.', 'A Seal records what was decided. It does not make the work right.'],
 };
 
 export const detail = (title: string, harness: string, provenance: string, sections: Section[], more: Record<string, unknown> = {}) => ({

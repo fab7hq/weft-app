@@ -92,10 +92,10 @@ test('M5.6 D5.6: judged, the verdict first, the judges behind their count, the u
 
 test('M5.7 D5.7: sealed, the Seal open on its receipt', async ({ page, context }) => {
   const d = detail('readme fix', 'codex', 'asked 2026-10-03 11:20 · sent · word for word · judged by codex · sealed 2026-10-03 12:05',
-    [SENT, { ...JUDGED, open: false, lines: [] }, SEALED], { eval_view: true, recorded: 'aligned, 1.00', holds: true });
+    [SENT, { ...JUDGED, open: false, lines: [] }, SEALED], { eval_view: true, recorded: 'aligned, 1.0', holds: true });
   await opened(page, context, 'ask_4', d);
   await expect(page.locator('.chip')).toHaveText(['ASK DONE', 'EVAL DONE', 'SEAL DONE']);
-  await expect(heading(page, 'Eval')).toContainText('aligned, 1.00');
+  await expect(heading(page, 'Eval')).toContainText('aligned, 1.0');
   await expect(heading(page, 'Seal')).toContainText('accepted');
   await expect(page.getByText('The receipt still matches what RingFrame wrote.')).toBeVisible();
 });

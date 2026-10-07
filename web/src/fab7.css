@@ -13,7 +13,8 @@
   --fab7-text: #f1f3f7; --fab7-muted: #a2adbd; --fab7-faint: #6e7b8f;
   --fab7-accent: #58a6ff; --fab7-button: #388bfd; --fab7-on-button: var(--fab7-canvas);
   --fab7-teal: #39c5bb; --fab7-amber: #d29922; --fab7-amber-text: #edbb5b; --fab7-danger: #f85149; --fab7-selection: #2e4c76;
-  --font-sans: 'Sora', ui-sans-serif, system-ui, sans-serif;
+  /* As the cards name it: symbols Sora lacks fall back as they do on the cards. */
+  --font-sans: 'Sora', serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
   --fab7-space-1: 4px; --fab7-space-2: 8px; --fab7-space-3: 12px; --fab7-space-4: 16px; --fab7-space-6: 24px; --fab7-space-8: 32px;
   --fab7-touch: 44px; --fab7-header: 72px; --fab7-list: 360px;
@@ -21,7 +22,7 @@
   --fab7-shadow-key: inset 0 -3px 0 #25355080; --fab7-shadow-float: 0 10px 30px rgba(0, 0, 0, 0.45);
 }
 /* Fab7 components: plain CSS over the tokens. No script. */
-.fab7 { font-family: var(--font-sans); color: var(--fab7-text); background: var(--fab7-canvas); -webkit-font-smoothing: antialiased; }
+.fab7 { font-family: var(--font-sans); color: var(--fab7-text); background: var(--fab7-canvas); }
 .fab7 :focus-visible { outline: 2px solid var(--fab7-accent); outline-offset: 3px; }
 
 /* Button */

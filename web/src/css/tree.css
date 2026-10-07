@@ -1,9 +1,8 @@
 /* tree: its own rules, moved from app.css in their order. */
 /* The cards draw in Sora alone, so a symbol (▾ ● ✓ ✗ ⚠ ⚡) comes from the
    browser's own fallback, not the system UI font, and text is not thinned. */
-.tree, .tree-empty, .tree-bar, .woven { --font-sans: 'Sora', serif; font-family: var(--font-sans); -webkit-font-smoothing: auto; }
 .tree { flex: 1; overflow: auto; padding: 8px 0; }
-.tree-side { flex: 0 0 380px; width: 380px; box-sizing: border-box; border-right: 1px solid var(--fab7-line); display: flex; flex-direction: column; min-height: 0; }
+.tree-side { flex: 0 0 381px; width: 381px; box-sizing: border-box; border-right: 1px solid var(--fab7-line); display: flex; flex-direction: column; min-height: 0; }
 .tree-row { display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 16px; box-sizing: border-box; cursor: pointer; }
 .tree-row--harness { padding-left: 32px; }
 .tree-row--work { padding-left: 50px; }

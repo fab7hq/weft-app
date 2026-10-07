@@ -64,8 +64,8 @@ async function kept(at: At, { name, push }: { name?: string; push?: boolean }) {
   );
 }
 
-/** What this browser has folded, before the app opens. */
-async function folded(at: At, keys: string[]) {
+/** What this browser has folded, before the app opens: docs, as the cards draw it. */
+async function folded(at: At, keys: string[] = ['docs']) {
   await at.page.addInitScript((k) => localStorage.setItem('weft.folded', k), JSON.stringify(keys));
 }
 
@@ -181,8 +181,6 @@ async function barOn(at: At) {
   }
 }
 
-/** docs folded, as the cards draw it. */
-const folded = (at: At) => at.page.addInitScript(() => localStorage.setItem('weft.folded', '["docs"]'));
 
 const withTree = (edit: (t: Project[], a: Agent[]) => void) => {
   const s = atlas();

@@ -23,3 +23,25 @@
 .detail-top { display: flex; align-items: center; padding: 12px 20px; border-bottom: 1px solid var(--fab7-line); font-size: 16px; }
 .detail-top .dim { font-size: 13px; }
 .detail-pane .eval-code { font-size: 12px; line-height: 18px; }
+
+/* A work's Details (M5.1–M5.10, D5.2–D5.7), to the Atlas cards' values. */
+.page.detail-page { gap: 10px; padding: 18px 16px; }
+.detail-work { line-height: normal; }
+.detail-work .detail-title { margin: 0; font-size: 19px; font-weight: 600; line-height: normal; letter-spacing: 0; }
+.detail-harness { font-size: 13px; color: var(--fab7-muted); }
+.detail-chips { display: flex; align-items: center; gap: 6px; }
+.detail-chips .chip { min-width: 0; padding: 3px 10px; }
+.detail-chips .chip--good { background: #0f2f2d; }
+.detail-prov { margin: 0; font-size: 12px; color: var(--fab7-muted); overflow-wrap: anywhere; }
+.detail-work .detail-section { gap: 6px; padding: 10px 0 4px; }
+.detail-work .detail-head { align-items: center; padding: 0; }
+.detail-caret { font-family: 'Sora'; font-size: 13px; color: var(--fab7-muted); }
+.detail-work .detail-name { font-weight: 600; }
+.detail-work .detail-line { line-height: normal; }
+.detail-mark { font-family: 'Sora'; }
+.detail-line--needs { color: var(--fab7-amber-text); }
+.detail-line--good { color: var(--fab7-teal); }
+.detail-line--loud { color: var(--fab7-amber-text); font-weight: 700; }
+.detail-work-top { gap: 10px; }
+.detail-work-top strong { font-weight: 600; }
+.detail-work-acts { background: none; }

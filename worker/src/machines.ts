@@ -3,7 +3,7 @@
 // There is no heartbeat: the app finds out a machine is online by reaching it.
 
 import { random, sha256Hex } from './crypto';
-import { upsertUser, whoIs } from './github';
+import { upsertUser, weftUser } from './github';
 import type { Env } from './index';
 import { json, refuse } from './respond';
 import type { Who } from './session';
@@ -26,8 +26,8 @@ export async function enrol(request: Request, env: Env): Promise<Response> {
   if (typeof token !== 'string' || typeof name !== 'string' || !name.trim() || name.length > 64) {
     return refuse(400, 'bad_request', 'A machine enrols with a GitHub token and a name.');
   }
-  const user = await whoIs(token);
-  if (!user) return refuse(401, 'github', 'GitHub did not say who that token belongs to.');
+  const user = await weftUser(token, env);
+  if (!user) return refuse(401, 'github', 'GitHub did not say that token is one Fab7 Weft was given.');
   const userId = await upsertUser(env, user);
   const id = `m_${random(12)}`;
   const machineToken = random(32);

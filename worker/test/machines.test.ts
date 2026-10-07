@@ -55,6 +55,14 @@ describe('machines', () => {
   });
 
   // Test 4.
+  it('a token another app was given enrols nothing, though GitHub knows whose it is', async () => {
+    fakeGitHub({ elsewhere: { id: 77, login: 'octo' } }, ['elsewhere']);
+    const r = await call('POST', '/api/machine/enrol', { body: { github_token: 'gho_elsewhere', name: 'MacBook Pro' } });
+    expect(r.status).toBe(401);
+    const n = await env.DB.prepare('SELECT COUNT(*) AS n FROM machines').first<{ n: number }>();
+    expect(n!.n).toBe(0);
+  });
+
   it('an address with a wrong token is 401; with the right one, one row changes', async () => {
     fakeGitHub({ a: { id: 90, login: 'octo' }, b: { id: 90, login: 'octo' } });
     const studio = await enrol('gho_a', 'studio');

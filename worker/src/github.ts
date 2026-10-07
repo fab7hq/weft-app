@@ -11,6 +11,8 @@ import { SQL } from './sql';
 const AUTHORIZE = 'https://github.com/login/oauth/authorize';
 const TOKEN = 'https://github.com/login/oauth/access_token';
 const USER = 'https://api.github.com/user';
+/** Where GitHub says which app a token was issued to, and for whom. */
+const CHECK = (clientId: string) => `https://api.github.com/applications/${clientId}/token`;
 /** The sign-in in progress: its state and PKCE verifier, for ten minutes. */
 const AUTH_COOKIE = '__Host-auth';
 
@@ -66,6 +68,28 @@ export async function finish(request: Request, env: Env): Promise<Response> {
   headers.append('set-cookie', await startSession(env, userId));
   headers.append('set-cookie', `${AUTH_COOKIE}=; Secure; HttpOnly; SameSite=Lax; Path=/; Max-Age=0`);
   return new Response(null, { status: 302, headers });
+}
+
+/** Who a token a machine brings belongs to, and only when Fab7 Weft issued
+ * it: GitHub checks it for the app (account.md §3). A token another app was
+ * given is refused, or any site that signs people in with GitHub could put a
+ * machine of its own on their account. */
+export async function weftUser(token: string, env: Env): Promise<GitHubUser | null> {
+  const r = await fetch(CHECK(env.GITHUB_CLIENT_ID), {
+    method: 'POST',
+    headers: {
+      authorization: `Basic ${btoa(`${env.GITHUB_CLIENT_ID}:${env.GITHUB_CLIENT_SECRET}`)}`,
+      accept: 'application/vnd.github+json',
+      'content-type': 'application/json',
+      'user-agent': 'weft-app',
+    },
+    body: JSON.stringify({ access_token: token }),
+  });
+  if (!r.ok) return null;
+  const t = (await r.json()) as { app?: { client_id?: unknown }; user?: Partial<GitHubUser> | null };
+  if (t.app?.client_id !== env.GITHUB_CLIENT_ID) return null;
+  const u = t.user;
+  return typeof u?.id === 'number' && typeof u.login === 'string' ? { id: u.id, login: u.login } : null;
 }
 
 /** Who a GitHub token belongs to, or nothing. */

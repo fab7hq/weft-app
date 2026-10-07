@@ -5,54 +5,49 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Privacy · Weft</title>
     <style>
+      @font-face { font-family: 'Sora'; src: url('/fonts/sora-latin.woff2') format('woff2'); font-weight: 100 800; font-style: normal; font-display: swap; unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+      @font-face { font-family: 'Sora'; src: url('/fonts/sora-latin-ext.woff2') format('woff2'); font-weight: 100 800; font-style: normal; font-display: swap; unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+      /* M1.4, D1.4: one column of short lines; on a desktop a list's lines join with · */
       :root { color-scheme: dark; }
-      body { margin: 0; background: #090d16; color: #f1f3f7; font: 16px/1.6 Sora, system-ui, sans-serif; }
-      main { max-width: 640px; margin: 0 auto; padding: 32px 16px 64px; }
-      h1, h2 { font-weight: 600; }
-      h2 { font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #a2adbd; margin-top: 32px; }
-      a { color: #2ec4b6; }
-      li { margin: 4px 0; }
+      body { margin: 0; background: #090d16; color: #f1f3f7; font-family: Sora, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+      main { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; padding: 24px 20px; }
+      h1, h2, p, ul { margin: 0; }
+      h1 { font-size: 24px; font-weight: 700; }
+      h2 { font-size: 16px; font-weight: 600; }
+      p, ul { align-self: stretch; font-size: 13px; color: #a2adbd; }
+      ul { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 16px; }
+      li::before { content: '• '; }
+      a { font-size: 13px; color: #58a6ff; text-decoration: none; }
+      @media (min-width: 768px) {
+        main { width: 640px; margin: 0 auto; padding: 70px 0; }
+        ul { display: block; }
+        li { display: inline; }
+        li::before { content: none; }
+        li + li::before { content: ' · '; }
+      }
     </style>
   </head>
   <body>
     <main>
       <h1>Privacy</h1>
-      <p>Weft on the web lets you see and answer the coding agents running in Weft on your own machine. The screens,
-        the keys you press and the notifications go between your device and your machine. They do not pass through
-        Fab7.</p>
-
+      <p>Weft on the web lets you see and answer the coding agents running in Weft on your own machine. The screens, the keys you press and the notifications go between your device and your machine. They do not pass through Fab7.</p>
       <h2>What Fab7 keeps</h2>
       <ul>
-        <li>Your GitHub account's numeric id and login, read once when you sign in.</li>
-        <li>A record of each session you are signed in with: the SHA-256 of its cookie and when it ends, 30 days
-          after you sign in.</li>
-        <li>Each machine you add: the name it gives itself, the SHA-256 of its own token, and the address it last
-          reported, with when.</li>
+        <li>your GitHub id and login</li>
+        <li>a hash of your session cookie, ended after 30 days</li>
+        <li>each machine's name, token hash and last address</li>
       </ul>
-
       <h2>What Fab7 never sees or keeps</h2>
       <ul>
-        <li>Your agents' screens, what you type, the prompts Weft sends, and RingFrame's records.</li>
-        <li>Notifications: your machine sends them, encrypted to your device, through Apple's or Google's push
-          service.</li>
-        <li>Your GitHub token: it is used to read who you are and then dropped.</li>
-        <li>The token that lets a device into your machine: your machine makes it and keeps only its hash.</li>
+        <li>screens, typing, prompts and records</li>
+        <li>notifications · your GitHub token · device tokens</li>
       </ul>
-
       <h2>Where it lives</h2>
-      <p>On Cloudflare (a Worker and a D1 database). Your machine is reached through a Cloudflare tunnel, where traffic
-        is decrypted at Cloudflare's edge; Fab7 makes no end-to-end claim for it.</p>
-
+      <p>Cloudflare Worker and D1; traffic is decrypted at Cloudflare's edge; Fab7 makes no end-to-end claim for it.</p>
       <h2>Leaving</h2>
-      <ul>
-        <li><b>Sign out</b> ends this session. <b>Sign out everywhere</b> ends all of them.</li>
-        <li><b>Delete my account</b>, in Settings, deletes your account, your sessions and your machines at once.</li>
-        <li>Removing a device happens on your machine, in Weft: <code>W</code> → <code>R</code>.</li>
-      </ul>
-
-      <h2>Contact</h2>
-      <p><a href="mailto:privacy@getfab7.com">privacy@getfab7.com</a></p>
-      <p><a href="/">Back to Weft</a></p>
+      <p>Sign out · sign out everywhere · Delete my account, in Settings. Removing a device happens on your machine, in Weft: W → R.</p>
+      <a href="mailto:privacy@getfab7.com">privacy@getfab7.com</a>
+      <a href="/">Back to Weft</a>
     </main>
   </body>
 </html>

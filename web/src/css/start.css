@@ -1,9 +1,44 @@
-/* start: its own rules, moved from app.css in their order. */
-.allow-key { min-width: 30px; height: 30px; margin: 0 6px; padding: 0 8px; font: 600 12px var(--font-mono); cursor: default; vertical-align: middle; }
-.machines { list-style: none; margin: 0; padding: 0; }
-.machine { display: flex; align-items: stretch; border-bottom: 1px solid var(--fab7-line); }
-.machine-open { flex: 1; min-width: 0; background: none; border: 0 !important; text-align: left; font: inherit; color: inherit; cursor: pointer; }
-.machine-remove { flex: none; align-self: center; margin-right: 12px; padding: 8px 14px; border: 1px solid var(--fab7-line); border-radius: 10px; background: none; color: var(--fab7-muted); font: 600 13px var(--font-sans); cursor: pointer; }
+/* start: the pages before the tree (M1.2–M1.6, D1.2–D1.6, M8.x, D8.x). */
+/* Their buttons, as the cards draw them: filled blue with white words, or the
+   surface with a line; full width on a phone where the card stretches them. */
+.start-button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; align-self: flex-start; box-sizing: border-box; padding: 11px 16px; border: 1px solid var(--fab7-line); border-radius: 10px; background: var(--fab7-surface); color: var(--fab7-text); font: 600 14px var(--font-sans); text-decoration: none; cursor: pointer; }
+.start-button--go { border-color: var(--fab7-button); background: var(--fab7-button); color: #fff; }
+.start-button--go:hover { border-color: var(--fab7-accent); background: var(--fab7-accent); }
+.start-button--plain:hover { border-color: var(--fab7-accent); }
+@media (max-width: 767px) { .start-button--wide { align-self: stretch; } }
+@media (min-width: 768px) { .start-button { padding: 9px 18px; } }
+.start-link { font-size: 13px; color: var(--fab7-accent); text-decoration: none; }
+.signin-title { margin: 0; font-size: 24px; line-height: normal; font-weight: 700; }
+/* Allowing a device and refused: a little more air on a phone. */
+@media (max-width: 767px) { .page.allow { gap: 14px; padding: 28px 20px; } }
+.allow-key { color: var(--fab7-accent); font-weight: 700; }
+.allow-waits { margin: 0; font-size: 15px; line-height: normal; color: var(--fab7-muted); }
+/* Add a machine: the keys to press, as small keycaps. */
+.add-steps { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 16px; }
+.add-step { display: flex; align-items: center; gap: 12px; font-size: 15px; }
+.add-key { flex: none; display: inline-flex; align-items: center; justify-content: center; padding: 7px 12px; border: 1px solid var(--fab7-line); border-radius: 7px; background: var(--fab7-surface); font: 400 12px/18px var(--font-mono); }
+/* Your machines: full-width rows on a phone (Remove after a swipe left), framed
+   cards with Remove on a desktop; a row opens its machine. */
+@media (max-width: 767px) { .page.machines-page { gap: 0; padding: 0; } }
+.machines { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.machine { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--fab7-line); }
+.machine-open { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 0; background: none; border: 0; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.machine-name { font-size: 15px; font-weight: 600; }
+.machine-meta { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: var(--fab7-muted); }
+.machine-go { flex: none; font-size: 19px; font-weight: 600; color: var(--fab7-faint); cursor: pointer; }
+.machine-remove { flex: none; padding: 8px 14px; border: 1px solid var(--fab7-line); border-radius: 10px; background: none; color: var(--fab7-muted); font: 600 13px var(--font-sans); cursor: pointer; }
+@media (max-width: 767px) {
+  .machine--swiped { align-items: stretch; padding-right: 0; }
+  .machine--swiped .machine-open { justify-content: center; }
+  .machine--swiped .machine-go { display: none; }
+  .machine--swiped .machine-remove { margin: -14px 0; padding: 0 20px; border: 0; border-radius: 0; background: #b3261e; color: #fff; }
+}
+@media (min-width: 768px) {
+  .machines { gap: 16px; }
+  .machine { border: 1px solid var(--fab7-line); border-radius: 10px; background: var(--fab7-surface); }
+  .machine-open { gap: 3px; }
+}
+/* The confirmation over the page (Remove a machine, and others' acts). */
 .sure-backdrop { position: fixed; inset: 0; z-index: 40; display: flex; align-items: center; justify-content: center; background: rgba(5, 8, 14, 0.66); }
 .sure { width: 420px; max-width: calc(100% - 32px); box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; padding: 24px; border: 1px solid var(--fab7-line); border-radius: 14px; background: var(--fab7-surface); box-shadow: 0 18px 48px rgba(0, 0, 0, 0.5); }
 .sure-title { margin: 0; font-size: 17px; font-weight: 600; }
@@ -14,4 +49,3 @@
 .sure-act--warn { color: var(--fab7-amber-text); border-color: var(--fab7-amber-text); }
 .sure-act--danger { color: var(--fab7-danger); border-color: var(--fab7-danger); }
 @media (max-width: 767px) { .sure-acts { flex-wrap: wrap-reverse; } .sure-act { flex: 1 1 auto; padding: 11px 16px; font-size: 14px; } }
-@media (max-width: 767px) { .machine--swiped .machine-remove { align-self: stretch; margin: 0; border: 0; border-radius: 0; background: #b3261e; color: #fff; padding: 0 20px; } }

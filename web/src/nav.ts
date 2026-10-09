@@ -8,8 +8,15 @@ export type View =
   | { name: 'machines' }
   | { name: 'tree'; machine: string }
   | { name: 'agent'; machine: string; agent: string }
-  | { name: 'detail'; machine: string; unit: string }
-  | { name: 'eval'; machine: string; unit: string; at?: string; files?: boolean }
+  /** A work's Details (M11.2): its Ask only. */
+  | { name: 'detail'; machine: string; project: string; unit: string }
+  /** An Eval's Details (M11.3), a Seal's (M11.4), a session's (M11.5), the earlier sessions (M11.6). */
+  | { name: 'round'; machine: string; project: string; eval: string }
+  | { name: 'seal'; machine: string; project: string; seal: string }
+  | { name: 'session'; machine: string; project: string; session: string }
+  | { name: 'earlier'; machine: string; project: string }
+  /** The Eval view of an Eval (M6.x), at one of its pages. */
+  | { name: 'eval'; machine: string; project: string; eval: string; at?: string; files?: boolean }
   | { name: 'start'; machine: string; from: string; harness?: string }
   | { name: 'settings' };
 

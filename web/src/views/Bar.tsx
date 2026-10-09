@@ -1,15 +1,18 @@
-// The bars: the tree's (Ask, Eval and Seal on the selected work) and, on a
-// phone, the agent's sheet behind ⌃ (Ask and the keys).
+// The bars: the tree's (Ask, Eval and Seal, following the selection: Ask on
+// an agent, Eval on the Open round, Seal on an Eval's) and, on a phone, the
+// agent's sheet behind ⌃ (Ask and the keys). An act that does not apply says
+// why in one line; none is ever drawn disabled.
 import type { ComponentChildren } from 'preact';
 import { effect, signal } from '@preact/signals';
 import { useEffect, useState } from 'preact/hooks';
 import type { Machine } from '../api';
 import * as m from '../machine';
-import { go, here } from '../nav';
+import { here } from '../nav';
+import { clock } from '../bar';
 import { asking } from './Ask';
 import { act } from './Asked';
 import { KeyBar } from './Keys';
-import { selected, selectedHarness, unready } from './Tree';
+import { chosen, evalName, sealName, stateOf, unready, type Chosen } from './Tree';
 import { fill, w } from '../words';
 
 export interface BarActs {
@@ -58,66 +61,102 @@ effect(() => {
 });
 addEventListener('pointerdown', () => (notice.value = null), { capture: true });
 
-/** A why-not, in the web's words. */
-const sentence = (why: m.Why, machine: Machine) => fill(why.key, { harness: why.harness ?? '', title: why.title ?? '', machine: machine.name });
+/** Why an act did not apply, one line above the bar (M10.1, D10.1): the next press clears it. */
+export const said = signal<string | null>(null);
+addEventListener('pointerdown', () => (said.value = null), { capture: true });
 
-/** The selected work, with the harness it was asked of. */
-function selection() {
-  for (const p of m.tree.value) for (const h of p.harnesses) for (const work of h.works) if (work.unit === selected.value) return { p, h, work };
-  return null;
+/** A why-not, in the web's words; a harness not set up says where to set it up (M7.1). */
+export function sentence(why: m.Why): string {
+  const name = m.current.value?.name ?? '';
+  const s = fill(why.key, { harness: why.harness ?? '', title: why.title ?? '', machine: name });
+  return why.key === 'why.not_set_up' ? `${s} ${fill('web.why.set_up_on', { machine: name })}` : s;
 }
 
-/** The selected harness (M2.5, M7.1), with its project. */
-function harnessSelection() {
-  for (const p of m.tree.value) for (const h of p.harnesses) if (`${p.project}/${h.harness}` === selectedHarness.value) return { p, h };
-  return null;
+/** The agent an Ask goes to first when no agent is selected: the open one, else one of the project's running. */
+function fallback(project: string | undefined, harness?: string): string | undefined {
+  const view = here();
+  const open = view?.name === 'agent' ? m.agents.value.find((a) => a.agent === view.agent && a.running) : undefined;
+  const mine = m.agents.value.filter((a) => a.running && (!project || a.project === project));
+  return open?.agent ?? (mine.find((a) => a.harness === harness) ?? mine[0])?.agent;
 }
 
-/** A harness not set up (M7.1): what it is, and where to set it up. */
-const notReady = (why: m.Why, machine: Machine) => `${sentence(why, machine)} ${fill('web.why.set_up_on', { machine: machine.name })}`;
+/** Ask, on the selection: an agent takes it, or says why it cannot (D12.4, D9); a round says to select an agent. */
+export function askOn(): void {
+  const s = chosen();
+  if (s?.kind === 'agent') {
+    if (s.row.ask) return void (said.value = sentence(s.row.ask));
+    if (!s.row.agent) return void (said.value = fill('why.elsewhere', { harness: s.row.harness }));
+    asking.value = { agent: s.row.agent, project: s.p.project };
+    return;
+  }
+  if (s && s.kind !== 'ask') return void (said.value = w('select.agent'));
+  const project = s?.p.project;
+  const agent = fallback(project, s?.kind === 'ask' ? s.ask.harness : undefined);
+  if (!agent) return void (said.value = fill('web.why.start_an_agent', { machine: m.current.value?.name ?? '' }));
+  // Its harness not set up for RingFrame, nothing it is asked is written down (M7.1).
+  const of = m.agents.value.find((a) => a.agent === agent);
+  const p = of && m.tree.value.find((x) => x.project === of.project);
+  const why = p && unready(p, of.harness);
+  if (why) return void (said.value = sentence(why));
+  asking.value = { agent, project: project ?? of?.project };
+}
 
-/** The tree's bar (M2.6, D2.6): Ask, and Eval and Seal on the selected work; where one cannot run, why. */
+/** Eval, on the Open round (D5): on anything else, select Open. */
+export async function evalOn(): Promise<void> {
+  const s = chosen();
+  if (!(s?.kind === 'open' || (s?.kind === 'ask' && !s.round))) return void (said.value = w('select.open'));
+  if (s.p.work.open.eval) return void (said.value = sentence(s.p.work.open.eval));
+  const refused = await act({ act: 'eval', project: s.p.project });
+  if (refused) said.value = String(refused.message);
+}
+
+/** Seal, on an Eval's round (D5): on anything else, select an Eval. */
+export async function sealOn(): Promise<void> {
+  const s = chosen();
+  const round = s?.kind === 'eval' ? s.round : s?.kind === 'ask' ? s.round : null;
+  if (!s || !round) return void (said.value = w('select.eval'));
+  await sealRound(s.p.project, round.eval, round.seal);
+}
+
+/** Seal this Eval, unless the machine said why not (D12.6: it stays drawn, and says so). */
+export async function sealRound(project: string, eval_: string, why: m.Why | null): Promise<void> {
+  if (why) return void (said.value = sentence(why));
+  const refused = await act({ act: 'seal', project, eval: eval_ });
+  if (refused) said.value = String(refused.message);
+}
+
+/** The selection as the desktop's bar names it: `claude · 11:29`, `fix login · Open round`, `Eval 3`. */
+function named(s: Chosen): string {
+  switch (s.kind) {
+    case 'agent':
+      return `${s.row.harness} · ${s.row.state === 'running' ? clock(s.row.at) : s.row.state === 'ended' ? `${w('state.ended')} ${clock(s.row.at)}` : stateOf(s.row)}`;
+    case 'open':
+      return w('web.bar.open_round');
+    case 'eval':
+      return evalName(s.round.n);
+    case 'ask':
+      return `${s.ask.title} · ${s.round ? evalName(s.round.n) : w('web.bar.open_round')}`;
+    case 'seal':
+      return sealName(s.seal.n);
+    case 'earlier':
+      return s.p.agents.earlier === 1 ? w('tree.earlier_one') : fill('tree.earlier', { n: String(s.p.agents.earlier) });
+  }
+}
+
+/** The tree's bar (M11.1, D11.1): Ask, Eval and Seal follow the selection; where one does not apply, why. */
 export function TreeBar({ machine, wide }: { machine: Machine; wide: boolean }) {
-  const [said, setSaid] = useState<string | null>(null);
   const [keys, setKeys] = useState(false);
   // In the active pane the bar is the agent's, as the TUI's is (D3.3): a press
   // on it keeps the pane's focus.
   const inPane = wide && paneActive.value && openKeys.value;
   if (!inPane && keys) setKeys(false);
-  const onWork = async (which: 'eval' | 'seal') => {
-    setSaid(null);
-    const at = selection();
-    if (!at) {
-      const on = harnessSelection();
-      const why = on && unready(on.p, on.h.harness);
-      return setSaid(why ? notReady(why, machine) : w('why.nothing_to_work_on'));
-    }
-    if (at.work[which]) return setSaid(sentence(at.work[which]!, machine));
-    const refused = await act({ act: which, unit: at.work.unit });
-    if (refused) setSaid(String(refused.message));
-  };
-  /** Ask, of the selected work's project: its agent first, else the open one, else the first running. */
-  const onAsk = () => {
-    setSaid(null);
-    const at = selection() ?? harnessSelection();
-    const view = here();
-    const open = view?.name === 'agent' ? m.agents.value.find((a) => a.agent === view.agent && a.running) : undefined;
-    const first = m.agents.value.find((a) => a.running);
-    const agent = at?.h.agent ?? open?.agent ?? first?.agent;
-    if (!agent) return setSaid(fill('web.why.start_an_agent', { machine: machine.name }));
-    // Its harness not set up for RingFrame, nothing it is asked is written down (M7.1).
-    const of = m.agents.value.find((a) => a.agent === agent);
-    const project = of && m.tree.value.find((p) => p.project === of.project);
-    const why = project && unready(project, of.harness);
-    if (why) return setSaid(notReady(why, machine));
-    asking.value = { agent, project: m.agents.value.find((a) => a.agent === agent)?.project };
-  };
   // A notice about the agent open beside the tree is said in its own view (D3.7).
   const view = here();
   const told = notice.value && !(view?.name === 'agent' && view.agent === notice.value.agent) ? notice.value.text : null;
+  const s = wide ? chosen() : null;
   return (
     <div class={wide ? 'tree-bar tree-bar--wide' : 'tree-bar'}>
-      {said ? <p class="tree-said" role="status">{said}</p> : told && <p class="tree-said" role="status">{told}</p>}
+      {said.value ? <p class="tree-said" role="status">{said.value}</p> : told && <p class="tree-said" role="status">{told}</p>}
       {inPane && keys && (
         <div class="keys-pop" onPointerDown={(e) => e.preventDefault()}>
           <span class="label">{w('web.act.keys').toUpperCase()}</span>
@@ -125,13 +164,19 @@ export function TreeBar({ machine, wide }: { machine: Machine; wide: boolean }) 
         </div>
       )}
       <div class="tree-acts" onPointerDown={(e) => inPane && e.preventDefault()}>
-        <button class="tree-act" type="button" onClick={onAsk}>{w('act.ask')}</button>
+        <button class="tree-act" type="button" onClick={askOn}>{w('act.ask')}</button>
         {inPane ? (
           <button class="tree-act" type="button" aria-pressed={keys} onClick={() => setKeys(!keys)}>{w('web.act.keys')}</button>
         ) : (
           <>
-            <button class="tree-act" type="button" onClick={() => void onWork('eval')}>{w('act.eval')}</button>
-            <button class="tree-act" type="button" onClick={() => void onWork('seal')}>{w('act.seal')}</button>
+            <button class="tree-act" type="button" onClick={() => void evalOn()}>{w('act.eval')}</button>
+            <button class="tree-act" type="button" onClick={() => void sealOn()}>{w('act.seal')}</button>
+          </>
+        )}
+        {s && (
+          <>
+            <span class="spacer" />
+            <span class="tree-selected">{fill('web.bar.selected', { what: named(s) })}</span>
           </>
         )}
       </div>

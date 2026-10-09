@@ -7,10 +7,9 @@ import { back, swap } from '../nav';
 import { selected } from './Tree';
 import { fill, w } from '../words';
 
-/** The project an agent starts in: the selected work's, else the first. */
+/** The project an agent starts in: the selection's, else the first. */
 function project(): string | undefined {
-  const of = m.tree.value.find((p) => p.harnesses.some((h) => h.works.some((x) => x.unit === selected.value)));
-  return (of ?? m.tree.value[0])?.project ?? m.harnesses.value[0]?.project;
+  return selected.value?.project ?? m.tree.value[0]?.project ?? m.harnesses.value[0]?.project;
 }
 
 /** The list and Start: in the right pane on a desktop (D9.7), or under the phone's bar (M9.7). */

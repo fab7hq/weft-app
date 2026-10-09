@@ -53,3 +53,53 @@
 .woven--weaving .woven-mark { animation: weave 1.6s ease-in-out infinite alternate; }
 @keyframes weave { from { opacity: 0.35; letter-spacing: 0; } to { opacity: 1; letter-spacing: 1px; } }
 @media (prefers-reduced-motion: reduce) { .woven--weaving .woven-mark { animation: none; } }
+/* AGENTS and WORK (M11.1, D11.1): the sections' heads, a session's two lines,
+   the rounds and their Asks, Sealed's Seals; the acts a desktop row carries. */
+.tree-section { display: flex; align-items: center; gap: 10px; padding: 8px 16px 6px 32px; }
+.tree-section--work { margin-top: 0; padding-top: 12px; border-top: 1px solid var(--fab7-line); }
+.tree-section-name { flex: 1; min-width: 0; font-size: 11px; font-weight: 600; letter-spacing: 1.2px; color: var(--fab7-faint); }
+.tree-section-aside { font-size: 12px; color: var(--fab7-faint); white-space: nowrap; }
+.tree-row--agent { height: 58px; padding: 0 16px 0 32px; }
+.agent-lines { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.agent-top { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.agent-dot { flex: none; width: 12px; font-size: 12px; color: var(--fab7-faint); }
+.agent-dot.good { color: var(--fab7-teal); }
+.agent-dot.needs { color: var(--fab7-amber-text); }
+.agent-harness { font-size: 15px; white-space: nowrap; }
+.agent-harness--off { color: var(--fab7-muted); }
+.agent-state { flex: 1; min-width: 0; font-size: 12px; color: var(--fab7-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.agent-state.needs { color: var(--fab7-amber-text); }
+.agent-state--off { color: var(--fab7-faint); }
+.agent-at { flex: none; font-size: 12px; color: var(--fab7-faint); white-space: nowrap; }
+.agent-title { padding-left: 20px; font-size: 13px; color: var(--fab7-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.agent-title--none { color: var(--fab7-faint); }
+.tree-row--earlier { padding-left: 52px; }
+.tree-row--earlier .tree-name { font-size: 13px; color: var(--fab7-muted); }
+.tree-row--group { padding: 0 16px 0 32px; }
+.group-name { flex: 1; min-width: 0; display: flex; align-items: baseline; overflow: hidden; white-space: pre; }
+.group-title { font-size: 15px; }
+.group-aside { font-size: 13px; color: var(--fab7-muted); }
+.group-aside .good, .group-aside .needs { white-space: pre; }
+.group-count { min-width: 16px; text-align: right; font-size: 12px; color: var(--fab7-muted); }
+.tree-row--seal { padding-left: 50px; }
+.seal-lines { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 8px; }
+.seal-lines .tree-name { flex: none; }
+.tree-more-rows { height: 1px; flex: none; }
+.row-act { flex: none; padding: 4px 10px; border: 1px solid var(--fab7-line); border-radius: 7px; background: var(--fab7-surface); color: var(--fab7-text); font: 600 12px var(--font-sans); cursor: pointer; }
+.tree-selected { font-size: 12px; color: var(--fab7-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* The desktop's tree (D11.1): a session on one row, its title under its harness, the time at its end. */
+.tree-side .tree-section { height: 20px; padding: 0 16px 0 32px; align-items: flex-end; border-top: 0; }
+.tree-side .tree-section-name { flex: none; letter-spacing: 0.08em; }
+.tree-side .tree-section-aside { margin-left: auto; }
+.tree-side .tree-row--agent { height: 46px; }
+.tree-side .agent-dot { width: 10px; }
+.tree-side .agent-lines { gap: 1px; }
+.tree-side .agent-state { flex: none; }
+.tree-side .agent-title { padding-left: 0; font-size: 12px; }
+.tree-side .tree-row--earlier { height: 28px; }
+.tree-side .tree-row--earlier .tree-name { color: var(--fab7-accent); }
+.tree-side .tree-row--group { gap: 8px; }
+.tree-side .group-name { gap: 6px; }
+.tree-side .group-title { font-size: 14px; font-weight: 600; }
+.tree-side .group-aside { font-size: 12px; }
+.tree-side .tree-row--work, .tree-side .tree-row--seal { padding-left: 52px; }

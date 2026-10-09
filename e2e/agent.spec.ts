@@ -5,13 +5,14 @@ import path from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
 import { FakeMachine, agent } from './fake-machine';
 import { pull } from './touch';
+import { openAgent } from './open';
 import { person, signIn } from './seed';
 
 const fixtures = path.join(import.meta.dirname, '../../weft/crates/weftd/tests/fixtures/screens');
 
-async function opened(page: Page, machine: FakeMachine, which = 'claude-code') {
+async function opened(page: Page, machine: FakeMachine, which = 'claude-code · no Ask yet') {
   await page.goto('/');
-  await page.getByRole('treeitem', { name: which, exact: true }).first().click();
+  await openAgent(page, which);
   await expect.poll(() => machine.of('watch').length).toBeGreaterThan(0);
 }
 
@@ -68,7 +69,7 @@ test('test 2: allow, open an agent, press 1, send a message, read history', asyn
   machine.send({ type: 'control', agent: '3f9a1c07b2de-0', by: 'mac' });
 
   // History: asked for, shown as text, newest at the bottom.
-  machine.onRead = (m) => ({ type: 'ok', req: m.req, text: 'line 1\nline 2\nthe newest line' });
+  machine.onRead = (m) => (m.what === 'history' ? { type: 'ok', req: m.req, text: 'line 1\nline 2\nthe newest line' } : machine.read(m));
   // In the active pane, a finger pulling the screen down asks for what scrolled away (§6).
   await page.getByLabel('The agent', { exact: true }).click();
   await pull(page.getByLabel("The agent's screen"), 160);

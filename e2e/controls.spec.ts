@@ -2,11 +2,12 @@
 // pane one row, [⌃] Message… [▶]; the TUI's bar is a sheet behind ⌃.
 import { expect, test, type Page } from '@playwright/test';
 import { FakeMachine, agent } from './fake-machine';
+import { openAgent } from './open';
 import { person, signIn } from './seed';
 
 async function opened(page: Page, machine: FakeMachine) {
   await page.goto('/');
-  await page.getByRole('treeitem', { name: 'claude-code', exact: true }).first().click();
+  await openAgent(page, 'claude-code · no Ask yet');
   await expect.poll(() => machine.of('watch').length).toBeGreaterThan(0);
 }
 

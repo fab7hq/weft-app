@@ -34,7 +34,7 @@ for (const card of CARDS) {
       ];
       await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
       await page.goto('/');
-      await page.getByRole('treeitem', { name: 'health endpoint', exact: true }).click();
+      await page.getByRole('treeitem', { name: 'Open', exact: true }).click();
       await page.getByRole('button', { name: 'Eval', exact: true }).click();
       const bar = page.getByRole('dialog', { name: card.what });
       await expect(bar).toBeVisible();

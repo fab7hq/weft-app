@@ -2,6 +2,7 @@
 // byte; "Answered on the machine" when it is answered there first.
 import { expect, test } from '@playwright/test';
 import { FakeMachine, agent } from './fake-machine';
+import { openAgent } from './open';
 import { person, signIn } from './seed';
 
 const EXACT = '/goal Add a /health endpoint  that answers 200.\n\n  Done when: test/health.test.ts passes — "quoted", <tags>, émoji ✓ and 表.\n\ttabbed';
@@ -19,7 +20,7 @@ test('an Ask is composed, then shown exactly as it will be typed, then said yes 
   machine.onAct = (m) => pendingFor(m, 'pnd_1', 'Ready to send to claude-code');
   await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
   await page.goto('/');
-  await page.getByRole('treeitem', { name: 'claude-code', exact: true }).first().click();
+  await openAgent(page, 'claude-code · no Ask yet');
 
   await page.getByRole('button', { name: 'The bar', exact: true }).click();
   await page.getByRole('dialog', { name: 'Weft' }).getByRole('button', { name: 'Ask', exact: true }).click();
@@ -45,7 +46,7 @@ test('an Ask answered on the machine first closes the sheet and says so', async 
   machine.onAct = (m) => pendingFor(m, 'pnd_2', 'Ready to ask claude-code');
   await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
   await page.goto('/');
-  await page.getByRole('treeitem', { name: 'claude-code', exact: true }).first().click();
+  await openAgent(page, 'claude-code · no Ask yet');
   await page.getByRole('button', { name: 'The bar', exact: true }).click();
   await page.getByRole('dialog', { name: 'Weft' }).getByRole('button', { name: 'Ask', exact: true }).click();
   await page.getByRole('textbox', { name: 'What do you want done?' }).fill('Add a health endpoint');

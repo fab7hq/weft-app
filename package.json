@@ -6,6 +6,7 @@
   "scripts": {
     "test": "vitest run",
     "build": "vite build web",
+    "typecheck": "tsc -p web --noEmit",
     "dev": "wrangler dev",
     "e2e": "playwright test --project iphone --project iphone-webkit --project ipad --project desktop --project desktop-push",
     "words": "node scripts/words.mjs",

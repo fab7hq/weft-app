@@ -1,48 +1,58 @@
 // The confirmation bar (M4.5–M4.14, D4.5–D4.14), wherever the person is:
 // what the machine is about to type, Cancel beside Send; Send anyway when its
-// agent has not said it is ready; Resume, or Start an agent, when the work's
-// agent is not running or a harness that is not running is tapped. Answered on
-// the machine first, it says so and closes. On a phone Cancel and the go are
-// halves of the width; on a desktop they sit at the right.
+// agent has not said it is ready; Resume a session by its id, after an act no
+// agent runs for or from the session's Details (M11.5), or Start an agent when
+// there is none to resume. Answered on the machine first, it says so and
+// closes. On a phone Cancel and the go are halves of the width; on a desktop
+// they sit at the right.
 import { signal } from '@preact/signals';
 import { useEffect, useState } from 'preact/hooks';
 import * as m from '../machine';
 import { go } from '../nav';
-import { clip, clock, why } from '../bar';
+import { clock, why } from '../bar';
+import { notice } from './Bar';
 import { fill, w } from '../words';
 
 /** The pending this device asked for and shows. */
 export const shown = signal<string | null>(null);
 
-/** An act the machine refused because no agent of the work's harness runs, or a tap on such a harness. */
+/** A session to resume by its id (ADR-0029 D4), after a confirm: from its
+ * Details, or after an act the machine refused because no agent runs where it
+ * goes (`not_running`, which names the session, or none). */
 interface Gone {
-  harness: string;
   project: string;
-  session: { at: number; last: string } | null;
-  /** The act, sent again once the agent is back; none after a tap on the harness. */
+  harness: string;
+  session: m.Session | null;
+  /** The machine's own sentence, when it named no session. */
+  said?: string;
+  /** The act, sent again once the agent is back; none from a session's Details. */
   again: Record<string, unknown> | null;
 }
 const gone = signal<Gone | null>(null);
 
-/** A tap on a harness that is not running (M2.9): its latest session, or a fresh agent. */
-export function offerResume(project: string, harness: string, session: Gone['session']) {
-  gone.value = { harness, project, session, again: null };
+/** Resume this session (M11.5): confirm first. */
+export function offerResume(project: string, session: m.Session) {
+  gone.value = { project, harness: session.harness, session, again: null };
 }
 
-/** The project a work is in. */
-const projectOf = (unit: unknown) => m.tree.value.find((p) => p.harnesses.some((h) => h.works.some((x) => x.unit === unit)))?.project ?? '';
+/** The project a work is in, as the tree shows it. */
+const projectOf = (unit: unknown) =>
+  m.tree.value.find((p) => p.work.open.asks.some((a) => a.unit === unit) || p.work.evals.some((r) => r.asks.some((a) => a.unit === unit)))?.project ?? '';
 
 /** An act; the pending it staged is shown when the machine answers. Its error, if any. */
 export async function act(message: Record<string, unknown>): Promise<Record<string, unknown> | null> {
   const answer = await m.request({ type: 'act', ...message });
   if (answer?.type === 'ok' && answer.pending) shown.value = String(answer.pending);
   if (answer?.type === 'error' && answer.code === 'not_running') {
-    const session = (answer.session as Gone['session']) ?? null;
-    gone.value = { harness: String(answer.harness), project: projectOf(message.unit), session, again: message };
+    const project = typeof message.project === 'string' ? message.project : projectOf(message.unit);
+    gone.value = { project, harness: String(answer.harness), session: (answer.session as m.Session | null) ?? null, said: String(answer.message), again: message };
     return null;
   }
   return answer?.type === 'error' ? answer : null;
 }
+
+/** A session id as the cards shorten it: `3f9c2b71…a21e`. */
+export const shortId = (id: string) => (id.length > 14 ? `${id.slice(0, 8)}…${id.slice(-4)}` : id);
 
 export function PendingBar() {
   return gone.value ? <GoneBar gone={gone.value} /> : <SendBar />;
@@ -112,38 +122,39 @@ function SendBar() {
   );
 }
 
-/** The work's agent is not running: resume its session, then the act; or start a fresh one. */
+/** Resume a session by its id (M4.12, M11.5): what Weft will start, then Resume; with no session to resume, Start an agent. */
 function GoneBar({ gone: g }: { gone: Gone }) {
   const close = () => (gone.value = null);
+  const machine = m.current.value;
+  const s = g.session;
   const resume = async () => {
     close();
-    // Weft's own resume: the work's session, else the harness's latest.
-    const which = g.again ? { unit: g.again.unit } : { resume: true };
-    const started = await m.request({ type: 'start', project: g.project, harness: g.harness, ...which });
-    if (started?.type !== 'ok') return;
-    const machine = m.current.value;
+    if (!s) return;
+    const started = await m.request({ type: 'start', project: g.project, harness: g.harness, resume: s.session });
+    // A pane holds it already: go there.
+    const agent = started?.type === 'ok' ? started.agent : started?.code === 'running' ? started.agent : null;
+    if (started?.type === 'error' && !agent) return void (notice.value = { agent: '', text: String(started.message) });
     if (g.again) void act(g.again);
-    else if (machine && started.agent) go({ name: 'agent', machine: machine.id, agent: String(started.agent) });
+    else if (machine && agent) go({ name: 'agent', machine: machine.id, agent: String(agent) });
   };
   const fresh = () => {
     close();
-    const machine = m.current.value;
     if (machine) go({ name: 'start', machine: machine.id, from: g.project, harness: g.harness });
   };
+  const title = s ? fill('resume.ask', { harness: g.harness, session: shortId(s.session) }) : g.said ?? '';
   return (
-    <div class="pending-bar" role="dialog" aria-label={fill('resume.title', { harness: g.harness })}>
+    <div class="pending-bar" role="dialog" aria-label={title}>
       <div class="pending-head">
-        <span class="pending-what">{fill('resume.title', { harness: g.harness })}</span>
+        <span class="pending-what">{title}</span>
       </div>
-      {g.session ? (
+      {s ? (
         <>
-          <p class="pending-why">{`${w('resume.session')} · ${clock(g.session.at)} · "${clip(g.session.last, 28)}"`}</p>
-          <p class="pending-why">{w('resume.either_way')}</p>
+          <p class="pending-why">{s.state === 'quiet' ? fill('resume.quiet', { time: clock(s.at) }) : fill('resume.how', { harness: g.harness })}</p>
+          {g.again && <p class="pending-why">{w('resume.either_way')}</p>}
           <Acts cancel={close} go={[w('act.resume'), () => void resume()]} />
         </>
       ) : (
         <>
-          <p class="pending-why">{w('resume.nothing')}</p>
           <p class="pending-why">{w('resume.either_way')}</p>
           <Acts cancel={close} go={[w('start.title'), fresh]} />
         </>

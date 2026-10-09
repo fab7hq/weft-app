@@ -3,6 +3,7 @@
 // and at the device's own size, once the machine gives it, it fills both ways.
 import { expect, test, type Page } from '@playwright/test';
 import { FakeMachine, atlas } from './fake-machine';
+import { openAgent } from './open';
 import { person, signIn } from './seed';
 
 const CODEX = '3f9a1c07b2de-1';
@@ -30,7 +31,7 @@ async function opened(page: Page, context: Parameters<typeof signIn>[0]) {
   Object.assign(machine, atlas());
   await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
   await page.goto('/');
-  await page.getByRole('treeitem', { name: 'codex', exact: true }).first().click();
+  await openAgent(page, 'codex · health endpoint');
   await expect.poll(() => machine.of('watch').at(-1)?.agent).toBe(CODEX);
   return machine;
 }

@@ -2,6 +2,7 @@
 // agent; typing in the screen sends keys; Cmd shortcuts stay the browser's.
 import { expect, test } from '@playwright/test';
 import { FakeMachine, agent } from './fake-machine';
+import { openAgent } from './open';
 import { person, signIn } from './seed';
 
 const decoded = (m: Record<string, unknown>) => Buffer.from(String(m.bytes), 'base64').toString('latin1');
@@ -11,7 +12,7 @@ test('the list beside the agent; typing goes to the agent; Cmd+R stays the brows
   machine.agents = [agent(0, 'weft', 'claude-code', 'waiting'), agent(1, 'docs', 'codex', 'ready')];
   await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
   await page.goto('/');
-  await page.getByRole('treeitem', { name: 'claude-code', exact: true }).first().click();
+  await openAgent(page, 'claude-code · no Ask yet');
 
   const list = page.getByRole('navigation', { name: 'Work' });
   const screen = page.getByLabel("The agent's screen");
@@ -47,6 +48,6 @@ const hex = (b64: unknown) => [...Buffer.from(String(b64), 'base64')].map((b) =>
 
 async function opened(page: import('@playwright/test').Page, machine: FakeMachine) {
   await page.goto('/');
-  await page.getByRole('treeitem', { name: 'claude-code', exact: true }).first().click();
+  await openAgent(page, 'claude-code · no Ask yet');
   await expect.poll(() => machine.of('watch').length).toBeGreaterThan(0);
 }

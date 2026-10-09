@@ -32,9 +32,9 @@ test('M4.1 M4.3 D4.1 D4.3: typing, picking codex, Ask sends act ask to codex', a
   // The list in the select's place (M4.3, D4.3): the project's running agents, and no other project's.
   await to.click();
   const list = sheet.getByRole('listbox', { name: 'SEND TO' });
-  await expect(list.getByRole('option')).toHaveText(['claude', 'codex']);
+  await expect(list.getByRole('option')).toHaveText(['claude', 'codex', 'codex']);
   await expect(list.getByRole('option', { selected: true })).toHaveText('claude');
-  await list.getByRole('option', { name: 'codex', exact: true }).click();
+  await list.getByRole('option', { name: 'codex', exact: true }).first().click();
   await expect(list).toHaveCount(0);
   await expect(to).toHaveAccessibleName('SEND TO codex');
   await sheet.getByRole('button', { name: 'Ask', exact: true }).click();
@@ -67,7 +67,7 @@ test('M4.3 D4.3: SEND TO by keyboard: arrows move, Enter picks, Escape closes th
   await machine.close();
 });
 
-test('M4.1 D4.1: SEND TO starts on the selected work\'s agent; Cancel sends nothing', async ({ page, context }) => {
+test('M4.1 D4.1 M11.1: SEND TO starts on an agent of the selected Ask\'s harness; Cancel sends nothing', async ({ page, context }) => {
   const machine = await opened(page, context);
   await page.getByRole('treeitem', { name: 'health endpoint', exact: true }).click();
   await page.getByRole('button', { name: 'Ask', exact: true }).click();

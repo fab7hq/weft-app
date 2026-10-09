@@ -1,9 +1,11 @@
-// A fake machine: speaks the remote protocol (remote.md §6b) as `weft remote`
-// does, records every message, and lets a test drop and refuse connections,
-// change its epoch and send what the machine would.
+// A fake machine: speaks the remote protocol, version 3 (remote.md §6c), as
+// `weft remote` does, answers each read from its sample a page at a time,
+// records every message, and lets a test drop and refuse connections, change
+// its epoch and send what the machine would.
 import { readFileSync } from 'node:fs';
 import { createServer, type Server } from 'node:https';
 import { WebSocketServer, type WebSocket } from 'ws';
+import { CLAUDE, CODEX, CODEX_NEW, DOCS, EVAL_3, OPEN, SESSIONS, at, reads } from './atlas-fixtures';
 
 // A test-only certificate: a machine is reached over wss:// as through its
 // tunnel, and WebKit refuses ws:// from an https:// page. Playwright ignores
@@ -30,25 +32,36 @@ export interface Why {
   title?: string;
 }
 
-export interface Work {
+/** An Ask as a round lists it; `word` only under Open. */
+export interface Ask {
   unit: string;
   title: string;
-  word: 'asking' | 'asked' | 'evaled' | 'sealed' | 'cancelled';
-  turn: Agent['turn'] | null;
-  eval: Why | null;
-  seal: Why | null;
+  harness: string;
+  word?: 'asked' | 'asking';
 }
 
-export interface Harness {
+/** A session, as AGENTS lists it (remote.md §6c `Agent`). */
+export interface Session {
+  session: string;
   harness: string;
-  agent: string | null;
+  state: 'running' | 'ended' | 'quiet';
+  turn: 'ready' | 'working' | 'waiting' | 'turn_ended' | null;
   title: string | null;
-  turn: Agent['turn'] | null;
-  turbo: boolean;
-  running: boolean;
-  /** Not running: the session a tap on it would resume (M2.9), else null. */
-  session?: { at: number; last: string } | null;
-  works: Work[];
+  at: number;
+  asks: number;
+  agent: string | null;
+  ask: Why | null;
+}
+
+/** An Eval's round in WORK. */
+export interface Round {
+  eval: string;
+  n: number;
+  judging: boolean;
+  verdict: 'aligned' | 'drifted' | 'incomplete' | null;
+  agreement: string | null;
+  asks: Ask[];
+  seal: Why | null;
 }
 
 /** What a project still needs before RingFrame is set up in it; null where nothing could say. */
@@ -58,7 +71,7 @@ export interface Needs {
   commit: boolean | null;
 }
 
-/** One project's rows of the tree (remote.md §6b), as weft_core::tree builds them. */
+/** One project of the tree (remote.md §6c), as weft_core::tree builds it. */
 export interface Project {
   project: string;
   open: number;
@@ -68,7 +81,8 @@ export interface Project {
   setup?: Needs | null;
   /** Agents started here from now on run in turbo mode. */
   turbo?: boolean;
-  harnesses: Harness[];
+  agents: { running: number; ended: number; rows: Session[]; earlier: number };
+  work: { open: { since: number | null; asks: Ask[]; eval: Why | null }; evals: Round[]; sealed: { seals: number; asks: number } };
 }
 
 /** A harness a project can start. */
@@ -76,6 +90,99 @@ export interface Start {
   project: string;
   harness: string;
   title: string;
+}
+
+/** The reads' payloads (remote.md §6c), as `read` answers them. */
+export interface Detail {
+  unit: string;
+  title: string;
+  harness: string;
+  crumb: { eval: { eval: string; n: number; verdict: Round['verdict'] } | null; seal: { seal: string; n: number } | null };
+  ask: { state: 'DONE' | 'ASKING'; aside: string; lines: string[] };
+  session: Session | null;
+  proceed: boolean;
+  follows: string;
+}
+export interface EvalDetail {
+  eval: string;
+  n: number;
+  judging: boolean;
+  verdict: Round['verdict'];
+  agreement: string | null;
+  judged_by: string | null;
+  at: number | null;
+  findings: { mark: string; text: string }[];
+  checks: { mark: string; text: string; result: string }[];
+  asks: Ask[];
+  sealed: { seal: string; n: number } | null;
+  seal: Why | null;
+}
+export interface SealDetail {
+  seal: string;
+  n: number;
+  decision: string;
+  at: number | null;
+  by: string;
+  eval: { eval: string; n: number; verdict: Round['verdict']; agreement: string | null } | null;
+  receipt: string;
+  holds: boolean | null;
+  broken: string[];
+  /** Every Ask it covered: the fake pages them, 50 at a time. */
+  asks: Ask[];
+}
+export interface SessionDetail {
+  session: string;
+  harness: string;
+  state: Session['state'];
+  turn: Session['turn'];
+  started: number;
+  last: number;
+  resume: boolean;
+  asks: { unit: string; title: string; harness: string; word: 'asking' | 'asked' | 'evaled' | 'sealed' | 'cancelled'; eval: number | null; seal: number | null }[];
+  agent: string | null;
+}
+export interface SealRow {
+  seal: string;
+  n: number;
+  decision: string;
+  at: number | null;
+  eval: number | null;
+  asks: number;
+}
+export interface Earlier {
+  session: string;
+  harness: string;
+  title: string | null;
+  asks: number;
+  at: number;
+  group: 'today' | 'yesterday' | 'week' | 'earlier';
+}
+
+/** What the machine answers each read with, by its id; the fake pages the lists, 50 at a time. */
+export interface Reads {
+  details: Record<string, Detail>;
+  evals: Record<string, EvalDetail>;
+  seals: Record<string, SealDetail>;
+  sessions: Record<string, SessionDetail>;
+  /** By project, newest first. */
+  sealed: Record<string, SealRow[]>;
+  /** By project, newest first: the ended sessions past the tree's. */
+  earlier: Record<string, Earlier[]>;
+  /** By Eval. */
+  views: Record<string, unknown>;
+}
+
+const noReads = (): Reads => ({ details: {}, evals: {}, seals: {}, sessions: {}, sealed: {}, earlier: {}, views: {} });
+
+/** How many rows a page holds (remote.md §6c). */
+export const PAGE = 50;
+
+/** The page after `after` (the first with none), and the `after` of the next page, or null at the end. */
+export function page<T>(rows: T[], after: unknown, id: (r: T) => string): { rows: T[]; next: string | null } {
+  const at = typeof after === 'string' ? rows.findIndex((r) => id(r) === after) + 1 : 0;
+  const start = typeof after === 'string' && at === 0 ? rows.length : at;
+  const end = Math.min(start + PAGE, rows.length);
+  return { rows: rows.slice(start, end), next: end < rows.length ? id(rows[end - 1]) : null };
 }
 
 export class FakeMachine {
@@ -93,8 +200,10 @@ export class FakeMachine {
   down = false;
   /** How an `act` is answered; else plain `ok`. */
   onAct: ((m: Record<string, unknown>) => Record<string, unknown>[]) | null = null;
-  /** How a `read` is answered; else plain `ok`. */
-  onRead: ((m: Record<string, unknown>) => Record<string, unknown>) | null = null;
+  /** What each read answers from, unless `onRead` says otherwise. */
+  reads: Reads = noReads();
+  /** How a `read` is answered; else, or where it answers null, from `reads`. */
+  onRead: ((m: Record<string, unknown>) => Record<string, unknown> | null) | null = null;
   /** How a `resolve` is answered; else plain `ok`. */
   onResolve: ((m: Record<string, unknown>) => Record<string, unknown>[]) | null = null;
   /** How a `text` is answered; else plain `ok`. */
@@ -115,9 +224,14 @@ export class FakeMachine {
         const m = JSON.parse(String(data));
         this.heard.push(m);
         if (m.type === 'ping') ws.send(JSON.stringify({ type: 'pong', t: m.t }));
-        if (m.type === 'pair' && this.allowAtOnce) {
+        if (m.type === 'pair' && this.allowAtOnce && m.v === 3) {
           ws.send(JSON.stringify({ type: 'asking' }));
           ws.send(JSON.stringify({ type: 'paired', token: 't_good' }));
+        }
+        if ((m.type === 'hello' || m.type === 'pair') && m.v !== 3) {
+          ws.send(JSON.stringify({ type: 'refused', code: 'version' }));
+          ws.close();
+          return;
         }
         if (m.type === 'hello') {
           if (m.token !== 't_good') {
@@ -129,12 +243,15 @@ export class FakeMachine {
         }
         if (m.type === 'act' && this.onAct) {
           for (const out of this.onAct(m)) ws.send(JSON.stringify(out));
-        } else if (m.type === 'read' && this.onRead) {
-          ws.send(JSON.stringify(this.onRead(m)));
+        } else if (m.type === 'read') {
+          ws.send(JSON.stringify(this.onRead?.(m) ?? this.read(m)));
         } else if (m.type === 'text' && this.onText) {
           ws.send(JSON.stringify(this.onText(m)));
         } else if (m.type === 'resolve' && this.onResolve) {
           for (const o of this.onResolve(m)) ws.send(JSON.stringify(o));
+        } else if (m.type === 'start' && (m.resume === true || 'unit' in m)) {
+          // Version 2's resume and start {unit} are gone.
+          ws.send(JSON.stringify({ type: 'error', req: m.req, code: 'bad_request', message: 'resume names a session' }));
         } else if (m.type === 'start') {
           const out = this.onStart ? this.onStart(m) : [{ type: 'ok', req: m.req, agent: `3f9a1c07b2de-${this.agents.length}` }];
           for (const o of out) ws.send(JSON.stringify(o));
@@ -157,10 +274,59 @@ export class FakeMachine {
     return `https://127.0.0.1:${typeof a === 'object' && a ? a.port : 0}`;
   }
 
+  /** A read, answered from `reads` and the tree as `weft remote` answers it. */
+  read(m: Record<string, unknown>): Record<string, unknown> {
+    const ok = (what: string, payload: unknown) => ({ type: 'ok', req: m.req, [what]: payload });
+    const refused = (code: string) => ({ type: 'error', req: m.req, code, message: `no such ${code.slice(3)}` });
+    const r = this.reads;
+    switch (m.what) {
+      case 'history':
+        return { type: 'ok', req: m.req, text: '' };
+      case 'detail':
+        return r.details[String(m.unit)] ? ok('detail', r.details[String(m.unit)]) : refused('no_unit');
+      case 'eval':
+        return r.evals[String(m.eval)] ? ok('eval', r.evals[String(m.eval)]) : refused('no_eval');
+      case 'eval_view':
+        return r.views[String(m.eval)] ? ok('eval_view', r.views[String(m.eval)]) : refused('no_eval');
+      case 'seal': {
+        const s = r.seals[String(m.seal)];
+        if (!s) return refused('no_seal');
+        const { rows, next } = page(s.asks, m.after, (a) => a.unit);
+        return ok('seal', { ...s, asks: rows, next });
+      }
+      case 'session': {
+        const s = r.sessions[String(m.session)] ?? this.sessionOf(String(m.project), String(m.session));
+        return s ? ok('session', s) : refused('no_session');
+      }
+      case 'sealed': {
+        const { rows, next } = page(r.sealed[String(m.project)] ?? [], m.after, (x) => x.seal);
+        return ok('sealed', { seals: rows, next });
+      }
+      case 'sessions': {
+        const q = typeof m.q === 'string' ? m.q.toLowerCase() : '';
+        const found = (r.earlier[String(m.project)] ?? []).filter((x) => !q || [x.title ?? '', x.harness, x.session].some((t) => t.toLowerCase().includes(q)));
+        const { rows, next } = page(found, m.after, (x) => x.session);
+        return ok('sessions', { total: found.length, rows, next });
+      }
+      default:
+        return { type: 'ok', req: m.req };
+    }
+  }
+
+  /** A session's Details from its tree row, when `reads` holds none. */
+  private sessionOf(project: string, session: string): SessionDetail | null {
+    const tree = this.tree ?? treeOf(this.agents);
+    const earlier = this.reads.earlier[project]?.find((e) => e.session === session);
+    const row = tree.find((p) => p.project === project)?.agents.rows.find((s) => s.session === session) ??
+      (earlier && { ...earlier, state: 'ended' as const, turn: null, agent: null });
+    if (!row) return null;
+    return { session, harness: row.harness, state: row.state, turn: row.turn, started: row.at, last: row.at, resume: row.state !== 'running', asks: [], agent: row.agent };
+  }
+
   welcome() {
     return {
       type: 'welcome',
-      v: 2,
+      v: 3,
       epoch: this.epoch,
       machine: { id: 'm_fake', name: 'studio' },
       vapid: this.vapid,
@@ -199,61 +365,67 @@ export function agent(n: number, project: string, harness: string, turn: Agent['
   return { agent: `3f9a1c07b2de-${n}`, project, harness, title: harness === 'claude-code' ? 'Claude Code' : 'Codex', turn, running: true, since: Date.now() - 120_000 };
 }
 
+/** A session row for a tab, as AGENTS lists the session its pane holds. */
+export function sessionOf(a: Agent, title: string | null = null): Session {
+  return {
+    session: `s-${a.agent}`,
+    harness: a.harness,
+    state: a.running ? 'running' : 'ended',
+    turn: a.running ? (a.turn === 'ended' ? 'turn_ended' : a.turn) : null,
+    title,
+    at: a.since,
+    asks: 0,
+    agent: a.running ? a.agent : null,
+    ask: a.running ? null : { key: 'why.ended', harness: a.harness },
+  };
+}
+
+/** A project's tree with these sessions and rounds; counts as weft_core::tree makes them. */
+export function project(name: string, rows: Session[], work: Partial<Project['work']> = {}, more: Partial<Project> = {}): Project {
+  const open = work.open ?? { since: null, asks: [], eval: null };
+  return {
+    project: name,
+    open: open.asks.length,
+    needs: rows.filter((r) => r.turn === 'waiting').length,
+    ask: null,
+    agents: { running: rows.filter((r) => r.state === 'running').length, ended: rows.filter((r) => r.state !== 'running').length, rows, earlier: 0 },
+    work: { open, evals: work.evals ?? [], sealed: work.sealed ?? { seals: 0, asks: 0 } },
+    ...more,
+  };
+}
+
 /** A tree of these agents, with nothing asked of any. */
 export function treeOf(agents: Agent[]): Project[] {
   const projects = [...new Set(agents.map((a) => a.project))];
-  return projects.map((project) => {
-    const mine = agents.filter((a) => a.project === project);
-    return {
-      project,
-      open: mine.length,
-      needs: mine.filter((a) => a.turn === 'waiting').length,
-      ask: null,
-      harnesses: mine.map((a) => ({ harness: a.harness, agent: a.running ? a.agent : null, title: a.title, turn: a.running ? a.turn : null, turbo: false, running: a.running, works: [] })),
-    };
-  });
+  return projects.map((p) => project(p, agents.filter((a) => a.project === p).map((a) => sessionOf(a))));
 }
 
-const WEFT = '3f9a1c07b2de';
-const DOCS = 'a1b2c3d4e5f6';
-const work = (unit: string, title: string, word: Work['word'], turn: Work['turn']): Work => ({ unit, title, word, turn, eval: null, seal: null });
-
 /**
- * The Atlas's sample (spec/atlas.md §6): projects weft and docs on studio;
- * claude, which needs you, and codex in weft; claude in docs; the works fix
- * login, telemetry, health endpoint and readme fix.
+ * The Atlas's sample (M11.1–M11.6, D11.1–D11.6; spec/atlas.md §6): projects
+ * weft and docs on studio. In weft, codex at work with no Ask yet, claude
+ * waiting for you on fix login, codex whose turn ended on health endpoint,
+ * and three ended sessions, 12 earlier; Open since Eval 3 (fix login,
+ * telemetry), Eval 3 aligned and not sealed, Sealed · 4 seals 31. In docs, a
+ * claude ready with nothing asked.
  */
-export function atlas(): { agents: Agent[]; tree: Project[]; harnesses: Start[] } {
+export function atlas(): { agents: Agent[]; tree: Project[]; harnesses: Start[]; reads: Reads } {
   const since = Date.now() - 120_000;
   const agents: Agent[] = [
-    { agent: `${WEFT}-0`, project: 'weft', harness: 'claude', title: 'Claude Code', turn: 'waiting', running: true, since },
-    { agent: `${WEFT}-1`, project: 'weft', harness: 'codex', title: 'Codex', turn: 'ended', running: true, since },
+    { agent: CLAUDE, project: 'weft', harness: 'claude', title: 'Claude Code', turn: 'waiting', running: true, since },
+    { agent: CODEX, project: 'weft', harness: 'codex', title: 'Codex', turn: 'ended', running: true, since },
+    { agent: CODEX_NEW, project: 'weft', harness: 'codex', title: 'Codex', turn: 'working', running: true, since },
     { agent: `${DOCS}-0`, project: 'docs', harness: 'claude', title: 'Claude Code', turn: 'ready', running: true, since },
   ];
-  const tree: Project[] = [
-    {
-      project: 'weft',
-      open: 2,
-      needs: 1,
-      ask: null,
-      harnesses: [
-        { harness: 'claude', agent: `${WEFT}-0`, title: 'Claude Code', turn: 'waiting', turbo: false, running: true,
-          works: [work('ask_1', 'fix login', 'asked', 'waiting'), work('ask_2', 'telemetry', 'asking', null)] },
-        { harness: 'codex', agent: `${WEFT}-1`, title: 'Codex', turn: 'ended', turbo: false, running: true,
-          works: [work('ask_3', 'health endpoint', 'evaled', 'ended'), work('ask_4', 'readme fix', 'sealed', null)] },
-      ],
-    },
-    {
-      project: 'docs',
-      open: 1,
-      needs: 0,
-      ask: null,
-      harnesses: [{ harness: 'claude', agent: `${DOCS}-0`, title: 'Claude Code', turn: 'ready', turbo: false, running: true, works: [] }],
-    },
-  ];
-  const harnesses: Start[] = ['weft', 'docs'].flatMap((project) => [
-    { project, harness: 'claude', title: 'Claude Code' },
-    { project, harness: 'codex', title: 'Codex' },
+  const weft = project('weft', structuredClone(SESSIONS), {
+    open: { since: 3, asks: structuredClone(OPEN), eval: null },
+    evals: [structuredClone(EVAL_3)],
+    sealed: { seals: 4, asks: 31 },
+  });
+  weft.agents = { running: 3, ended: 15, rows: weft.agents.rows, earlier: 12 };
+  const docs = project('docs', [{ ...sessionOf(agents[3]), session: 'd0c5e1a2-0b1c-4d2e-8f3a-4b5c6d7e8f90', at: at(11, 5) }]);
+  const harnesses: Start[] = ['weft', 'docs'].flatMap((p) => [
+    { project: p, harness: 'claude', title: 'Claude Code' },
+    { project: p, harness: 'codex', title: 'Codex' },
   ]);
-  return { agents, tree, harnesses };
+  return { agents, tree: [weft, docs], harnesses, reads: reads() };
 }

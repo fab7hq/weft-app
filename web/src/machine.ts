@@ -24,27 +24,41 @@ export interface Why {
   title?: string;
 }
 
-/** One work of the tree: an Ask and where it stands (remote.md §6b). */
-export interface Work {
+/** An Ask as a round lists it: its title and harness; ASKED or ASKING only under Open. */
+export interface Ask {
   unit: string;
   title: string;
-  word: 'asking' | 'asked' | 'evaled' | 'sealed' | 'cancelled';
-  turn: Agent['turn'] | null;
-  eval: Why | null;
-  seal: Why | null;
+  harness: string;
+  word?: 'asked' | 'asking';
 }
 
-export interface Harness {
+/** One session weftd holds, as AGENTS lists it (remote.md §6c), whichever program runs it. */
+export interface Session {
+  session: string;
   harness: string;
-  /** The agent a tap on the harness opens, while one runs. */
-  agent: string | null;
+  /** `quiet`: neither running nor ended can be known; it reads "last active 11:25". */
+  state: 'running' | 'ended' | 'quiet';
+  turn: 'ready' | 'working' | 'waiting' | 'turn_ended' | null;
+  /** Its latest Ask's title; null reads "no Ask yet". */
   title: string | null;
-  turn: Agent['turn'] | null;
-  turbo: boolean;
-  running: boolean;
-  /** Not running: the session a tap on it resumes (M2.9), else null. */
-  session?: { at: number; last: string } | null;
-  works: Work[];
+  at: number;
+  asks: number;
+  /** The tab that holds it, while a Weft pane does. */
+  agent: string | null;
+  /** Why an Ask cannot go to it, else null. */
+  ask: Why | null;
+}
+
+/** An Eval's round: being judged, or completed and not sealed yet. */
+export interface Round {
+  eval: string;
+  n: number;
+  judging: boolean;
+  verdict: 'aligned' | 'drifted' | 'incomplete' | null;
+  agreement: string | null;
+  asks: Ask[];
+  /** Why Seal cannot run on it, else null. */
+  seal: Why | null;
 }
 
 /** What a project still needs before RingFrame is set up in it; null where nothing could say. */
@@ -64,7 +78,14 @@ export interface Project {
   setup: Needs | null;
   /** Agents started here from now on run in turbo mode (the header's ⚡ turbo). */
   turbo?: boolean;
-  harnesses: Harness[];
+  /** AGENTS: every running session, then the last 3 ended; `earlier` counts the rest. */
+  agents: { running: number; ended: number; rows: Session[]; earlier: number };
+  /** WORK, by Eval round: Open, each Eval not sealed (one being judged first), and Sealed as counts. */
+  work: {
+    open: { since: number | null; asks: Ask[]; eval: Why | null };
+    evals: Round[];
+    sealed: { seals: number; asks: number };
+  };
 }
 
 /** A harness a project can start. */
@@ -180,12 +201,12 @@ async function connect(): Promise<void> {
 async function greet(s: WebSocket, m: api.Machine, kept: store.Kept): Promise<void> {
   const me = await store.device();
   if (kept.token) {
-    s.send(JSON.stringify({ type: 'hello', v: 2, device: me.id, token: kept.token }));
+    s.send(JSON.stringify({ type: 'hello', v: 3, device: me.id, token: kept.token }));
     return;
   }
   try {
     const assertion = await api.assertion(m.id, me.id);
-    s.send(JSON.stringify({ type: 'pair', v: 2, device: me.id, name: me.name, assertion }));
+    s.send(JSON.stringify({ type: 'pair', v: 3, device: me.id, name: me.name, assertion }));
   } catch {
     s.close();
   }
@@ -222,7 +243,7 @@ function heard(s: WebSocket, m: api.Machine, msg: Record<string, unknown>): void
       void store.get<store.Kept>('macs', m.id).then(async (k) => {
         await store.set('macs', m.id, { ...k, token: String(msg.token) });
         const me = await store.device();
-        s.send(JSON.stringify({ type: 'hello', v: 2, device: me.id, token: msg.token }));
+        s.send(JSON.stringify({ type: 'hello', v: 3, device: me.id, token: msg.token }));
       });
       break;
     case 'refused':

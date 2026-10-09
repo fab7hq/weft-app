@@ -11,16 +11,16 @@ test('a replaced words.json shows its word after a reload', async ({ page, conte
   Object.assign(machine, atlas());
   await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
   await page.goto('/');
-  const fix = page.getByRole('treeitem', { name: 'fix login', exact: true });
-  await expect(fix).toContainText('waiting · ASKED');
+  const fix = page.getByRole('treeitem', { name: 'claude · fix login', exact: true });
+  await expect(fix).toContainText('waiting for you');
 
   const kept = readFileSync(served, 'utf8');
   try {
-    writeFileSync(served, JSON.stringify({ ...JSON.parse(kept), 'web.turn.waiting': 'waiting on you' }));
+    writeFileSync(served, JSON.stringify({ ...JSON.parse(kept), 'turn.waiting': 'waiting on you' }));
     // The dev server notices the file within a moment, as a deploy would replace it.
-    await expect.poll(async () => (await (await page.request.get('/words.json')).json())['web.turn.waiting']).toBe('waiting on you');
+    await expect.poll(async () => (await (await page.request.get('/words.json')).json())['turn.waiting']).toBe('waiting on you');
     await page.reload();
-    await expect(fix).toContainText('waiting on you · ASKED');
+    await expect(fix).toContainText('waiting on you');
   } finally {
     writeFileSync(served, kept);
     await machine.close();

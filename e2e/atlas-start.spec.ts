@@ -1,10 +1,10 @@
 // Start an agent (M2.1, D2.1, M9.7, D9.7): from the empty tree and from the menu,
 // a harness the project can start; the new agent opens.
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
-import { FakeMachine, atlas, type Project } from './fake-machine';
+import { FakeMachine, atlas, project, type Project } from './fake-machine';
 import { person, signIn } from './seed';
 
-const empty: Project[] = [{ project: 'weft', open: 0, needs: 0, ask: { key: 'why.start_an_agent' }, harnesses: [] }];
+const empty: Project[] = [{ ...project('weft', []), ask: { key: 'why.start_an_agent' } }];
 
 async function opened(page: Page, context: BrowserContext, harnesses = atlas().harnesses) {
   const machine = await FakeMachine.start();

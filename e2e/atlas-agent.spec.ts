@@ -3,15 +3,16 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import { FakeMachine, atlas } from './fake-machine';
 import { pull as finger } from './touch';
+import { openAgent } from './open';
 import { person, signIn } from './seed';
 
 async function opened(page: Page, context: BrowserContext) {
   const machine = await FakeMachine.start();
   Object.assign(machine, atlas());
-  machine.onRead = (m) => ({ type: 'ok', req: m.req, text: Array.from({ length: 200 }, (_, i) => `line ${i + 1}`).join('\n') });
+  machine.onRead = (m) => (m.what === 'history' ? { type: 'ok', req: m.req, text: Array.from({ length: 200 }, (_, i) => `line ${i + 1}`).join('\n') } : machine.read(m));
   await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
   await page.goto('/');
-  await page.getByRole('treeitem', { name: 'codex', exact: true }).click();
+  await openAgent(page, 'codex · health endpoint');
   await expect.poll(() => machine.of('watch').at(-1)?.agent).toBe('3f9a1c07b2de-1');
   return machine;
 }
@@ -32,7 +33,7 @@ test('M3.1 M3.3 M3.5: a single tap does not activate; a double tap does, and a p
   await expect(pane(page)).toHaveAttribute('data-active', 'false');
   await pull(page, 200);
   await page.waitForTimeout(300);
-  expect(machine.of('read')).toHaveLength(0);
+  expect(machine.of('read').filter((r) => r.what === 'history')).toHaveLength(0);
 
   await pane(page).tap();
   await pane(page).tap();
@@ -58,7 +59,7 @@ test('D3.1 D3.3 D3.5: a click activates; the wheel reads the history and goes ba
   await pane(page).hover();
   await page.mouse.wheel(0, -300);
   await page.waitForTimeout(300);
-  expect(machine.of('read')).toHaveLength(0);
+  expect(machine.of('read').filter((r) => r.what === 'history')).toHaveLength(0);
   await expect(pane(page)).toHaveAttribute('data-active', 'false');
 
   await pane(page).click();
@@ -80,7 +81,7 @@ test('D3.1 D3.3 D3.5: a click activates; the wheel reads the history and goes ba
 test('M3.6: at the top of what Weft holds, under the pane, whose history it is', async ({ page, context }, info) => {
   const machine = await opened(page, context);
   // A harness that keeps its own history names the key the machine gives.
-  machine.onRead = (m) => ({ type: 'ok', req: m.req, text: 'line 1\nline 2', transcript: 'Ctrl+T' });
+  machine.onRead = (m) => (m.what === 'history' ? { type: 'ok', req: m.req, text: 'line 1\nline 2', transcript: 'Ctrl+T' } : machine.read(m));
   if (info.project.name === 'desktop') {
     await pane(page).click();
     await pane(page).hover();
@@ -95,7 +96,7 @@ test('M3.6: at the top of what Weft holds, under the pane, whose history it is',
   await page.getByLabel('Message').click();
   await expect(page.getByText('keeps its own history')).toHaveCount(0);
   // One that names no key: nothing of it has scrolled away yet.
-  machine.onRead = (m) => ({ type: 'ok', req: m.req, text: 'line 1' });
+  machine.onRead = (m) => (m.what === 'history' ? { type: 'ok', req: m.req, text: 'line 1' } : machine.read(m));
   if (info.project.name === 'desktop') {
     await pane(page).click();
     await pane(page).hover();
@@ -116,7 +117,7 @@ test('M3.8: a harness not set up for RingFrame: ⚠ on its tab, and why under th
   Object.assign(machine, s);
   await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
   await page.goto('/');
-  await page.getByRole('treeitem', { name: 'codex', exact: true }).click();
+  await openAgent(page, 'codex · health endpoint');
   const tabs = page.getByRole('navigation', { name: 'Tabs' });
   await expect(tabs.getByRole('button', { name: '2 codex ⚠', exact: true })).toBeVisible();
   await expect(tabs.getByRole('button', { name: '1 claude ●', exact: true })).toBeVisible();
@@ -131,7 +132,7 @@ test('M3.4 D3.4 M3.10: while the agent waits, the strip is ↑ ↓ ⏎ Esc and s
   Object.assign(machine, atlas());
   await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
   await page.goto('/');
-  await page.getByRole('treeitem', { name: 'claude', exact: true }).first().click();
+  await openAgent(page, 'claude · fix login');
   const strip = page.getByRole('toolbar', { name: 'Answer' });
   await expect(strip.getByText('NEEDS YOU')).toBeVisible();
   expect(await strip.getByRole('button').allTextContents()).toEqual(['↑', '↓', '⏎', 'Esc']);
@@ -192,17 +193,18 @@ test('D3.3 D3.11: while the pane is active the bar is Ask · Keys, and Keys send
 test('M3.7 D3.7: an ended agent says the TUI\'s sentence, from words.json', async ({ page, context }, info) => {
   const machine = await opened(page, context);
   const words = await (await page.request.get('/words.json')).json();
-  machine.agents = machine.agents.map((a) => (a.harness === 'codex' ? { ...a, running: false } : a));
+  machine.agents = machine.agents.map((a) => (a.agent === '3f9a1c07b2de-1' ? { ...a, running: false } : a));
   machine.send({ type: 'agents', agents: machine.agents });
   const said = words['agent.ended'].replace('{harness}', 'codex');
   await expect(page.getByText(said)).toBeVisible();
   expect(said).toBe('codex has ended. Its work is still on the list.');
   await expect(page.getByLabel("The agent's screen")).toHaveCount(0);
-  await expect(page.getByRole('navigation', { name: 'Tabs' }).getByRole('button', { name: /codex/ })).toHaveCount(0);
+  // Its tab goes; the other codex's stays.
+  await expect(page.getByRole('navigation', { name: 'Tabs' }).getByRole('button', { name: /codex/ })).toHaveCount(1);
   // A phone goes back to the tree; a desktop has it beside the sentence (D3.7).
   if (info.project.name === 'desktop') await expect(page.getByRole('button', { name: 'Back to the tree' })).toHaveCount(0);
   else await page.getByRole('button', { name: 'Back to the tree' }).click();
-  await expect(page.getByRole('treeitem', { name: 'codex', exact: true })).toBeVisible();
+  await expect(page.getByRole('treeitem', { name: 'codex · health endpoint', exact: true })).toBeVisible();
   await machine.close();
 });
 
@@ -221,7 +223,7 @@ test('an agent that asked for mouse reports gets the wheel, as in a terminal; no
   await expect.poll(() => wheels(machine).some((b) => /^\x1b\[<64;\d+;\d+M$/.test(b))).toBe(true);
   await page.mouse.wheel(0, 300);
   await expect.poll(() => wheels(machine).some((b) => /^\x1b\[<65;\d+;\d+M$/.test(b))).toBe(true);
-  expect(machine.of('read')).toHaveLength(0);
+  expect(machine.of('read').filter((r) => r.what === 'history')).toHaveLength(0);
   await expect(pane(page).getByLabel('History')).toHaveCount(0);
   await machine.close();
 });
@@ -235,6 +237,6 @@ test('on a phone, a pull in an agent that asked for mouse reports scrolls it wit
   await expect(pane(page)).toHaveAttribute('data-active', 'true');
   await pull(page, 120);
   await expect.poll(() => wheels(machine).filter((b) => b.startsWith('\x1b[<64;')).length).toBeGreaterThan(0);
-  expect(machine.of('read')).toHaveLength(0);
+  expect(machine.of('read').filter((r) => r.what === 'history')).toHaveLength(0);
   await machine.close();
 });

@@ -28,10 +28,11 @@ export function fill(key: string, values: Record<string, string>): string {
   return Object.entries(values).reduce((s, [name, value]) => s.replaceAll(`{${name}}`, value), w(key));
 }
 
-export type Turn = 'ready' | 'working' | 'waiting' | 'ended';
+/** A turn: a tab's (`ended`, its turn) or a session's (`turn_ended`), both said "turn ended". */
+export type Turn = 'ready' | 'working' | 'waiting' | 'ended' | 'turn_ended';
 export type Word = 'asking' | 'asked' | 'evaled' | 'sealed' | 'cancelled';
 
-export const turnWord = (t: Turn) => w(`turn.${t}`);
+export const turnWord = (t: Turn) => w(`turn.${t === 'ended' ? 'turn_ended' : t}`);
 export const stateWord = (s: Word) => w(`word.${s}`);
 /** An Eval step's state; a reading in progress is "met, so far". */
 export const evalState = (s: string | { read: string }) =>

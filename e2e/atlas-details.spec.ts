@@ -29,6 +29,10 @@ const region = (page: Page, name: string | RegExp) => page.getByRole('region', {
 const crumbs = (page: Page) => page.locator('.crumbs').first();
 const facts = (page: Page) => page.locator('.fact').evaluateAll((all) => all.map((f) => [f.querySelector('.fact-label')?.textContent, f.querySelector('.fact-value')?.textContent]));
 const asks = (page: Page) => page.locator('.detail-ask').evaluateAll((all) => all.map((a) => [a.querySelector('.tree-name')?.textContent, a.querySelector('.tree-aside')?.textContent]));
+/** A Details view's labelled lines: the phone's rows (M11.x), the desktop's grid (D11.4, D11.5). */
+const grid = (page: Page) => page.locator('.grid-row').evaluateAll((all) => all.map((f) => [f.querySelector('.grid-label')?.textContent, f.querySelector('.grid-value')?.textContent]));
+/** Its session: a row on a phone (M11.2), a link under the Ask on a desktop (D11.2). */
+const itsSession = (page: Page) => page.locator('.fact--session, .detail-section .detail-link').first();
 const act = (page: Page, name: string) => (wideOf(page) ? page.locator('.detail-acts') : page.locator('.detail-foot')).getByRole('button', { name, exact: true });
 
 test('M11.2 D11.2: a work\'s Details hold its Ask only, under where it stands; Proceed sends act proceed', async ({ page, context }) => {
@@ -39,10 +43,23 @@ test('M11.2 D11.2: a work\'s Details hold its Ask only, under where it stands; P
   await expect.poll(() => machine.of('read').at(-1)).toEqual(expect.objectContaining({ what: 'detail', unit: 'ask_1' }));
   await expect(crumbs(page)).toHaveText('fix login›not evaluated yet');
   await expect(view.getByText('asked 2026-10-08 11:29 · waiting for your yes')).toBeVisible();
-  await expect(view.locator('.detail-section-head')).toHaveText('AskASKED');
-  await expect(view.locator('.detail-line')).toHaveText(['You asked:', 'Refresh the token before it expires, not after', 'The prompt claude composed:',
-    'In src/login.rs refresh the session token 60 s before expiry …', 'How it was sent:', 'not sent yet · waiting for your yes']);
-  await expect(view.locator('.fact--session')).toHaveText('Its session● claude · 11:29›');
+  const lines = ['You asked:', 'Refresh the token before it expires, not after', 'The prompt claude composed:',
+    'In src/login.rs refresh the session token 60 s before expiry …', 'How it was sent:', 'not sent yet · waiting for your yes'];
+  if (wideOf(page)) {
+    // D11.2: the Ask folds under ▾, with no state word; what waits for your yes is amber; its session a link.
+    await expect(view.locator('.detail-section-head')).toHaveText('▾Ask');
+    await expect(view.locator('.detail-line')).toHaveText([...lines, 'Its session:']);
+    await expect(view.locator('.detail-line').nth(5)).toHaveClass(/detail-line--needs/);
+    await expect(itsSession(page)).toHaveText('claude · 11:29 ›');
+    await view.locator('.detail-section-head').click();
+    await expect(view.locator('.detail-line')).toHaveCount(0);
+    await view.locator('.detail-section-head').click();
+  } else {
+    // M11.2: ASKED at the right edge; its session a row.
+    await expect(view.locator('.detail-section-head')).toHaveText('AskASKED');
+    await expect(view.locator('.detail-line')).toHaveText(lines);
+    await expect(itsSession(page)).toHaveText('Its session● claude · 11:29›');
+  }
   // No chips, no Eval or Seal sections: those are their own Details.
   await expect(view.locator('.chip')).toHaveCount(0);
   await expect(page.getByRole('region', { name: 'Eval', exact: true })).toHaveCount(0);
@@ -57,7 +74,7 @@ test('M11.2 D11.2: a work\'s Details hold its Ask only, under where it stands; P
 test('M11.2: still being composed, ASKING, and nothing to proceed with', async ({ page, context }) => {
   const machine = await opened(page, context);
   await details(page, 'telemetry');
-  await expect(region(page, 'telemetry').locator('.detail-section-head')).toHaveText('AskASKING');
+  await expect(region(page, 'telemetry').locator('.detail-section-head')).toHaveText(wideOf(page) ? '▾Ask' : 'AskASKING');
   await expect(page.getByText('claude has not composed its prompt yet.')).toBeVisible();
   await expect(act(page, 'Proceed')).toHaveCount(0);
   await expect(act(page, 'Follow up')).toBeVisible();
@@ -85,14 +102,14 @@ test('M11.2 D11.2: an evaluated work\'s breadcrumb links its Eval; a sealed one\
 test('M11.2 D11.2: Its session › goes to its agent while a pane holds it, else to the session', async ({ page, context }) => {
   const machine = await opened(page, context);
   await details(page, 'fix login');
-  await page.locator('.fact--session').click();
+  await itsSession(page).click();
   await expect(page.getByLabel("The agent's screen")).toBeVisible();
   await expect.poll(() => machine.of('watch').at(-1)?.agent).toBe(CLAUDE);
   await page.goto('/');
   await row(page, 'Sealed').click();
   await details(page, 'Seal 4');
   await region(page, 'Seal 4').getByRole('button', { name: 'readme fix' }).click();
-  await page.locator('.fact--session').click();
+  await itsSession(page).click();
   await expect(region(page, /^claude · 3f9c2b71/)).toBeVisible();
   await machine.close();
 });
@@ -104,11 +121,21 @@ test('M11.3 D11.3: an Eval\'s Details, once: verdict, agreement, judges, finding
   const view = region(page, 'Eval 3');
   await expect(view).toBeVisible();
   await expect.poll(() => machine.of('read').at(-1)).toEqual(expect.objectContaining({ what: 'eval', project: 'weft', eval: 'evl_3' }));
-  await expect(crumbs(page)).toHaveText('Eval 3›not sealed');
   await expect(page.getByText('evl_3', { exact: true })).toBeVisible();
-  await expect(view.getByText('judged 2026-10-08 10:58 · covers 2 Asks')).toBeVisible();
-  expect(await facts(page)).toEqual([['Verdict', 'aligned'], ['Agreement', '0.67'], ['Judged by', 'codex'], ['Findings', '2'], ['Checks RingFrame ran', '✓ cargo test passed']]);
-  await expect(view.locator('.detail-head-row')).toHaveText('The Asks it covers2');
+  if (wideOf(page)) {
+    // D11.3: the verdict in the breadcrumb, then one summary in two lines; the check by its colour.
+    await expect(crumbs(page)).toHaveText('Eval 3›aligned›not sealed');
+    await expect(view.locator('.summary-head')).toHaveText('aligned · Agreement 0.67');
+    await expect(view.locator('.detail-summary .detail-prov')).toHaveText('Judged by codex · 2026-10-08 10:58 · covers 2 Asks');
+    expect(await facts(page)).toEqual([['Findings', '2'], ['Checks RingFrame ran', 'cargo test passed']]);
+    await expect(view.locator('.detail-head-row')).toHaveText('The Asks it covers');
+    await expect(view.locator('.detail-note-head')).toHaveClass(/needs/);
+  } else {
+    await expect(crumbs(page)).toHaveText('Eval 3›not sealed');
+    await expect(view.getByText('judged 2026-10-08 10:58 · covers 2 Asks')).toBeVisible();
+    expect(await facts(page)).toEqual([['Verdict', 'aligned'], ['Agreement', '0.67'], ['Judged by', 'codex'], ['Findings', '2'], ['Checks RingFrame ran', '✓ cargo test passed']]);
+    await expect(view.locator('.detail-head-row')).toHaveText('The Asks it covers2');
+  }
   expect(await asks(page)).toEqual([['health endpoint', 'codex'], ['build number', 'codex']]);
   // "Not sealed", the round's word capitalised as a heading.
   await expect(view.locator('.detail-note-head')).toHaveText('not sealed');
@@ -131,10 +158,10 @@ test('M11.3 D11.3: a sealed Eval says its Seal; Seal stays drawn and says it is 
   const machine = await opened(page, context);
   await row(page, 'Sealed').click();
   await details(page, 'Seal 4');
-  await region(page, 'Seal 4').getByRole('button', { name: /^The Eval it seals/ }).click();
+  await region(page, 'Seal 4').getByRole('button', { name: wideOf(page) ? 'Eval 2 ›' : /^The Eval it seals/ }).click();
   const view = region(page, 'Eval 2');
   await expect(view).toBeVisible();
-  await expect(crumbs(page)).toHaveText('Eval 2›Seal 4');
+  await expect(crumbs(page)).toHaveText(wideOf(page) ? 'Eval 2›aligned›Seal 4' : 'Eval 2›Seal 4');
   await expect(view.getByRole('button', { name: 'Sealed in Seal 4' })).toBeVisible();
   await act(page, 'Seal').click();
   await expect(page.getByRole('status')).toHaveText('Eval 2 is sealed already.');
@@ -153,9 +180,17 @@ test('M11.4 D11.4: a Seal\'s Details, once: its decision, when, by whom, its Eva
   const view = region(page, 'Seal 4');
   await expect(view).toBeVisible();
   await expect.poll(() => machine.of('read').at(-1)).toEqual(expect.objectContaining({ what: 'seal', project: 'weft', seal: 'rcp_7f3a2c' }));
-  await expect(crumbs(page)).toHaveText('Seal 4ACCEPTED');
-  await expect(view.getByText('sealed 2026-10-08 09:40 · covers 2 Asks')).toBeVisible();
-  expect(await facts(page)).toEqual([['Decision', 'accepted'], ['When', '2026-10-08 09:40'], ['By', 'you · from this phone'], ['The Eval it seals', 'Eval 2 · aligned · 1.0'], ['Receipt', 'rcp_7f3a2c']]);
+  if (wideOf(page)) {
+    // D11.4: the decision in the breadcrumb and large, its facts as labelled lines.
+    await expect(crumbs(page)).toHaveText('Seal 4›accepted');
+    await expect(view.locator('.summary-head')).toHaveText('accepted');
+    expect(await grid(page)).toEqual([['When', '2026-10-08 09:40'], ['By', 'you · from this phone'], ['The Eval it seals', 'Eval 2 › · aligned · 1.0'], ['Receipt', 'rcp_7f3a2c']]);
+    await expect(view.locator('.detail-head-row')).toHaveText('The Asks it covered· 2');
+  } else {
+    await expect(crumbs(page)).toHaveText('Seal 4ACCEPTED');
+    await expect(view.getByText('sealed 2026-10-08 09:40 · covers 2 Asks')).toBeVisible();
+    expect(await facts(page)).toEqual([['Decision', 'accepted'], ['When', '2026-10-08 09:40'], ['By', 'you · from this phone'], ['The Eval it seals', 'Eval 2 · aligned · 1.0'], ['Receipt', 'rcp_7f3a2c']]);
+  }
   expect(await asks(page)).toEqual([['readme fix', 'claude'], ['docs links', 'claude']]);
   await expect(view.getByText('The receipt still matches what RingFrame wrote.')).toBeVisible();
   await expect(view.getByText('A Seal records what was decided. It does not make the work right.')).toBeVisible();
@@ -186,7 +221,7 @@ test('M11.4 D11.4: a Seal\'s Asks come a page at a time, the next as they scroll
   await row(page, 'Sealed').click();
   await details(page, 'Seal 4');
   await expect(page.locator('.detail-ask')).toHaveCount(50);
-  await expect(page.getByText('covers 120 Asks')).toBeVisible();
+  await expect(page.locator('.detail-head-row')).toContainText('120');
   await page.getByRole('button', { name: 'work 49', exact: true }).scrollIntoViewIfNeeded();
   await expect(page.locator('.detail-ask')).toHaveCount(100);
   expect(machine.of('read').filter((r) => r.what === 'seal').at(-1)).toMatchObject({ seal: 'rcp_7f3a2c', after: 'ask_1049' });
@@ -205,10 +240,19 @@ test('M11.5 D11.5: an ended session\'s Details; Resume this session asks first, 
   const view = region(page, 'claude · 3f9c2b71…a21e');
   await expect(view).toBeVisible();
   await expect.poll(() => machine.of('read').at(-1)).toEqual(expect.objectContaining({ what: 'session', project: 'weft', session: README_SESSION }));
-  await expect(crumbs(page)).toHaveText('○claudeENDED');
-  await expect(view.getByText('ended 2026-10-08 09:12 · 1 Ask made in it')).toBeVisible();
-  expect(await facts(page)).toEqual([['State', 'ended 09:12'], ['Started', '2026-10-08 08:47'], ['Session', '3f9c2b71…a21e'], ['Project', 'weft']]);
-  expect(await asks(page)).toEqual([['readme fix', 'SEALED']]);
+  if (wideOf(page)) {
+    // D11.5: harness › state, the state large, its facts as labelled lines; an Ask with its Seal.
+    await expect(crumbs(page)).toHaveText('claude›ended 09:12');
+    await expect(view.locator('.summary-head')).toHaveText('○ ended 09:12');
+    expect(await grid(page)).toEqual([['Started', '2026-10-08 08:47'], ['ended', '2026-10-08 09:12'], ['Session', '3f9c2b71'], ['Project', 'weft']]);
+    expect(await asks(page)).toEqual([['readme fix', 'SEALED · Seal 4']]);
+    await expect(view.getByText('Weft starts claude again on this session, in a new pane.')).toBeVisible();
+  } else {
+    await expect(crumbs(page)).toHaveText('○claudeENDED');
+    await expect(view.getByText('ended 2026-10-08 09:12 · 1 Ask made in it')).toBeVisible();
+    expect(await facts(page)).toEqual([['State', 'ended 09:12'], ['Started', '2026-10-08 08:47'], ['Session', '3f9c2b71…a21e'], ['Project', 'weft']]);
+    expect(await asks(page)).toEqual([['readme fix', 'SEALED']]);
+  }
   await act(page, 'Resume this session').click();
   const confirm = page.getByRole('dialog', { name: 'Resume claude 3f9c2b71…a21e?' });
   await expect(confirm.getByText('Weft starts claude again on this session, in a new pane.')).toBeVisible();

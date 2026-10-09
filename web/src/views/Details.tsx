@@ -171,11 +171,25 @@ export function Fact({ label, children, go: onGo }: { label: string; children: C
 }
 
 /** A section's head: its label in capitals, and how many. */
-export function Head({ label, n }: { label: string; n?: number }) {
+export function Head({ label, n, inline = false }: { label: string; n?: number; inline?: boolean | 'plain' }) {
   return (
-    <div class="detail-head-row">
+    <div class={inline ? 'detail-head-row detail-head-row--inline' : 'detail-head-row'}>
       <span class="detail-label">{label}</span>
-      {n !== undefined && <span class="detail-count">{n}</span>}
+      {n !== undefined && <span class="detail-count">{inline === true ? `· ${n}` : n}</span>}
+    </div>
+  );
+}
+
+/** A desktop's labelled lines (D11.4, D11.5): a small capital label, its value beside it. */
+export function Grid({ rows }: { rows: [string, ComponentChildren][] }) {
+  return (
+    <div class="detail-grid">
+      {rows.map(([label, value]) => (
+        <div key={label} class="grid-row" role="group" aria-label={label}>
+          <span class="grid-label">{label}</span>
+          <span class="grid-value">{value}</span>
+        </div>
+      ))}
     </div>
   );
 }
@@ -207,6 +221,8 @@ const coverage = (n: number) => (n === 1 ? w('web.detail.covers_one') : fill('we
 
 /** A work's Details (M11.2, D11.2): the Ask only, and the session it was asked in. */
 export function Details({ machine, project, unit, wide = false }: { machine: Machine; project: string; unit: string; wide?: boolean }) {
+  // A desktop folds the Ask under its ▾ (D11.2).
+  const [folded, setFolded] = useState(false);
   // Read again as the tree moves on.
   const d = useRead<Work>({ unit }, 'detail', [JSON.stringify(m.tree.value.find((p) => p.project === project)?.work)]);
   const to = moves(machine, project);
@@ -226,6 +242,9 @@ export function Details({ machine, project, unit, wide = false }: { machine: Mac
   // Its session: its agent while a pane holds it, else its Details.
   const toSession = s && (() => (s.agent ? to.agent(s.agent) : to.session(s.session)));
   const waiting = s?.state === 'running' && s.turn === 'waiting';
+  const lines = d.ask.lines.filter((l) => l.trim() !== '');
+  // While a prompt waits for your yes, how it was sent (the Ask's last line) is amber on a desktop (D11.2).
+  const waits = (i: number) => d.proceed && i === lines.length - 1 && Boolean(lines[i - 1]?.endsWith(':'));
   return (
     <Frame
       machine={machine}
@@ -243,15 +262,29 @@ export function Details({ machine, project, unit, wide = false }: { machine: Mac
       }
     >
       <section class="detail-section" aria-label={w('act.ask')}>
-        <div class="detail-section-head">
-          <span class="detail-name">{w('act.ask')}</span>
-          <span class="detail-aside">{stateWord(d.ask.state === 'DONE' ? 'asked' : 'asking')}</span>
-        </div>
-        {d.ask.lines.filter((l) => l.trim() !== '').map((l, i) => (
-          <p key={i} class={l.endsWith(':') ? 'detail-line dim' : / is not on disk$/.test(l) ? 'detail-line detail-line--needs' : 'detail-line'}>{l}</p>
+        {wide ? (
+          <button class="detail-section-head detail-fold" type="button" aria-expanded={!folded} onClick={() => setFolded(!folded)}>
+            <span class="detail-caret">{folded ? '▸' : '▾'}</span>
+            <span class="detail-name">{w('act.ask')}</span>
+          </button>
+        ) : (
+          <div class="detail-section-head">
+            <span class="detail-name">{w('act.ask')}</span>
+            <span class="detail-aside detail-aside--end">{stateWord(d.ask.state === 'DONE' ? 'asked' : 'asking')}</span>
+          </div>
+        )}
+        {!folded && lines.map((l, i) => (
+          <p key={i} class={l.endsWith(':') ? 'detail-line dim' : / is not on disk$/.test(l) || (wide && waits(i)) ? 'detail-line detail-line--needs' : 'detail-line'}>{l}</p>
         ))}
+        {/* D11.2: its session as a line and a link, under the Ask. */}
+        {wide && !folded && s && toSession && (
+          <>
+            <p class="detail-line dim">{`${w('web.detail.its_session')}:`}</p>
+            <button class="detail-link" type="button" onClick={toSession}>{`${s.harness} · ${s.state === 'running' ? clock(s.at) : stateOf(s)} ›`}</button>
+          </>
+        )}
       </section>
-      {s && toSession && (
+      {!wide && s && toSession && (
         <button class="fact fact--link fact--session" type="button" onClick={toSession}>
           <span class="fact-label">{w('web.detail.its_session')}</span>
           <span class="fact-value">
@@ -271,6 +304,8 @@ export function RoundDetails({ machine, project, eval: id, wide = false }: { mac
   const to = moves(machine, project);
   if (!d) return <Frame machine={machine} project={project} label="" crumbs={[]} wide={wide} />;
   const crumbs: Part[] = [{ text: evalName(d.n) }];
+  // D11.3 names the verdict in its breadcrumb too.
+  if (wide && d.verdict) crumbs.push({ text: <Verdict verdict={d.verdict} /> });
   if (d.judging) crumbs.push({ text: w('tree.judging'), tone: 'dim' });
   else if (d.sealed) {
     const s = d.sealed;
@@ -286,7 +321,7 @@ export function RoundDetails({ machine, project, eval: id, wide = false }: { mac
       crumbs={crumbs}
       right={d.eval}
       mono
-      aside={aside}
+      aside={wide ? undefined : aside}
       wide={wide}
       acts={
         <>
@@ -295,21 +330,35 @@ export function RoundDetails({ machine, project, eval: id, wide = false }: { mac
         </>
       }
     >
+      {/* D11.3: the verdict and its agreement, then who judged it, when, and what it covers, in two lines. */}
+      {wide && (
+        <div class="detail-summary">
+          <p class="summary-head">
+            {d.verdict ? <Verdict verdict={d.verdict} /> : w('tree.judging')}
+            {d.agreement && <>{' · '}<span class="lower">{w('web.eval.agreement')}</span>{` ${d.agreement}`}</>}
+          </p>
+          <p class="detail-prov">
+            {d.judged_by && <><span class="lower">{w('web.eval.judged_by')}</span>{` ${d.judged_by} · `}</>}
+            {[d.at !== null ? stamp(d.at) : null, coverage(d.asks.length)].filter(Boolean).join(' · ')}
+          </p>
+        </div>
+      )}
       <div class="facts">
-        <Fact label={w('web.eval.verdict')}>{d.verdict ? <Verdict verdict={d.verdict} /> : w('tree.judging')}</Fact>
-        {d.agreement && <Fact label={w('web.eval.agreement')}>{d.agreement}</Fact>}
-        {d.judged_by && <Fact label={w('web.eval.judged_by')}>{d.judged_by}</Fact>}
+        {!wide && <Fact label={w('web.eval.verdict')}>{d.verdict ? <Verdict verdict={d.verdict} /> : w('tree.judging')}</Fact>}
+        {!wide && d.agreement && <Fact label={w('web.eval.agreement')}>{d.agreement}</Fact>}
+        {!wide && d.judged_by && <Fact label={w('web.eval.judged_by')}>{d.judged_by}</Fact>}
         <Fact label={w('eval_view.findings')} go={() => to.view(d.eval, 'h:findings')}>{d.findings.length}</Fact>
         <Fact label={w('eval_view.checks')} go={() => to.view(d.eval, 'h:checks')}>
           {check && (
             <>
-              <span class={check.mark === '✓' ? 'good' : check.mark === '✗' ? 'needs' : undefined}>{`${check.mark} `}</span>
-              {`${check.text} ${check.result}`}
+              {/* A desktop says it by colour alone (D11.3). */}
+              {!wide && <span class={check.mark === '✓' ? 'good' : check.mark === '✗' ? 'needs' : undefined}>{`${check.mark} `}</span>}
+              <span class={wide ? (check.mark === '✓' ? 'good' : check.mark === '✗' ? 'needs' : undefined) : undefined}>{`${check.text} ${check.result}`}</span>
             </>
           )}
         </Fact>
       </div>
-      <Head label={w('web.eval.asks')} n={d.asks.length} />
+      <Head label={w('web.eval.asks')} n={wide ? undefined : d.asks.length} />
       <div class="detail-asks">
         {d.asks.map((a) => <AskLine key={a.unit} title={a.title} aside={a.harness} onGo={() => to.work(a.unit)} />)}
       </div>
@@ -321,13 +370,26 @@ export function RoundDetails({ machine, project, eval: id, wide = false }: { mac
       ) : (
         !d.judging && (
           <div class="detail-note">
-            <p class="detail-note-head">{w('tree.not_sealed')}</p>
+            <p class={wide ? 'detail-note-head needs' : 'detail-note-head'}>{w('tree.not_sealed')}</p>
             <p class="detail-line dim">{fill('web.eval.seal_what', { n: String(d.asks.length) })}</p>
           </div>
         )
       )}
     </Frame>
   );
+}
+
+/** Whether a Seal's receipt still holds (M5.8): teal when it does; when it does not, why, in amber. */
+function Holds({ d }: { d: Sealed }) {
+  if (d.holds === true) return <p class="detail-line detail-line--good">{w('web.seal.holds')}</p>;
+  if (d.holds === false)
+    return (
+      <>
+        <p class="detail-line detail-line--loud">{w('web.seal.broken')}</p>
+        {d.broken.map((b) => <p key={b} class="detail-line detail-line--needs">{b}</p>)}
+      </>
+    );
+  return null;
 }
 
 /** A Seal's Details (M11.4, D11.4): once, with no act; its Asks a page at a time, the next read as the last comes into view. */
@@ -362,13 +424,39 @@ export function SealDetails({ machine, project, seal, wide = false }: { machine:
       machine={machine}
       project={project}
       label={sealName(d.n)}
-      crumbs={[{ text: <>{sealName(d.n)}<span class={accepted ? 'chip chip--good detail-chip' : 'chip detail-chip'}>{d.decision.toUpperCase()}</span></> }]}
+      crumbs={wide ? [{ text: sealName(d.n) }, { text: d.decision, tone: accepted ? 'good' : undefined }]
+        : [{ text: <>{sealName(d.n)}<span class={accepted ? 'chip chip--good detail-chip' : 'chip detail-chip'}>{d.decision.toUpperCase()}</span></> }]}
       right={d.seal}
       mono
-      aside={[d.at !== null ? fill('web.seal.sealed', { time: stamp(d.at) }) : null, coverage(n)].filter(Boolean).join(' · ')}
+      aside={wide ? undefined : [d.at !== null ? fill('web.seal.sealed', { time: stamp(d.at) }) : null, coverage(n)].filter(Boolean).join(' · ')}
       wide={wide}
       acts={wide && d.eval ? <button class="tree-act" type="button" onClick={() => to.view(d.eval!.eval)}>{w('act.eval_view')}</button> : undefined}
     >
+      {/* D11.4: the decision large, then its facts as labelled lines, the receipt's line under them. */}
+      {wide && (
+        <>
+          <p class={accepted ? 'summary-head summary-head--large good' : 'summary-head summary-head--large'}>{d.decision}</p>
+          <div class="detail-block">
+            <Grid rows={[
+              ...(d.at !== null ? [[w('web.seal.when'), stamp(d.at)] as [string, ComponentChildren]] : []),
+              [w('web.seal.by'), d.by],
+              ...(d.eval ? [[w('web.seal.eval'), (
+                <>
+                  <button class="detail-link" type="button" onClick={() => to.round(d.eval!.eval)}>{`${evalName(d.eval.n)} ›`}</button>
+                  {' · '}
+                  <Verdict verdict={d.eval.verdict} />
+                  {d.eval.agreement && ` · ${d.eval.agreement}`}
+                </>
+              )] as [string, ComponentChildren]] : []),
+              [w('web.seal.receipt'), <span class="mono">{d.receipt}</span>],
+            ]} />
+            <Holds d={d} />
+          </div>
+          <Head label={w('web.seal.asks')} n={n} inline />
+        </>
+      )}
+      {!wide && (
+      <>
       <div class="facts">
         <Fact label={w('web.seal.decision')}><span class={accepted ? 'good' : undefined}>{d.decision}</span></Fact>
         {d.at !== null && <Fact label={w('web.seal.when')}>{stamp(d.at)}</Fact>}
@@ -383,18 +471,14 @@ export function SealDetails({ machine, project, seal, wide = false }: { machine:
         <Fact label={w('web.seal.receipt')}><span class="mono">{d.receipt}</span></Fact>
       </div>
       <Head label={w('web.seal.asks')} n={n} />
+      </>
+      )}
       <div class="detail-asks">
         {asks.map((a) => <AskLine key={a.unit} title={a.title} aside={a.harness} onGo={() => to.work(a.unit)} />)}
         {next && <div ref={end} class="tree-more-rows" aria-hidden="true" />}
       </div>
       <div class="detail-note">
-        {d.holds === true && <p class="detail-line detail-line--good">{w('web.seal.holds')}</p>}
-        {d.holds === false && (
-          <>
-            <p class="detail-line detail-line--loud">{w('web.seal.broken')}</p>
-            {d.broken.map((b) => <p key={b} class="detail-line detail-line--needs">{b}</p>)}
-          </>
-        )}
+        {!wide && <Holds d={d} />}
         <p class="detail-line dim">{w('web.seal.final')}</p>
       </div>
     </Frame>

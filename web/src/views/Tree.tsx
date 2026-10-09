@@ -334,8 +334,8 @@ function AgentRow({ p, s, moves }: { p: m.Project; s: m.Session; moves: Moves })
             <span class="agent-top">{harness}{state}</span>
             {title}
           </span>
-          {/* Ask sits on the selected agent (D11.1). */}
-          {on && <button class="row-act" type="button" aria-label={`${w('act.ask')} ${name}`} onClick={(e) => (e.stopPropagation(), askOn())}>{w('act.ask')}</button>}
+          {/* Ask sits on the selected agent while it runs (D11.1, D11.5). */}
+          {on && running && <button class="row-act" type="button" aria-label={`${w('act.ask')} ${name}`} onClick={(e) => (e.stopPropagation(), askOn())}>{w('act.ask')}</button>}
           {time}
         </>
       ) : (

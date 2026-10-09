@@ -10,8 +10,8 @@ import * as m from '../machine';
 import { fill, stateWord, w } from '../words';
 import { offerResume, shortId } from './Asked';
 import { said } from './Bar';
-import { AskLine, Fact, Frame, Head, moves, useRead } from './Details';
-import { stateOf } from './Tree';
+import { AskLine, Fact, Frame, Grid, Head, moves, useRead } from './Details';
+import { sealName, stateOf } from './Tree';
 
 /** A session's Details (`read session`). */
 interface Held {
@@ -51,7 +51,7 @@ export function SessionDetails({ machine, project, session, wide = false }: { ma
       machine={machine}
       project={project}
       label={`${d.harness} · ${shortId(d.session)}`}
-      crumbs={[{
+      crumbs={wide ? [{ text: d.harness }, { text: state, tone: 'dim' }] : [{
         text: (
           <>
             <span class={live && d.turn === 'waiting' ? 'needs crumb-dot' : live ? 'good crumb-dot' : 'dim crumb-dot'}>{live ? '●' : '○'}</span>
@@ -62,7 +62,7 @@ export function SessionDetails({ machine, project, session, wide = false }: { ma
       }]}
       right={d.session.slice(0, 8)}
       mono
-      aside={[d.state === 'ended' ? `${w('state.ended')} ${stamp(d.last)}` : stateOf(s), madeIn(d.asks.length)].join(' · ')}
+      aside={wide ? undefined : [d.state === 'ended' ? `${w('state.ended')} ${stamp(d.last)}` : stateOf(s), madeIn(d.asks.length)].join(' · ')}
       wide={wide}
       acts={
         live ? (
@@ -72,17 +72,42 @@ export function SessionDetails({ machine, project, session, wide = false }: { ma
         )
       }
     >
-      <div class="facts">
-        <Fact label={w('web.session.state')}>{state}</Fact>
-        <Fact label={w('web.session.started')}>{stamp(d.started)}</Fact>
-        <Fact label={w('web.session.session')}><span class="mono">{shortId(d.session)}</span></Fact>
-        <Fact label={w('web.session.project')}>{project}</Fact>
-      </div>
-      <Head label={w('web.session.made')} n={d.asks.length} />
+      {wide ? (
+        // D11.5: its state large, then its facts as labelled lines.
+        <>
+          <p class="summary-head">
+            <span class={live && d.turn === 'waiting' ? 'needs' : live ? 'good' : 'dim'}>{live ? '● ' : '○ '}</span>
+            {state}
+          </p>
+          <div class="detail-block">
+            <Grid rows={[
+              [w('web.session.started'), stamp(d.started)],
+              ...(d.state === 'ended' ? [[w('state.ended'), stamp(d.last)] as [string, string]] : []),
+              [w('web.session.session'), <span class="mono">{d.session.slice(0, 8)}</span>],
+              [w('web.session.project'), project],
+            ]} />
+          </div>
+          <Head label={w('web.session.made')} n={d.asks.length} inline />
+        </>
+      ) : (
+        <>
+          <div class="facts">
+            <Fact label={w('web.session.state')}>{state}</Fact>
+            <Fact label={w('web.session.started')}>{stamp(d.started)}</Fact>
+            <Fact label={w('web.session.session')}><span class="mono">{shortId(d.session)}</span></Fact>
+            <Fact label={w('web.session.project')}>{project}</Fact>
+          </div>
+          <Head label={w('web.session.made')} n={d.asks.length} />
+        </>
+      )}
       <div class="detail-asks">
-        {/* A session's Asks keep their state word (D6), a cancelled one too (D12.2). */}
-        {d.asks.map((a) => <AskLine key={a.unit} title={a.title} aside={stateWord(a.word)} onGo={() => to.work(a.unit)} />)}
+        {/* A session's Asks keep their state word (D6), a cancelled one too (D12.2); a desktop adds its Seal or Eval. */}
+        {d.asks.map((a) => {
+          const where = wide && (a.seal !== null ? ` · ${sealName(a.seal)}` : a.eval !== null ? ` · ${fill('tree.eval', { n: String(a.eval) })}` : '');
+          return <AskLine key={a.unit} title={a.title} aside={`${stateWord(a.word)}${where || ''}`} onGo={() => to.work(a.unit)} />;
+        })}
       </div>
+      {wide && !live && <p class="detail-line dim detail-after">{fill('resume.how', { harness: d.harness })}</p>}
     </Frame>
   );
 }
@@ -142,8 +167,8 @@ export function EarlierSessions({ machine, project, wide = false }: { machine: M
       machine={machine}
       project={project}
       label={w('earlier.title')}
-      crumbs={[{ text: w('earlier.title') }]}
-      right={wide ? `${project} · ${earlier}` : earlier}
+      crumbs={wide ? [{ text: w('earlier.title') }, { text: `${project} · ${earlier}`, tone: 'dim' }] : [{ text: w('earlier.title') }]}
+      right={wide ? undefined : earlier}
       wide={wide}
     >
       <label class="earlier-search">
@@ -163,7 +188,7 @@ export function EarlierSessions({ machine, project, wide = false }: { machine: M
           if (mine.length === 0) return null;
           return (
             <div key={g} role="none">
-              <Head label={w(`earlier.${g}`)} n={mine.length} />
+              <Head label={w(`earlier.${g}`)} n={mine.length} inline={wide && 'plain'} />
               {mine.map((r) => (
                 <button key={r.session} class="earlier-row" role="listitem" type="button" aria-label={`${r.harness} · ${r.title ?? w('tree.no_ask')}`} onClick={() => to.session(r.session)}>
                   {wide ? (

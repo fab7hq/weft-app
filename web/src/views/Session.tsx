@@ -168,7 +168,7 @@ export function EarlierSessions({ machine, project, wide = false }: { machine: M
       project={project}
       label={w('earlier.title')}
       crumbs={wide ? [{ text: w('earlier.title') }, { text: `${project} · ${earlier}`, tone: 'dim' }] : [{ text: w('earlier.title') }]}
-      right={wide ? undefined : earlier}
+      right={wide ? undefined : fill('web.earlier.count', { n: String(count) })}
       wide={wide}
     >
       <label class="earlier-search">

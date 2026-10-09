@@ -1,23 +1,22 @@
-// The Eval view (M6.1–M6.7, D6.1–D6.7): the machine's view as pages you drill
-// into, by step or by file; a step, a change's lines; live while it judges.
+// The Eval view (M6.1–M6.7, D6.1–D6.7): the machine's view of an Eval, read
+// by its Eval from the Eval's Details (M11.3), as pages you drill into, by
+// step or by file; a step, a change's lines; live while it judges.
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import { FakeMachine, atlas } from './fake-machine';
 import { person, signIn } from './seed';
 import { S7, VIEW, row } from './atlas-fixtures';
 
-const DETAIL = { title: 'health endpoint', harness: 'codex', provenance: '', sections: [], proceed: false, eval_view: true, follows: 'evl_2' };
-
 async function opened(page: Page, context: BrowserContext, views: Record<string, unknown>[] = [VIEW]) {
   const machine = await FakeMachine.start();
   Object.assign(machine, atlas());
   let reads = 0;
-  machine.onRead = (m) =>
-    m.what === 'eval_view'
-      ? { type: 'ok', req: m.req, eval_view: views[Math.min(reads++, views.length - 1)] }
-      : { type: 'ok', req: m.req, detail: DETAIL };
+  machine.onRead = (m) => (m.what === 'eval_view' ? { type: 'ok', req: m.req, eval_view: views[Math.min(reads++, views.length - 1)] } : machine.read(m));
   await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
   await page.goto('/');
-  await page.getByRole('button', { name: 'Details of health endpoint' }).click();
+  // The Eval's Details (M11.3), then its Eval view.
+  const round = page.getByRole('treeitem', { name: 'Eval 3', exact: true });
+  if (page.viewportSize()!.width >= 768) await round.click();
+  else await round.getByRole('button', { name: 'Details of Eval 3' }).click();
   await page.getByRole('button', { name: 'Eval view' }).click();
   const view = page.getByRole('region', { name: 'Eval view' });
   await expect(view).toBeVisible();
@@ -47,7 +46,7 @@ test('M6.2 D6.2: by file, a row for each file, and a file opens its changes', as
 });
 
 test('M6.3 M6.4 M6.5 D6.4 D6.5: a group, a step, a change, and the crumbs back', async ({ page, context }) => {
-  const { view } = await opened(page, context);
+  const { machine, view } = await opened(page, context);
   await view.getByRole('button', { name: /Phase 1/ }).click();
   await expect(page.getByRole('button', { name: '‹ Eval view' })).toBeVisible();
   await expect(rowsOf(view)).toHaveText(['✗ 7  A failed send is told.', '✓ 8  /health returns the build number']);
@@ -73,7 +72,8 @@ test('M6.3 M6.4 M6.5 D6.4 D6.5: a group, a step, a change, and the crumbs back',
   await page.getByRole('button', { name: '‹ Phase 1' }).click();
   await page.getByRole('button', { name: '‹ Eval view' }).click();
   await page.getByRole('button', { name: '‹ Details' }).click();
-  await expect(page.getByRole('region', { name: 'health endpoint' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Eval 3' })).toBeVisible();
+  expect(machine.of('read').filter((r) => r.what === 'eval_view')[0]).toMatchObject({ project: 'weft', eval: 'evl_3' });
 });
 
 test('M6.6: Findings opens what RingFrame noticed', async ({ page, context }) => {
@@ -102,5 +102,5 @@ test('D6.1: on a desktop the view takes the agent\'s place, and Close leaves it'
   await expect(view.getByText('Click a row to open it.')).toBeVisible();
   await view.getByRole('button', { name: 'Close' }).click();
   await expect(view).toHaveCount(0);
-  await expect(page.getByRole('region', { name: 'health endpoint' })).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'Eval 3' })).toHaveCount(0);
 });

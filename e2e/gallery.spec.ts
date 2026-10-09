@@ -4,16 +4,14 @@
 // notification the system shows) is written as gallery/<ID>.txt, saying why.
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
-import { FakeMachine, atlas, type Agent, type Project } from './fake-machine';
+import { FakeMachine, atlas, project, type Agent, type Detail, type Project } from './fake-machine';
 import { pull, swipeLeft } from './touch';
+import { openAgent } from './open';
 import { person, signIn } from './seed';
-import { DETAILS, JUDGED, NOT_RUN, S7, SEALED, SENT, VIEW, detail, row, type Section } from './atlas-fixtures';
+import { CLAUDE, CODEX, DETAILS, S7, SESSIONS, VIEW, row } from './atlas-fixtures';
 
 const OUT = 'gallery';
 mkdirSync(OUT, { recursive: true });
-
-const CLAUDE = '3f9a1c07b2de-0';
-const CODEX = '3f9a1c07b2de-1';
 
 interface At {
   page: Page;
@@ -69,14 +67,10 @@ async function folded(at: At, keys: string[] = ['docs']) {
   await at.page.addInitScript((k) => localStorage.setItem('weft.folded', k), JSON.stringify(keys));
 }
 
-/** A tap on a harness opens its agent, and selects it; back on the phone, the tree shows it selected. */
-async function harnessTapped(at: At, harness: string) {
-  await item(at, harness).click();
-  await expect(at.page.getByLabel("The agent's screen")).toBeVisible();
-  if (!at.wide) {
-    await at.page.goBack();
-    await expect(item(at, harness)).toHaveAttribute('aria-selected', 'true');
-  }
+/** A session's row selected, as the cards draw it: on a desktop its agent opens beside the tree. */
+async function selected(at: At, name: string) {
+  await item(at, name).click();
+  if (at.wide) await expect(at.page.getByLabel("The agent's screen")).toBeVisible();
 }
 
 async function tree(at: At) {
@@ -87,10 +81,10 @@ async function tree(at: At) {
 const item = (at: At, name: string) => at.page.getByRole('treeitem', { name, exact: true }).first();
 const button = (at: At, name: string) => at.page.getByRole('button', { name, exact: true }).first();
 
+/** An agent open: on a desktop its row clicked; on a phone, as NEEDS YOU or › and Go to its agent would. */
 async function agentOpen(at: At, harness: 'claude' | 'codex') {
   await tree(at);
-  await item(at, harness).click();
-  await expect(at.page.getByLabel("The agent's screen")).toBeVisible();
+  await openAgent(at.page, harness === 'claude' ? 'claude · fix login' : 'codex · health endpoint');
 }
 
 async function activate(at: At) {
@@ -113,7 +107,8 @@ async function scrollBack(at: At, by: number) {
   await pull(screen, by);
 }
 
-const history = (lines: number) => (m: Record<string, unknown>) => ({ type: 'ok', req: m.req, text: Array.from({ length: lines }, (_, i) => `line ${i + 1}`).join('\n') });
+/** The agent's history, as `read history` answers it; any other read as the sample. */
+const history = (lines: number) => (m: Record<string, unknown>) => (m.what === 'history' ? { type: 'ok', req: m.req, text: Array.from({ length: lines }, (_, i) => `line ${i + 1}`).join('\n') } : null);
 
 /** A pending the machine stages for an act, as the bar shows it. */
 const staging = (agent: string, what: string, why: string, text: string) => (m: Record<string, unknown>) => [
@@ -121,24 +116,32 @@ const staging = (agent: string, what: string, why: string, text: string) => (m: 
   { type: 'ok', req: m.req, pending: 'pnd_1' },
 ];
 
-async function evalOn(at: At, work = 'health endpoint') {
+/** Eval on the Open round, or Seal on Eval 3, from the tree's bar. */
+async function roundAct(at: At, act: 'Eval' | 'Seal' = 'Eval') {
   await tree(at);
-  await item(at, work).click();
-  await button(at, 'Eval').click();
+  await item(at, act === 'Eval' ? 'Open' : 'Eval 3').click();
+  await at.page.locator('.tree-acts').getByRole('button', { name: act, exact: true }).click();
 }
 
-/** The Details of a work, read as this payload. */
-async function details(at: At, unit: string, d: Record<string, unknown>) {
-  at.machine.onRead = (m) => (m.what === 'eval_view' ? { type: 'ok', req: m.req, eval_view: VIEW } : { type: 'ok', req: m.req, detail: d });
+/** A work's Details, read as this payload, from › on its row. */
+async function details(at: At, unit: string, d: Detail = DETAILS[unit]) {
+  at.machine.reads.details[unit] = d;
   await tree(at);
-  await at.page.getByRole('button', { name: `Details of ${String(d.title)}` }).click();
-  await expect(at.page.getByRole('region', { name: String(d.title) })).toBeVisible();
-  void unit;
+  await item(at, d.title).getByRole('button', { name: `Details of ${d.title}` }).click();
+  await expect(at.page.getByRole('region', { name: d.title })).toBeVisible();
+}
+
+/** An Eval's Details, from the tree: › on a phone, a click on a desktop. */
+async function roundOpen(at: At) {
+  await tree(at);
+  if (at.wide) await item(at, 'Eval 3').click();
+  else await item(at, 'Eval 3').getByRole('button', { name: 'Details of Eval 3' }).click();
+  await expect(at.page.getByRole('region', { name: 'Eval 3' })).toBeVisible();
 }
 
 async function evalView(at: At, view: Record<string, unknown> = VIEW) {
-  await details(at, 'ask_3', { ...DETAILS.ask_3, eval_view: true });
-  at.machine.onRead = (m) => ({ type: 'ok', req: m.req, eval_view: view });
+  at.machine.reads.views.evl_3 = view;
+  await roundOpen(at);
   await button(at, 'Eval view').click();
   await expect(at.page.getByRole('region', { name: 'Eval view' })).toBeVisible();
 }
@@ -146,17 +149,16 @@ async function evalView(at: At, view: Record<string, unknown> = VIEW) {
 const BUILD = 'Read the build number from the environment and show it on /health';
 const sheet = (at: At) => at.page.getByRole('dialog', { name: 'What do you want done?' });
 
-/** Behind the area-4 cards: claude's view on a phone; claude open with health endpoint picked on a desktop. */
+/** Behind the area-4 cards: claude's view on a phone; claude open and selected on a desktop. */
 async function behind(at: At) {
   await folded(at);
   await agentOpen(at, 'claude');
-  if (at.wide) await item(at, 'health endpoint').click();
 }
 
 /** Ask, over claude's view: ⌃'s Ask on a phone, the bar's on a desktop. */
 async function askOpen(at: At) {
   await behind(at);
-  if (at.wide) await button(at, 'Ask').click();
+  if (at.wide) await at.page.locator('.tree-acts').getByRole('button', { name: 'Ask', exact: true }).click();
   else {
     await button(at, 'The bar').click();
     await at.page.getByRole('dialog', { name: 'Weft' }).getByRole('button', { name: 'Ask', exact: true }).click();
@@ -167,18 +169,17 @@ async function askOpen(at: At) {
 /** Pick an agent in SEND TO. */
 async function sendTo(at: At, harness: string) {
   await sheet(at).getByRole('button', { name: /^SEND TO/ }).click();
-  await sheet(at).getByRole('option', { name: harness, exact: true }).click();
+  await sheet(at).getByRole('option', { name: harness, exact: true }).first().click();
 }
 
-/** Eval on the tree's bar with health endpoint picked; on a desktop with claude open beside it. */
-async function barOn(at: At) {
+/** Eval on the Open round (or Seal on Eval 3) from the tree's bar; on a desktop with claude open beside it. */
+async function barOn(at: At, act: 'Eval' | 'Seal' = 'Eval') {
+  await folded(at);
   if (at.wide) {
-    await behind(at);
-    await button(at, 'Eval').click();
-  } else {
-    await folded(at);
-    await evalOn(at);
-  }
+    await agentOpen(at, 'claude');
+    await item(at, act === 'Eval' ? 'Open' : 'Eval 3').click();
+    await at.page.locator('.tree-acts').getByRole('button', { name: act, exact: true }).click();
+  } else await roundAct(at, act);
 }
 
 
@@ -189,9 +190,11 @@ const withTree = (edit: (t: Project[], a: Agent[]) => void) => {
 };
 
 /** The agent cards' moment: claude open and at work, beside codex; docs folded. */
-const calm = () => withTree((_, a) => {
+const calm = () => withTree((t, a) => {
   a.splice(2);
   a[0].turn = 'working';
+  t[0].needs = 0;
+  t[0].agents.rows[1].turn = 'working';
 });
 
 /** What the cards draw in claude's pane: the desktop's lines, and the phone's as its narrower screen wraps them. */
@@ -205,17 +208,14 @@ const ASKING = {
   phone: ['● Write(src/login.rs)', 'Do you want to make this edit', 'to login.rs?', BLUE('❯ 1. Yes'), "  2. Yes, and don't ask again", '     this session (shift+tab)', '  3. No, and tell Claude what to', '     do differently (esc)'],
 };
 
-/** Open claude with docs folded, and draw these lines on its screen as the machine would. */
+/** Open claude (docs folded, as every screen has it), and draw these lines on its screen as the machine would. */
 async function onClaude(at: At, lines: { wide: string[]; phone: string[] } = WORKING) {
-  await at.page.addInitScript(() => localStorage.setItem('weft.folded', '["docs"]'));
   await agentOpen(at, 'claude');
   const bytes = Buffer.from((at.wide ? lines.wide : lines.phone).join('\r\n')).toString('base64');
   await expect.poll(() => at.machine.of('watch').some((m) => m.agent === CLAUDE)).toBe(true);
   at.machine.send({ type: 'screen', agent: CLAUDE, seq: 1, full: true, rows: 30, cols: at.wide ? 117 : 47, bytes });
 }
 
-const GATHERED: Section = { act: 'eval', state: 'GATHERED', aside: '', lines: ['gathered by Weft', '[E]VAL  debate in codex'], open: true };
-const PROV = 'asked 2026-10-04 14:02 · sent · word for word';
 
 interface Screen {
   ids: string[];
@@ -266,10 +266,7 @@ const SCREENS: Screen[] = [
   { ids: ['M1.8'], sample: () => withTree((t, a) => {
     t.splice(1);
     Object.assign(t[0], { needs: 0 });
-    for (const h of t[0].harnesses) {
-      h.works = h.works.slice(0, 1).map((x) => ({ ...x, turn: null }));
-      h.turn = 'ready';
-    }
+    t[0].agents.rows[1].turn = 'ready';
     for (const x of a) x.turn = 'ready';
   }), run: async (at) => {
     await tree(at);
@@ -288,71 +285,23 @@ const SCREENS: Screen[] = [
     await expect(at.page.getByText('Reconnecting')).toBeVisible();
   } },
 
-  // 02 · The tree
+  // 02 · The tree. M2.6–M2.9 and their D twins are superseded by M11.1, D11.1 (ADR-0029 D10).
   { ids: ['M2.1', 'D2.1'], sample: () => ({ ...atlas(), agents: [], tree: [] }), run: async (at) => {
     await open(at);
     await expect(at.page.getByText('Nothing asked for yet.')).toBeVisible();
   } },
   // No agent runs, and the harness the project routes to is not set up (as T2.3).
-  { ids: ['M2.3', 'D2.3'], sample: () => ({ ...atlas(), agents: [], tree: [{ project: 'weft', open: 0, needs: 0, ask: { key: 'why.not_set_up', harness: 'claude' }, harnesses: [] }] }), run: async (at) => {
+  { ids: ['M2.3', 'D2.3'], sample: () => ({ ...atlas(), agents: [], tree: [{ ...project('weft', []), ask: { key: 'why.not_set_up', harness: 'claude' } }] }), run: async (at) => {
     await open(at);
     await expect(at.page.getByText('claude is not set up for RingFrame.')).toBeVisible();
   } },
-  { ids: ['M2.4', 'D2.4'], sample: () => ({ ...atlas(), agents: [], tree: [{ project: 'weft', open: 0, needs: 0, ask: { key: 'why.start_an_agent' }, setup: { ringframe: true, git: false, commit: false }, harnesses: [] }] }), run: tree },
+  { ids: ['M2.4', 'D2.4'], sample: () => ({ ...atlas(), agents: [], tree: [{ ...project('weft', []), ask: { key: 'why.start_an_agent' }, setup: { ringframe: true, git: false, commit: false } }] }), run: tree },
   { ids: ['M2.5'], sample: () => {
     const s = atlas();
-    return { ...s, agents: [{ ...s.agents[0], turn: 'ready' }], tree: [{ project: 'weft', open: 1, needs: 0, ask: null, harnesses: [{ ...s.tree[0].harnesses[0], turn: 'ready', works: [] }] }] };
+    return { ...s, agents: [{ ...s.agents[0], turn: 'ready' }], tree: [project('weft', [{ ...SESSIONS[1], turn: 'ready', title: null, asks: 0 }])] };
   }, run: async (at) => {
     await tree(at);
-    await harnessTapped(at, 'claude');
-  } },
-  { ids: ['M2.6', 'D2.6'], run: async (at) => {
-    await folded(at, ['docs']);
-    await tree(at);
-    if (at.wide) await harnessTapped(at, 'codex');
-    await item(at, 'health endpoint').click();
-  } },
-  ...(['M2.7', 'D2.7'] as const).map((id): Screen => ({
-    ids: [id],
-    sample: () => withTree((t, a) => {
-      // weft as the card has it, docs folded, and site with its claude folded.
-      const [claude, codex] = t[0].harnesses;
-      Object.assign(t[0], { needs: 0 });
-      Object.assign(claude, { turn: 'ready', works: [{ ...claude.works[0], turn: 'ready' }] });
-      codex.works = codex.works.slice(0, 1);
-      t.push({ project: 'site', open: 1, needs: 0, ask: null, harnesses: [{ ...t[1].harnesses[0], agent: 'site-0', works: [] }] });
-      a[0].turn = 'ready';
-    }),
-    run: async (at) => {
-      await folded(at, ['docs', 'site/claude']);
-      await tree(at);
-      if (at.wide) await harnessTapped(at, 'claude');
-      await item(at, 'fix login').click();
-    },
-  })),
-  { ids: ['M2.8'], sample: () => withTree((t, a) => {
-    const h = t[0].harnesses[0];
-    Object.assign(t[0], { open: 24, needs: 0 });
-    h.turn = 'ready';
-    a[0].turn = 'ready';
-    h.works = Array.from({ length: 24 }, (_, i) => ({ unit: `ask_${i + 6}`, title: `task ${i + 6}`, word: 'asked' as const, turn: i === 2 ? 'ready' as const : null, eval: null, seal: null }));
-  }), run: async (at) => {
-    await tree(at);
-    await item(at, 'task 8').click();
-  } },
-  { ids: ['M2.9', 'D2.9'], sample: () => withTree((t, a) => {
-    // The project has turbo on (the header's ⚡ turbo); claude was started in it.
-    t.splice(1);
-    const [claude, codex] = t[0].harnesses;
-    Object.assign(t[0], { needs: 0, turbo: true });
-    Object.assign(claude, { turbo: true, turn: 'ready', works: [{ ...claude.works[0], turn: 'ready' }] });
-    Object.assign(codex, { running: false, agent: null, turn: null, works: [{ ...codex.works[0], turn: null }] });
-    a[0].turn = 'ready';
-    a[1].running = false;
-  }), run: async (at) => {
-    await tree(at);
-    if (at.wide) await harnessTapped(at, 'claude');
-    await item(at, 'health endpoint').click();
+    await selected(at, 'claude · no Ask yet');
   } },
 
   // 03 · The agent
@@ -369,7 +318,7 @@ const SCREENS: Screen[] = [
     await scrollBack(at, 300);
   } },
   { ids: ['M3.6'], sample: calm, run: async (at) => {
-    at.machine.onRead = (m) => ({ ...history(3)(m), transcript: 'Ctrl+O' });
+    at.machine.onRead = (m) => (m.what === 'history' ? { ...history(3)(m), transcript: 'Ctrl+O' } : null);
     await onClaude(at);
     await activate(at);
     await scrollBack(at, 600);
@@ -379,7 +328,7 @@ const SCREENS: Screen[] = [
     await onClaude(at);
     const s = calm();
     s.agents[0].running = false;
-    Object.assign(s.tree[0].harnesses[0], { running: false, agent: null, turn: null });
+    Object.assign(s.tree[0].agents.rows[1], { state: 'ended', agent: null, turn: null });
     at.machine.send({ type: 'agents', agents: s.agents });
     at.machine.send({ type: 'tree', tree: s.tree });
     await expect(at.page.getByText('claude has ended. Its work is still on the list.')).toBeVisible();
@@ -455,7 +404,7 @@ const SCREENS: Screen[] = [
     ids: [m, d].filter(Boolean),
     run: async (at) => {
       at.machine.onAct = staging(agent, what, why, text);
-      await barOn(at);
+      await barOn(at, what.startsWith('Seal') ? 'Seal' : 'Eval');
       await expect(at.page.getByRole('dialog', { name: what })).toBeVisible();
     },
   })),
@@ -466,25 +415,14 @@ const SCREENS: Screen[] = [
     await at.page.getByRole('dialog', { name: 'Eval this work?' }).getByRole('button', { name: 'Send', exact: true }).click();
     await expect(at.page.getByRole('dialog', { name: 'The agent has not said it is ready' })).toBeVisible();
     // On a phone the card shows it over claude's view.
-    if (!at.wide) await item(at, 'claude').click();
+    if (!at.wide) await button(at, 'NEEDS YOU 1').click();
   } },
-  ...(['M4.12', 'D4.12'] as const).map((id): Screen => ({
-    ids: [id],
-    // The desktop card: codex not running, claude ready with fix login, docs gone.
-    sample: id === 'D4.12' ? () => withTree((t, a) => {
-      t.splice(1);
-      Object.assign(t[0], { open: 2, needs: 0 });
-      const [claude, codex] = t[0].harnesses;
-      Object.assign(claude, { turn: 'ready', works: [{ ...claude.works[0], turn: 'ready' }] });
-      Object.assign(codex, { running: false, agent: null, turn: null, works: [{ ...codex.works[0], turn: null }] });
-      a.splice(1);
-      a[0].turn = 'ready';
-    }) : undefined,
-    run: async (at) => {
-      at.machine.onAct = (m) => [{ type: 'error', req: m.req, code: 'not_running', message: 'codex is not running.', harness: 'codex', session: { at: (14 * 60 + 2) * 60_000, last: 'Implement /health: read BUILD_NUMBER' } }];
-      await barOn(at);
-    },
-  })),
+  // No agent runs where the act goes: the machine names the session to resume, by its id.
+  { ids: ['M4.12', 'D4.12'], run: async (at) => {
+    const ended = { ...SESSIONS[2], state: 'ended' as const, turn: null, agent: null };
+    at.machine.onAct = (m) => [{ type: 'error', req: m.req, code: 'not_running', message: 'codex is not running.', harness: 'codex', session: ended }];
+    await barOn(at);
+  } },
   { ids: ['M4.13'], run: async (at) => {
     at.machine.onAct = (m) => [{ type: 'error', req: m.req, code: 'not_running', message: 'codex is not running.', harness: 'codex', session: null }];
     await barOn(at);
@@ -500,26 +438,17 @@ const SCREENS: Screen[] = [
     await expect(at.page.getByText('Answered on the machine')).toBeVisible();
   } },
 
-  // 05 · Details
-  { ids: ['M5.1'], run: (at) => details(at, 'ask_2', DETAILS.ask_2) },
-  { ids: ['M5.2', 'D5.2'], run: (at) => details(at, 'ask_1', DETAILS.ask_1) },
-  { ids: ['M5.3'], run: (at) => details(at, 'ask_3', detail('health endpoint', 'codex', 'asked 2026-10-04 14:02 · ready to send', [
-    { act: 'ask', state: 'DONE', aside: '', lines: ['You asked:', 'Read the build number from the environment and show it on /health', 'The prompt codex composed:', 'Implement /health: read BUILD_NUMBER from the environment at startup; …'], open: true },
-  ], { proceed: true })) },
-  { ids: ['M5.4', 'D5.4'], run: (at) => details(at, 'ask_3', DETAILS.ask_3) },
-  { ids: ['M5.5'], run: (at) => details(at, 'ask_3', detail('health endpoint', 'codex', PROV, [SENT, GATHERED, NOT_RUN('seal')], { eval_view: true, debate_in: 'codex' })) },
-  { ids: ['M5.6', 'D5.6'], run: (at) => details(at, 'ask_3', detail('health endpoint', 'codex', `${PROV} · judged by codex`, [SENT, JUDGED, NOT_RUN('seal')], { eval_view: true, recorded: 'drifted, 0.67' })) },
-  { ids: ['M5.7', 'D5.7'], run: (at) => details(at, 'ask_4', detail('readme fix', 'codex', '… judged by codex · sealed 2026-10-03 12:05',
-    [SENT, { ...JUDGED, open: false }, SEALED], { eval_view: true, recorded: 'aligned, 1.0', holds: true })) },
-  { ids: ['M5.8'], run: (at) => details(at, 'ask_4', detail('readme fix', 'codex', '… sealed 2026-10-03 12:05',
-    [SENT, { ...JUDGED, open: false }, { ...SEALED, lines: ['RECEIPT       rcp_7f3a2c', 'THE RECEIPT NO LONGER HOLDS', 'the work has moved on since it was sealed'] }], { eval_view: true, holds: false })) },
-  { ids: ['M5.9'], sample: () => withTree((t) => t[0].harnesses[0].works.push({ unit: 'ask_9', title: 'old idea', word: 'cancelled', turn: null, eval: null, seal: null })),
-    run: (at) => details(at, 'ask_9', detail('old idea', 'claude', 'asked 2026-10-02 16:30 · cancelled',
-    [{ act: 'ask', state: 'DONE', aside: '', lines: ['You asked:', 'Try a second login provider'], open: true }])) },
-  // The card shows no provenance, no verdict beside the Eval and no Seal.
-  { ids: ['M5.10'], run: (at) => details(at, 'ask_3', detail('health endpoint', 'codex', '', [
-    { act: 'ask', state: 'DONE', aside: '', lines: ['what you asked is not on disk', 'the prompt is not on disk'], open: true },
-    { ...JUDGED, aside: '', lines: ["that check's record is not on disk"] }])) },
+  // 05 · Details: a work's Ask in each of its states, as M11.2 draws it now. M5.5–M5.8 and
+  // their D twins (the Eval and Seal sections) are superseded by M11.3, M11.4 (ADR-0029 D10).
+  { ids: ['M5.1'], run: (at) => details(at, 'ask_2') },
+  { ids: ['M5.2', 'D5.2'], run: (at) => details(at, 'ask_1') },
+  { ids: ['M5.3'], run: (at) => details(at, 'ask_3', { ...DETAILS.ask_3, crumb: { eval: null, seal: null }, proceed: true,
+    ask: { ...DETAILS.ask_3.ask, aside: 'asked 2026-10-08 10:31 · ready to send', lines: [...DETAILS.ask_3.ask.lines.slice(0, 5), 'not sent yet · ready to send'] } }) },
+  { ids: ['M5.4', 'D5.4'], run: (at) => details(at, 'ask_3') },
+  { ids: ['M5.9'], sample: () => withTree((t) => t[0].work.open.asks.push({ unit: 'ask_9', title: 'old idea', harness: 'claude', word: 'asked' })),
+    run: (at) => details(at, 'ask_9', { ...DETAILS.ask_1, unit: 'ask_9', title: 'old idea', proceed: false, follows: 'ask_9',
+      ask: { state: 'DONE', aside: 'asked 2026-10-08 08:30 · cancelled', lines: ['You asked:', 'Try a second login provider', 'How it was sent:', 'cancelled'] } }) },
+  { ids: ['M5.10'], run: (at) => details(at, 'ask_3', { ...DETAILS.ask_3, ask: { state: 'DONE', aside: '', lines: ['what you asked is not on disk', 'the prompt is not on disk'] } }) },
 
   // 06 · The Eval view
   { ids: ['M6.1', 'D6.1'], run: (at) => evalView(at) },
@@ -563,13 +492,14 @@ const SCREENS: Screen[] = [
   // 07 · A harness not set up: it broke after its agent started (as T3.8).
   { ids: ['M7.1', 'D7.1'], sample: () => {
     const s = atlas();
-    return { ...s, agents: [{ ...s.agents[0], turn: 'ready' }], tree: [{ project: 'weft', open: 1, needs: 0, ask: { key: 'why.not_set_up', harness: 'claude' }, harnesses: [{ ...s.tree[0].harnesses[0], turn: 'ready', works: [] }] }] };
+    const claude = { ...SESSIONS[1], turn: 'ready' as const, title: null, asks: 0, ask: { key: 'why.not_set_up', harness: 'claude' } };
+    return { ...s, agents: [{ ...s.agents[0], turn: 'ready' }], tree: [{ ...project('weft', [claude]), ask: { key: 'why.not_set_up', harness: 'claude' } }] };
   }, run: async (at) => {
     await tree(at);
-    await harnessTapped(at, 'claude');
+    await selected(at, 'claude · no Ask yet');
     // On the phone the bar says it; on a desktop the agent beside the tree does.
     if (!at.wide) {
-      await button(at, 'Eval').click();
+      await at.page.locator('.tree-acts').getByRole('button', { name: 'Ask', exact: true }).click();
       await expect(at.page.getByText('claude is not set up for RingFrame. Set it up in Weft on studio: U.')).toBeVisible();
     }
   } },
@@ -596,7 +526,7 @@ const SCREENS: Screen[] = [
   } },
   { ids: ['D9.1'], run: async (at) => {
     await settingsOpen(at, [{ name: 'laptop' }]);
-    await item(at, 'claude').click();
+    await item(at, 'claude · fix login').click();
     await kept(at, { name: 'Mac · Chrome', push: true });
     await button(at, 'Menu').click();
     await expect(at.page.getByLabel(/Notifications from studio/)).toBeChecked();
@@ -622,7 +552,7 @@ const SCREENS: Screen[] = [
       Notification.requestPermission = async () => 'denied';
     });
     await settingsOpen(at);
-    if (at.wide) await item(at, 'claude').click();
+    if (at.wide) await item(at, 'claude · fix login').click();
     await button(at, 'Menu').click();
     await at.page.getByLabel(/Notifications from studio/).click();
     await expect(at.page.getByText('Notifications are turned off for Weft in this browser.')).toBeVisible();
@@ -645,13 +575,64 @@ const SCREENS: Screen[] = [
     await expect(at.page.getByRole('radiogroup', { name: 'Start an agent' })).toBeVisible();
   } },
 
+  // 11 · Agents and rounds (ADR-0029): the cards' moment, docs folded.
+  // M11.1: claude selected; the phone's tree from its top.
+  { ids: ['M11.1'], run: async (at) => {
+    await tree(at);
+    await item(at, 'claude · fix login').click();
+  } },
+  // D11.1: claude open beside the tree, asking; Eval 3 folded so the tree fits.
+  { ids: ['D11.1'], run: async (at) => {
+    await folded(at, ['docs', 'weft/evl_3']);
+    await onClaude(at, ASKING);
+  } },
+  { ids: ['M11.2'], run: (at) => details(at, 'ask_1') },
+  { ids: ['D11.2'], run: async (at) => {
+    await folded(at, ['docs', 'weft/evl_3']);
+    await details(at, 'ask_1');
+  } },
+  { ids: ['M11.3'], run: roundOpen },
+  { ids: ['D11.3'], run: async (at) => {
+    await folded(at, ['docs', 'weft/open']);
+    await roundOpen(at);
+  } },
+  ...(['M11.4', 'D11.4'] as const).map((id): Screen => ({
+    ids: [id],
+    run: async (at) => {
+      await folded(at, ['docs', 'weft/open', 'weft/evl_3', 'weft/sealed']);
+      await tree(at);
+      if (at.wide) await item(at, 'Seal 4').click();
+      else await item(at, 'Seal 4').getByRole('button', { name: 'Details of Seal 4' }).click();
+      await expect(at.page.getByRole('region', { name: 'Seal 4' })).toBeVisible();
+    },
+  })),
+  ...(['M11.5', 'D11.5'] as const).map((id): Screen => ({
+    ids: [id],
+    run: async (at) => {
+      await folded(at, ['docs', 'weft/evl_3']);
+      await tree(at);
+      if (at.wide) await item(at, 'claude · readme fix').click();
+      else await item(at, 'claude · readme fix').getByRole('button', { name: /^Details of/ }).click();
+      await expect(at.page.getByRole('region', { name: 'claude · 3f9c2b71…a21e' })).toBeVisible();
+    },
+  })),
+  ...(['M11.6', 'D11.6'] as const).map((id): Screen => ({
+    ids: [id],
+    run: async (at) => {
+      await folded(at, ['docs', 'weft/evl_3']);
+      await tree(at);
+      await item(at, '12 earlier sessions').click();
+      await expect(at.page.getByRole('listitem')).toHaveCount(12);
+    },
+  })),
+
   // 10 · Notices
   { ids: ['M10.1', 'D10.1'], run: async (at) => {
     await folded(at, ['docs']);
     await tree(at);
     if (at.wide) await button(at, 'NEEDS YOU 1').click();
-    await button(at, 'Eval').click();
-    await expect(at.page.getByText('Nothing to work on yet.')).toBeVisible();
+    await at.page.locator('.tree-acts').getByRole('button', { name: 'Eval', exact: true }).click();
+    await expect(at.page.getByText('Select Open to Eval its Asks.')).toBeVisible();
   } },
   { ids: ['M10.2', 'D10.2'], sample: calm, run: async (at) => {
     at.machine.onText = (m) => ({ type: 'error', req: m.req, code: 'in_flight', message: 'still typing' });
@@ -669,7 +650,7 @@ const SCREENS: Screen[] = [
     // Turbo on, then docs' claude ends: the notice at the foot of the tree.
     const s = atlas();
     s.tree[0].turbo = true;
-    s.agents[2].running = false;
+    s.agents[3].running = false;
     at.machine.send({ type: 'agents', agents: s.agents });
     at.machine.send({ type: 'tree', tree: s.tree });
     await expect(at.page.getByText('claude has ended. Its work is still on the list.')).toBeVisible();

@@ -8,7 +8,8 @@ import { AddMachine } from './views/AddMachine';
 import { Agent } from './views/Agent';
 import { PendingBar } from './views/Asked';
 import { AskSheet } from './views/Ask';
-import { Details } from './views/Details';
+import { Details, RoundDetails, SealDetails } from './views/Details';
+import { EarlierSessions, SessionDetails } from './views/Session';
 import { EvalView } from './views/EvalView';
 import { Mark, TreePage } from './views/Tree';
 import { StartPage } from './views/Start';
@@ -155,6 +156,10 @@ export function App() {
     case 'tree':
     case 'agent':
     case 'detail':
+    case 'round':
+    case 'seal':
+    case 'session':
+    case 'earlier':
     case 'eval':
     case 'start': {
       const m = a.machines.find((x) => x.id === view.machine);
@@ -165,8 +170,12 @@ export function App() {
       if (view.name === 'tree') queueMicrotask(() => openWanted(m.id));
       const shown =
         wide.value ? <Wide login={a.login} machine={m} agent={view.name === 'agent' ? view.agent : null} starting={view.name === 'start' ? view.harness ?? '' : null} view={view} />
-        : view.name === 'eval' ? <EvalView machine={m} unit={view.unit} at={view.at} files={view.files} />
-        : view.name === 'detail' ? <Details machine={m} unit={view.unit} />
+        : view.name === 'eval' ? <EvalView key={`${view.eval}${view.at}${view.files}`} machine={m} project={view.project} eval={view.eval} at={view.at} files={view.files} />
+        : view.name === 'detail' ? <Details key={view.unit} machine={m} project={view.project} unit={view.unit} />
+        : view.name === 'round' ? <RoundDetails key={view.eval} machine={m} project={view.project} eval={view.eval} />
+        : view.name === 'seal' ? <SealDetails key={view.seal} machine={m} project={view.project} seal={view.seal} />
+        : view.name === 'session' ? <SessionDetails key={view.session} machine={m} project={view.project} session={view.session} />
+        : view.name === 'earlier' ? <EarlierSessions key={view.project} machine={m} project={view.project} />
         : view.name === 'start' ? <StartPage machine={m} from={view.from} harness={view.harness} />
         : view.name === 'agent' ? <Agent machine={m} agent={view.agent} />
         : <TreePage machine={m} />;

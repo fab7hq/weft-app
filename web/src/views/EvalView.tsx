@@ -1,5 +1,5 @@
-// The Eval view (M6.1–M6.7, D6.1–D6.7): the TUI's, read from the machine, as
-// pages you drill into. Each fold of the TUI is a page; the crumb goes back.
+// The Eval view (M6.1–M6.7, D6.1–D6.7): the TUI's, read from the machine by
+// its Eval, as pages you drill into. Each fold of the TUI is a page; the crumb goes back.
 // While the Eval runs the header counts the judges' stages, read again.
 import { useEffect, useState } from 'preact/hooks';
 import type { Machine } from '../api';
@@ -95,19 +95,19 @@ function titleOf(v: View, at: string | undefined): string {
   return row?.text.split(' · ')[0] ?? '';
 }
 
-export function EvalView({ machine, unit, at, files = false, wide = false }: { machine: Machine; unit: string; at?: string; files?: boolean; wide?: boolean }) {
+export function EvalView({ machine, project, eval: id, at, files = false, wide = false }: { machine: Machine; project: string; eval: string; at?: string; files?: boolean; wide?: boolean }) {
   const [v, setV] = useState<View | null>(null);
   const [tick, setTick] = useState(0);
   useEffect(() => {
-    void m.request({ type: 'read', what: 'eval_view', unit })?.then((a) => a.type === 'ok' && setV(a.eval_view as View));
-  }, [unit, tick]);
+    void m.request({ type: 'read', what: 'eval_view', project, eval: id })?.then((a) => a.type === 'ok' && setV(a.eval_view as View));
+  }, [id, tick]);
   // While the Eval runs, read it again as the judges record.
   useEffect(() => {
     if (!v || v.closed) return;
     const t = setTimeout(() => setTick((n) => n + 1), 2000);
     return () => clearTimeout(t);
   }, [v]);
-  const open = (key: string) => go({ name: 'eval', machine: machine.id, unit, at: key, files });
+  const open = (key: string) => go({ name: 'eval', machine: machine.id, project, eval: id, at: key, files });
   const before = stack.value[stack.value.length - 2];
   const crumb = before?.name === 'eval' && v ? titleOf(v, before.at) : w('web.detail.title');
 
@@ -133,7 +133,7 @@ export function EvalView({ machine, unit, at, files = false, wide = false }: { m
           <div class="eval-chips">
             {[false, true].map((f) => (
               <button key={String(f)} class={f === files ? 'eval-chip eval-chip--on' : 'eval-chip'} type="button" aria-pressed={f === files}
-                onClick={() => swap({ name: 'eval', machine: machine.id, unit, files: f })}>
+                onClick={() => swap({ name: 'eval', machine: machine.id, project, eval: id, files: f })}>
                 {w(f ? 'eval_view.by_file' : 'eval_view.by_step')}
               </button>
             ))}
@@ -246,7 +246,7 @@ export function EvalView({ machine, unit, at, files = false, wide = false }: { m
         <div class="detail-acts detail-acts--wide">
           <span class="dim eval-hint">{w('web.eval.click')}</span>
           <span class="spacer" />
-          <button class="tree-act" type="button" onClick={() => leave(['eval', 'detail'])}>{w('act.close')}</button>
+          <button class="tree-act" type="button" onClick={() => leave(['eval', 'round', 'seal', 'detail', 'session', 'earlier'])}>{w('act.close')}</button>
         </div>
       </div>
     );

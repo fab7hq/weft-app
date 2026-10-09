@@ -1,143 +1,296 @@
-// A work's Details (M5.1–M5.10, D5.2–D5.7): the machine's sections, folded as
-// the cards fold them; Proceed sends act proceed, Follow up opens M4.4, Eval
-// view opens the view.
+// Details, one level each (M11.2–M11.6, D11.2–D11.6): a work's Ask only,
+// under a breadcrumb whose parts are links; an Eval once, with Seal; a Seal
+// once, its Asks a page at a time; a session, resumed by its id after a
+// confirm; the earlier sessions, a page at a time, searched as you type.
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
-import { FakeMachine, atlas } from './fake-machine';
+import { FakeMachine, atlas, type Ask } from './fake-machine';
+import { CLAUDE, README_SESSION, large } from './atlas-fixtures';
+import { row, wideOf } from './open';
 import { person, signIn } from './seed';
-import { DETAILS, JUDGED, NOT_RUN, SEALED, SENT, detail, type Section } from './atlas-fixtures';
 
-async function opened(page: Page, context: BrowserContext, unit: string, d = DETAILS[unit]) {
+async function opened(page: Page, context: BrowserContext, sample = atlas()) {
   const machine = await FakeMachine.start();
-  Object.assign(machine, atlas());
-  machine.onRead = (m) => ({ type: 'ok', req: m.req, detail: m.what === 'detail' && m.unit === unit ? d : null });
+  Object.assign(machine, sample);
   await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
   await page.goto('/');
-  await page.getByRole('button', { name: `Details of ${d.title}` }).click();
-  await expect(page.getByRole('region', { name: d.title })).toBeVisible();
-  return { machine, view: page.getByRole('region', { name: d.title }) };
+  await expect(page.getByRole('tree', { name: 'Work' })).toBeVisible();
+  return machine;
 }
 
-const heading = (page: Page, act: string) => page.getByRole('region', { name: act, exact: true }).getByRole('button').first();
+/** A row's Details: › on a phone; on a desktop › on an Ask, a click on the rest (D11.1). */
+async function details(page: Page, name: string) {
+  const r = row(page, name);
+  const more = r.getByRole('button', { name: /^Details of/ });
+  if (wideOf(page) && !(await more.count())) await r.click();
+  else await more.click();
+}
 
-test('M5.1: still being composed, the Ask alone, open; Follow up opens M4.4 for it', async ({ page, context }) => {
-  const { view } = await opened(page, context, 'ask_2');
-  await expect(view.locator('.chip')).toHaveText(['ASK ASKING', "EVAL HAVEN'T RUN", "SEAL HAVEN'T RUN"]);
-  await expect(view.getByText('asked 2026-10-05 09:12 · asked, still being composed')).toBeVisible();
-  await expect(heading(page, 'Ask')).toHaveAttribute('aria-expanded', 'true');
-  await expect(heading(page, 'Ask')).toContainText('asking');
-  await expect(view.locator('.detail-line').filter({ hasText: 'Count how often' })).toBeVisible();
+const region = (page: Page, name: string | RegExp) => page.getByRole('region', { name, exact: typeof name === 'string' });
+const crumbs = (page: Page) => page.locator('.crumbs').first();
+const facts = (page: Page) => page.locator('.fact').evaluateAll((all) => all.map((f) => [f.querySelector('.fact-label')?.textContent, f.querySelector('.fact-value')?.textContent]));
+const asks = (page: Page) => page.locator('.detail-ask').evaluateAll((all) => all.map((a) => [a.querySelector('.tree-name')?.textContent, a.querySelector('.tree-aside')?.textContent]));
+const act = (page: Page, name: string) => (wideOf(page) ? page.locator('.detail-acts') : page.locator('.detail-foot')).getByRole('button', { name, exact: true });
+
+test('M11.2 D11.2: a work\'s Details hold its Ask only, under where it stands; Proceed sends act proceed', async ({ page, context }) => {
+  const machine = await opened(page, context);
+  await details(page, 'fix login');
+  const view = region(page, 'fix login');
+  await expect(view).toBeVisible();
+  await expect.poll(() => machine.of('read').at(-1)).toEqual(expect.objectContaining({ what: 'detail', unit: 'ask_1' }));
+  await expect(crumbs(page)).toHaveText('fix login›not evaluated yet');
+  await expect(view.getByText('asked 2026-10-08 11:29 · waiting for your yes')).toBeVisible();
+  await expect(view.locator('.detail-section-head')).toHaveText('AskASKED');
+  await expect(view.locator('.detail-line')).toHaveText(['You asked:', 'Refresh the token before it expires, not after', 'The prompt claude composed:',
+    'In src/login.rs refresh the session token 60 s before expiry …', 'How it was sent:', 'not sent yet · waiting for your yes']);
+  await expect(view.locator('.fact--session')).toHaveText('Its session● claude · 11:29›');
+  // No chips, no Eval or Seal sections: those are their own Details.
+  await expect(view.locator('.chip')).toHaveCount(0);
   await expect(page.getByRole('region', { name: 'Eval', exact: true })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Proceed' })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Follow up' }).click();
-  const sheet = page.getByRole('dialog', { name: 'What do you want done?' });
-  await expect(sheet.getByText('FOLLOW UP · TELEMETRY · ASK_2')).toBeVisible();
-});
-
-test('M5.2 D5.2: waiting for your yes, Proceed sends act proceed on the work', async ({ page, context }) => {
-  const { machine } = await opened(page, context, 'ask_1');
-  await expect(page.getByText('The prompt claude composed:')).toBeVisible();
   const acted = new Promise<Record<string, unknown>>((done) => (machine.onAct = (m) => (done(m), [{ type: 'ok', req: m.req }])));
-  await page.getByRole('button', { name: 'Proceed' }).click();
+  await act(page, 'Proceed').click();
   expect(await acted).toMatchObject({ act: 'proceed', unit: 'ask_1' });
+  await act(page, 'Follow up').click();
+  await expect(page.getByRole('dialog', { name: 'What do you want done?' }).getByText('FOLLOW UP · FIX LOGIN · ASK_1')).toBeVisible();
+  await machine.close();
 });
 
-test('M5.4 D5.4: sent, every section folds, and a heading unfolds it', async ({ page, context }) => {
-  await opened(page, context, 'ask_3');
-  for (const [act, aside] of [['Ask', 'the prompt as typed'], ['Eval', "haven't run"], ['Seal', "haven't run"]]) {
-    await expect(heading(page, act)).toHaveAttribute('aria-expanded', 'false');
-    await expect(heading(page, act)).toContainText(aside);
-  }
-  await expect(page.getByText('The prompt codex sent:')).toHaveCount(0);
-  await heading(page, 'Ask').click();
-  await expect(page.getByText('The prompt codex sent:')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Eval view' })).toHaveCount(0);
+test('M11.2: still being composed, ASKING, and nothing to proceed with', async ({ page, context }) => {
+  const machine = await opened(page, context);
+  await details(page, 'telemetry');
+  await expect(region(page, 'telemetry').locator('.detail-section-head')).toHaveText('AskASKING');
+  await expect(page.getByText('claude has not composed its prompt yet.')).toBeVisible();
+  await expect(act(page, 'Proceed')).toHaveCount(0);
+  await expect(act(page, 'Follow up')).toBeVisible();
+  await machine.close();
 });
 
-test('M5.5: gathered, the Eval open says where its debate runs; Eval view opens the view', async ({ page, context }) => {
-  const gathered: Section = { act: 'eval', state: 'GATHERED', aside: '', lines: ['gathered by Weft', '[E]VAL  debate in codex'], open: true };
-  const d = detail('health endpoint', 'codex', 'asked 2026-10-04 14:02 · sent · word for word', [SENT, gathered, NOT_RUN('seal')], { eval_view: true, debate_in: 'codex' });
-  await opened(page, context, 'ask_3', d);
-  await expect(page.locator('.chip')).toHaveText(['ASK DONE', 'EVAL GATHERED', "SEAL HAVEN'T RUN"]);
-  await expect(heading(page, 'Eval')).toContainText('gathered');
-  await expect(page.getByText('Eval on the tree runs the debate in codex.')).toBeVisible();
-  await expect(page.getByText('[E]VAL')).toHaveCount(0);
-  await page.getByRole('button', { name: 'Eval view' }).click();
-  await expect(page.getByRole('region', { name: 'Eval view' })).toBeVisible();
+test('M11.2 D11.2: an evaluated work\'s breadcrumb links its Eval; a sealed one\'s its Seal too', async ({ page, context }) => {
+  const machine = await opened(page, context);
+  await details(page, 'health endpoint');
+  await expect(crumbs(page)).toHaveText('health endpoint›Eval 3 aligned›not sealed');
+  await crumbs(page).getByRole('button', { name: 'Eval 3 aligned' }).click();
+  await expect(region(page, 'Eval 3')).toBeVisible();
+  // A sealed one, reached from its Seal.
+  await region(page, 'Eval 3').getByRole('button', { name: 'health endpoint' }).waitFor();
+  await page.goto('/');
+  await row(page, 'Sealed').click();
+  await details(page, 'Seal 4');
+  await region(page, 'Seal 4').getByRole('button', { name: 'readme fix' }).click();
+  await expect(crumbs(page)).toHaveText('readme fix›Eval 2 aligned›Seal 4');
+  await crumbs(page).getByRole('button', { name: 'Seal 4' }).click();
+  await expect(region(page, 'Seal 4')).toBeVisible();
+  await machine.close();
 });
 
-test('M5.6 D5.6: judged, the verdict first, the judges behind their count, the unexplained in one line', async ({ page, context }) => {
-  const d = detail('health endpoint', 'codex', 'asked 2026-10-04 14:02 · sent · word for word · judged by codex', [SENT, JUDGED, NOT_RUN('seal')],
-    { eval_view: true, recorded: 'drifted, 0.67', follows: 'evl_2' });
-  await opened(page, context, 'ask_3', d);
-  const wide = page.viewportSize()!.width >= 768;
-  await expect(heading(page, 'Eval')).toContainText('0.67 agreed');
-  const eval_ = page.getByRole('region', { name: 'Eval', exact: true });
-  await expect(eval_.locator('.detail-line').first()).toHaveText("doesn't match what you asked");
-  await expect(eval_.getByText('map · codex · gpt-5.6-terra')).toHaveCount(0);
-  await eval_.getByRole('button', { name: /3 judges checked the work/ }).click();
-  await expect(eval_.getByText('map · codex · gpt-5.6-terra')).toBeVisible();
-  await expect(eval_.getByText('CHANGED WITH NO JUDGE ABLE TO TIE IT TO WHAT YOU ASKED: src/telemetry.rs')).toBeVisible();
-  if (wide) {
-    await expect(eval_.getByText('judged by codex · recorded as drifted, 0.67 · 3 judges checked the work · none of them did it')).toBeVisible();
-    await expect(eval_.getByText('returns the real build number — no · all 3 judges agreed — it still reads a literal "dev" at src/health.rs:41')).toBeVisible();
-  } else {
-    await expect(eval_.getByText('no · all 3 judges agreed', { exact: true })).toBeVisible();
-  }
-  // Folded, the Eval says what it was recorded as.
-  await heading(page, 'Eval').click();
-  await expect(heading(page, 'Eval')).toContainText('drifted, 0.67');
-  await page.getByRole('button', { name: 'Follow up' }).click();
-  await expect(page.getByText('FOLLOW UP · HEALTH ENDPOINT · EVL_2')).toBeVisible();
+test('M11.2 D11.2: Its session › goes to its agent while a pane holds it, else to the session', async ({ page, context }) => {
+  const machine = await opened(page, context);
+  await details(page, 'fix login');
+  await page.locator('.fact--session').click();
+  await expect(page.getByLabel("The agent's screen")).toBeVisible();
+  await expect.poll(() => machine.of('watch').at(-1)?.agent).toBe(CLAUDE);
+  await page.goto('/');
+  await row(page, 'Sealed').click();
+  await details(page, 'Seal 4');
+  await region(page, 'Seal 4').getByRole('button', { name: 'readme fix' }).click();
+  await page.locator('.fact--session').click();
+  await expect(region(page, /^claude · 3f9c2b71/)).toBeVisible();
+  await machine.close();
 });
 
-test('M5.7 D5.7: sealed, the Seal open on its receipt', async ({ page, context }) => {
-  const d = detail('readme fix', 'codex', 'asked 2026-10-03 11:20 · sent · word for word · judged by codex · sealed 2026-10-03 12:05',
-    [SENT, { ...JUDGED, open: false, lines: [] }, SEALED], { eval_view: true, recorded: 'aligned, 1.0', holds: true });
-  await opened(page, context, 'ask_4', d);
-  await expect(page.locator('.chip')).toHaveText(['ASK DONE', 'EVAL DONE', 'SEAL DONE']);
-  await expect(heading(page, 'Eval')).toContainText('aligned, 1.0');
-  await expect(heading(page, 'Seal')).toContainText('accepted');
-  await expect(page.getByText('The receipt still matches what RingFrame wrote.')).toBeVisible();
+test('M11.3 D11.3: an Eval\'s Details, once: verdict, agreement, judges, findings, checks, its Asks; Seal and Eval view', async ({ page, context }) => {
+  const machine = await opened(page, context);
+  machine.onAct = (m) => [{ type: 'pending', id: 'pnd_1', agent: CLAUDE, what: 'Seal this work?', why: 'The agent will ask what you decided.', text: '/rf:seal' }, { type: 'ok', req: m.req, pending: 'pnd_1' }];
+  await details(page, 'Eval 3');
+  const view = region(page, 'Eval 3');
+  await expect(view).toBeVisible();
+  await expect.poll(() => machine.of('read').at(-1)).toEqual(expect.objectContaining({ what: 'eval', project: 'weft', eval: 'evl_3' }));
+  await expect(crumbs(page)).toHaveText('Eval 3›not sealed');
+  await expect(page.getByText('evl_3', { exact: true })).toBeVisible();
+  await expect(view.getByText('judged 2026-10-08 10:58 · covers 2 Asks')).toBeVisible();
+  expect(await facts(page)).toEqual([['Verdict', 'aligned'], ['Agreement', '0.67'], ['Judged by', 'codex'], ['Findings', '2'], ['Checks RingFrame ran', '✓ cargo test passed']]);
+  await expect(view.locator('.detail-head-row')).toHaveText('The Asks it covers2');
+  expect(await asks(page)).toEqual([['health endpoint', 'codex'], ['build number', 'codex']]);
+  // "Not sealed", the round's word capitalised as a heading.
+  await expect(view.locator('.detail-note-head')).toHaveText('not sealed');
+  await act(page, 'Seal').click();
+  await expect.poll(() => machine.of('act')).toEqual([expect.objectContaining({ act: 'seal', project: 'weft', eval: 'evl_3' })]);
+  await page.getByRole('dialog', { name: 'Seal this work?' }).getByRole('button', { name: 'Cancel', exact: true }).click();
+  await view.getByRole('button', { name: /^Findings/ }).click();
+  await expect(page.getByText('what RingFrame noticed beside the steps')).toBeVisible();
+  expect(machine.of('read').at(-1)).toMatchObject({ what: 'eval_view', project: 'weft', eval: 'evl_3' });
+  await page.goBack();
+  await act(page, 'Eval view').click();
+  await expect(region(page, 'Eval view')).toBeVisible();
+  await page.goBack();
+  await region(page, 'Eval 3').getByRole('button', { name: 'build number' }).click();
+  await expect(crumbs(page)).toHaveText('build number›Eval 3 aligned›not sealed');
+  await machine.close();
 });
 
-test('M5.8: the receipt no longer holds, and why', async ({ page, context }) => {
-  const broken: Section = { ...SEALED, lines: ['RECEIPT       rcp_7f3a2c', 'THE RECEIPT NO LONGER HOLDS', 'the work has moved on since it was sealed'] };
-  const d = detail('readme fix', 'codex', '… · sealed 2026-10-03 12:05', [SENT, { ...JUDGED, open: false }, broken], { eval_view: true, holds: false });
-  await opened(page, context, 'ask_4', d);
+test('M11.3 D11.3: a sealed Eval says its Seal; Seal stays drawn and says it is sealed already (D12.6)', async ({ page, context }) => {
+  const machine = await opened(page, context);
+  await row(page, 'Sealed').click();
+  await details(page, 'Seal 4');
+  await region(page, 'Seal 4').getByRole('button', { name: /^The Eval it seals/ }).click();
+  const view = region(page, 'Eval 2');
+  await expect(view).toBeVisible();
+  await expect(crumbs(page)).toHaveText('Eval 2›Seal 4');
+  await expect(view.getByRole('button', { name: 'Sealed in Seal 4' })).toBeVisible();
+  await act(page, 'Seal').click();
+  await expect(page.getByRole('status')).toHaveText('Eval 2 is sealed already.');
+  expect(machine.of('act')).toHaveLength(0);
+  await expect(page.locator('button:disabled')).toHaveCount(0);
+  await view.getByRole('button', { name: 'Sealed in Seal 4' }).click();
+  await expect(region(page, 'Seal 4')).toBeVisible();
+  await machine.close();
+});
+
+test('M11.4 D11.4: a Seal\'s Details, once: its decision, when, by whom, its Eval, its receipt, its Asks; no act', async ({ page, context }) => {
+  const machine = await opened(page, context);
+  await row(page, 'Sealed').click();
+  await expect(page.locator('.tree-row--seal')).toHaveText(['Seal 4accepted · Eval 22›', 'Seal 3accepted · Eval 19›', 'Seal 2accepted11›', 'Seal 1accepted9›']);
+  await details(page, 'Seal 4');
+  const view = region(page, 'Seal 4');
+  await expect(view).toBeVisible();
+  await expect.poll(() => machine.of('read').at(-1)).toEqual(expect.objectContaining({ what: 'seal', project: 'weft', seal: 'rcp_7f3a2c' }));
+  await expect(crumbs(page)).toHaveText('Seal 4ACCEPTED');
+  await expect(view.getByText('sealed 2026-10-08 09:40 · covers 2 Asks')).toBeVisible();
+  expect(await facts(page)).toEqual([['Decision', 'accepted'], ['When', '2026-10-08 09:40'], ['By', 'you · from this phone'], ['The Eval it seals', 'Eval 2 · aligned · 1.0'], ['Receipt', 'rcp_7f3a2c']]);
+  expect(await asks(page)).toEqual([['readme fix', 'claude'], ['docs links', 'claude']]);
+  await expect(view.getByText('The receipt still matches what RingFrame wrote.')).toBeVisible();
+  await expect(view.getByText('A Seal records what was decided. It does not make the work right.')).toBeVisible();
+  // A Seal is final: no act. A desktop has its Eval view and Close.
+  if (wideOf(page)) await expect(page.locator('.detail-acts .tree-act')).toHaveText(['Eval view', 'Close']);
+  else await expect(page.locator('.detail-foot')).toHaveCount(0);
+  await machine.close();
+});
+
+test('M11.4: a receipt that no longer holds says so, and why', async ({ page, context }) => {
+  const sample = atlas();
+  Object.assign(sample.reads.seals.rcp_7f3a2c, { holds: false, broken: ['the work has moved on since it was sealed'] });
+  const machine = await opened(page, context, sample);
+  await row(page, 'Sealed').click();
+  await details(page, 'Seal 4');
   await expect(page.getByText('THE RECEIPT NO LONGER HOLDS')).toBeVisible();
   await expect(page.getByText('the work has moved on since it was sealed')).toBeVisible();
+  await expect(page.getByText('The receipt still matches what RingFrame wrote.')).toHaveCount(0);
+  await machine.close();
 });
 
-test('M5.9: cancelled, what was asked and nothing to proceed with', async ({ page, context }) => {
-  const d = detail('fix login', 'claude', 'asked 2026-10-02 16:30 · cancelled',
-    [{ act: 'ask', state: 'DONE', aside: '', lines: ['You asked:', 'Try a second login provider'], open: true }]);
-  await opened(page, context, 'ask_1', d);
-  await expect(page.getByText('asked 2026-10-02 16:30 · cancelled')).toBeVisible();
-  await expect(page.getByText('Try a second login provider')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Proceed' })).toHaveCount(0);
+test('M11.4 D11.4: a Seal\'s Asks come a page at a time, the next as they scroll', async ({ page, context }) => {
+  const sample = atlas();
+  const many: Ask[] = Array.from({ length: 120 }, (_, i) => ({ unit: `ask_${1000 + i}`, title: `work ${i}`, harness: 'claude' }));
+  sample.reads.seals.rcp_7f3a2c.asks = many;
+  sample.reads.sealed.weft[0].asks = 120;
+  const machine = await opened(page, context, sample);
+  await row(page, 'Sealed').click();
+  await details(page, 'Seal 4');
+  await expect(page.locator('.detail-ask')).toHaveCount(50);
+  await expect(page.getByText('covers 120 Asks')).toBeVisible();
+  await page.getByRole('button', { name: 'work 49', exact: true }).scrollIntoViewIfNeeded();
+  await expect(page.locator('.detail-ask')).toHaveCount(100);
+  expect(machine.of('read').filter((r) => r.what === 'seal').at(-1)).toMatchObject({ seal: 'rcp_7f3a2c', after: 'ask_1049' });
+  await page.getByRole('button', { name: 'work 99', exact: true }).scrollIntoViewIfNeeded();
+  await expect(page.locator('.detail-ask')).toHaveCount(120);
+  await machine.close();
 });
 
-test('M5.10: a record not on disk is said where it would be, open', async ({ page, context }) => {
-  const d = detail('health endpoint', 'codex', 'asked 2026-10-04 14:02 · sent · word for word · judged by codex', [
-    { act: 'ask', state: 'DONE', aside: '', lines: ['what you asked is not on disk', 'the prompt is not on disk'], open: true },
-    { ...JUDGED, lines: ["that check's record is not on disk"] }, NOT_RUN('seal')]);
-  await opened(page, context, 'ask_3', d);
-  await expect(page.getByText('what you asked is not on disk')).toBeVisible();
-  await expect(page.getByText("that check's record is not on disk")).toBeVisible();
-});
-
-test('D5.2: on a desktop a double click opens the Details in the agent\'s place, and Close goes back', async ({ page, context }, info) => {
-  test.skip(info.project.name !== 'desktop', 'a mouse');
-  const machine = await FakeMachine.start();
-  Object.assign(machine, atlas());
-  machine.onRead = (m) => ({ type: 'ok', req: m.req, detail: DETAILS.ask_1 });
-  await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
-  await page.goto('/');
-  await page.getByRole('treeitem', { name: 'fix login', exact: true }).dblclick();
-  const view = page.getByRole('region', { name: 'fix login' });
+test('M11.5 D11.5: an ended session\'s Details; Resume this session asks first, then starts exactly its id', async ({ page, context }) => {
+  const machine = await opened(page, context);
+  machine.onStart = (m) => {
+    machine.agents = [...machine.agents, { agent: '3f9a1c07b2de-7', project: 'weft', harness: 'claude', title: 'Claude Code', turn: 'ready', running: true, since: Date.now() }];
+    return [{ type: 'agents', agents: machine.agents }, { type: 'ok', req: m.req, agent: '3f9a1c07b2de-7' }];
+  };
+  await details(page, 'claude · readme fix');
+  const view = region(page, 'claude · 3f9c2b71…a21e');
   await expect(view).toBeVisible();
-  // The tree stays beside it.
-  await expect(page.getByRole('tree', { name: 'Work' })).toBeVisible();
-  await view.getByRole('button', { name: 'Close' }).click();
-  await expect(view).toHaveCount(0);
+  await expect.poll(() => machine.of('read').at(-1)).toEqual(expect.objectContaining({ what: 'session', project: 'weft', session: README_SESSION }));
+  await expect(crumbs(page)).toHaveText('○claudeENDED');
+  await expect(view.getByText('ended 2026-10-08 09:12 · 1 Ask made in it')).toBeVisible();
+  expect(await facts(page)).toEqual([['State', 'ended 09:12'], ['Started', '2026-10-08 08:47'], ['Session', '3f9c2b71…a21e'], ['Project', 'weft']]);
+  expect(await asks(page)).toEqual([['readme fix', 'SEALED']]);
+  await act(page, 'Resume this session').click();
+  const confirm = page.getByRole('dialog', { name: 'Resume claude on s 3f9c2b71…a21e?' });
+  await expect(confirm.getByText('Weft starts claude again on this session, in a new pane.')).toBeVisible();
+  await confirm.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await expect(confirm).toHaveCount(0);
+  expect(machine.of('start')).toHaveLength(0);
+  await act(page, 'Resume this session').click();
+  await confirm.getByRole('button', { name: 'Resume', exact: true }).click();
+  await expect.poll(() => machine.of('start')).toEqual([{ type: 'start', project: 'weft', harness: 'claude', resume: README_SESSION, req: expect.anything() }]);
+  await expect.poll(() => machine.of('watch').at(-1)?.agent).toBe('3f9a1c07b2de-7');
+  await machine.close();
+});
+
+test('M11.5 D11.5: a running session goes to its agent; one another program runs says why it cannot', async ({ page, context }) => {
+  const sample = atlas();
+  sample.tree[0].agents.rows[0].agent = null;
+  const machine = await opened(page, context, sample);
+  if (wideOf(page)) await row(page, 'claude · fix login').dblclick();
+  else await details(page, 'claude · fix login');
+  await expect(region(page, /^claude · 8b2e4f60/)).toBeVisible();
+  expect(await asks(page)).toEqual([['fix login', 'ASKED'], ['telemetry', 'ASKING']]);
+  await act(page, 'Go to its agent').click();
+  await expect.poll(() => machine.of('watch').at(-1)?.agent).toBe(CLAUDE);
+  await page.goto('/');
+  if (wideOf(page)) await row(page, 'codex · no Ask yet').click();
+  else await details(page, 'codex · no Ask yet');
+  await expect(region(page, /^codex · 0199c2f0/)).toBeVisible();
+  await act(page, 'Go to its agent').click();
+  await expect(page.getByRole('status')).toHaveText("codex runs in another program: Weft can't show it or type into it.");
+  await machine.close();
+});
+
+test('M11.5: a quiet session: its last active time on the row and in the confirm', async ({ page, context }) => {
+  const sample = atlas();
+  Object.assign(sample.tree[0].agents.rows[4], { state: 'quiet', ask: { key: 'why.quiet', harness: 'codex' } });
+  const machine = await opened(page, context, sample);
+  await expect(row(page, 'codex · lint pass').locator('.agent-state')).toHaveText('last active 08:30');
+  await details(page, 'codex · lint pass');
+  await act(page, 'Resume this session').click();
+  await expect(page.getByRole('dialog', { name: 'Resume codex on s 0199c0a8…e6f7?' }).getByText("Weft can't tell whether it still runs: it was last active 08:30.")).toBeVisible();
+  await machine.close();
+});
+
+test('M11.6 D11.6: the earlier sessions, grouped, newest first; a row opens its session', async ({ page, context }) => {
+  const machine = await opened(page, context);
+  await row(page, '12 earlier sessions').click();
+  const view = region(page, 'Earlier sessions');
+  await expect(view).toBeVisible();
+  await expect.poll(() => machine.of('read').at(-1)).toEqual(expect.objectContaining({ what: 'sessions', project: 'weft' }));
+  expect(machine.of('read').at(-1)).not.toHaveProperty('q');
+  await expect(view.locator('.detail-head-row')).toHaveText(['TODAY2', 'YESTERDAY4', 'THIS WEEK6']);
+  const list = view.getByRole('list', { name: 'Earlier sessions' });
+  await expect(list.getByRole('listitem')).toHaveCount(12);
+  await expect(list.getByRole('listitem').first()).toContainText('codex');
+  await expect(list.getByRole('listitem').first()).toContainText('flaky test');
+  await expect(list.getByRole('listitem').first()).toContainText('07:40');
+  await expect(list.getByRole('listitem', { name: 'claude · turn-state map' })).toContainText('Tue 18:22');
+  await list.getByRole('listitem', { name: 'codex · ci cache' }).click();
+  await expect(region(page, /^codex · 01997a2d/)).toBeVisible();
+  await machine.close();
+});
+
+test('M11.6 D11.6: the search sends what is typed and keeps the groups; the list reads a page at a time as it scrolls', async ({ page, context }) => {
+  const big = large();
+  const sample = atlas();
+  sample.reads.earlier.weft = big.earlier;
+  sample.tree[0].agents.earlier = big.earlier.length;
+  const machine = await opened(page, context, sample);
+  await row(page, '295 earlier sessions').click();
+  const view = region(page, 'Earlier sessions');
+  const rows = view.getByRole('listitem');
+  await expect(rows).toHaveCount(50);
+  await rows.nth(49).scrollIntoViewIfNeeded();
+  await expect(rows).toHaveCount(100);
+  const pages = () => machine.of('read').filter((r) => r.what === 'sessions');
+  expect(pages()[1]).toMatchObject({ project: 'weft', after: big.earlier[49].session });
+  await view.getByRole('searchbox').fill('task 29');
+  await expect.poll(() => pages().at(-1)).toEqual(expect.objectContaining({ q: 'task 29' }));
+  // task 29 and task 290–295 that the page holds: still grouped.
+  await expect(rows).toHaveCount(7);
+  await expect(view.locator('.detail-head-row')).toHaveText(['EARLIER7']);
+  await view.getByRole('searchbox').fill('');
+  await expect(rows).toHaveCount(50);
+  await machine.close();
 });

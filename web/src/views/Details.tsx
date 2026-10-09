@@ -1,215 +1,402 @@
-// A work's Details (M5.1–M5.10, D5.2–D5.7): the TUI's, read from the machine,
-// in sections that fold. Proceed when its prompt waits, Follow up, Eval view.
-import { useEffect, useState } from 'preact/hooks';
+// Details, one level each (ADR-0029 D3): a work's (M11.2, D11.2), its Ask
+// only, under a breadcrumb of where it stands; an Eval's (M11.3, D11.3), once;
+// a Seal's (M11.4, D11.4), once. Each is read from the machine; a part of the
+// record it names is a link to its own Details. On a phone a page with its
+// acts under it; on a desktop the agent's place, with Close.
+import type { ComponentChildren } from 'preact';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Machine } from '../api';
+import { clock, stamp } from '../bar';
 import * as m from '../machine';
 import { back, go } from '../nav';
-import { fill, w } from '../words';
+import { fill, stateWord, w } from '../words';
 import { asking } from './Ask';
 import { act } from './Asked';
+import { said, sealRound } from './Bar';
+import { Verdict, evalName, sealName, sealedCount, stateOf } from './Tree';
 
-interface Section {
-  act: 'ask' | 'eval' | 'seal';
-  state: string;
-  aside: string;
-  lines: string[];
-  open: boolean;
+/** The record's parts, as a work's breadcrumb names them. */
+interface Crumb {
+  eval: { eval: string; n: number; verdict: m.Round['verdict'] } | null;
+  seal: { seal: string; n: number } | null;
 }
 
-interface Detail {
+/** A work's Details (`read detail`). */
+interface Work {
+  unit: string;
   title: string;
   harness: string;
-  provenance: string;
-  sections: Section[];
+  crumb: Crumb;
+  /** `state` is DONE once composed, else still being asked. */
+  ask: { state: string; aside: string; lines: string[] };
+  session: m.Session | null;
   proceed: boolean;
-  eval_view: boolean;
-  recorded: string | null;
-  holds: boolean | null;
-  debate_in: string | null;
   follows: string;
 }
 
-/** Where a work sits in the tree. */
-const placeOf = (unit: string) => {
-  for (const p of m.tree.value) for (const h of p.harnesses) for (const work of h.works) if (work.unit === unit) return { p, h, work };
-  return null;
-};
-
-/** A chip's tone: amber while under way or when the receipt no longer holds, teal when it holds. */
-function tone(s: Section, d: Detail): string {
-  if (s.state === w('word.asking') || s.state === 'GATHERED') return 'chip chip--needs';
-  if (s.act === 'seal' && s.state === 'DONE') return d.holds === false ? 'chip chip--needs' : 'chip chip--good';
-  return 'chip';
+/** An Eval's Details (`read eval`). */
+interface Judged {
+  eval: string;
+  n: number;
+  judging: boolean;
+  verdict: m.Round['verdict'];
+  agreement: string | null;
+  judged_by: string | null;
+  at: number | null;
+  findings: { mark: string; text: string }[];
+  checks: { mark: string; text: string; result: string }[];
+  asks: m.Ask[];
+  sealed: { seal: string; n: number } | null;
+  seal: m.Why | null;
 }
 
-/** The aside beside a heading, as the web says it. */
-function aside(s: Section, d: Detail, open: boolean): string {
-  if (s.state !== 'DONE') return s.state.toLowerCase();
-  if (s.act === 'ask') return open ? '' : w('web.detail.as_typed');
-  if (s.act === 'eval') return open ? s.aside.slice(s.aside.lastIndexOf(', ') + 2) : d.recorded ?? '';
-  return s.aside;
+/** A Seal's Details (`read seal`), its Asks a page at a time. */
+interface Sealed {
+  seal: string;
+  n: number;
+  decision: string;
+  at: number | null;
+  by: string;
+  eval: { eval: string; n: number; verdict: m.Round['verdict']; agreement: string | null } | null;
+  receipt: string;
+  holds: boolean | null;
+  broken: string[];
+  asks: m.Ask[];
+  next: string | null;
 }
 
-/** A line as drawn: indented lines read as the line above them says. */
-type Drawn = { text: string; dim?: boolean; tone?: 'needs' | 'good' | 'loud'; rest?: string; mark?: string; judges?: string[] };
-
-/** A label the TUI sets in capitals and pads, as in `RECEIPT       rcp_7f3a2c`. */
-const labelled = (line: string) => /^[A-Z][A-Z ]*[A-Z] {2,}\S/.test(line);
-
-/** What a Seal's receipt says, toned by whether it holds (M5.7, M5.8): that it
- * still matches in teal; that it no longer holds, and why, in amber. */
-function sealTones(out: Drawn[], d: Detail) {
-  let broke = false;
-  let said = false;
-  for (const l of out) {
-    if (labelled(l.text)) continue;
-    if (d.holds === true && !said) {
-      said = true;
-      l.tone = 'good';
-    } else if (d.holds === false && !broke && l.text === l.text.toUpperCase()) {
-      broke = true;
-      l.tone = 'loud';
-    } else if (broke && /^[a-z]/.test(l.text)) l.tone = 'needs';
-  }
-}
-
-/** The TUI's lines for one section, as the web draws them. */
-function drawn(s: Section, d: Detail, wide: boolean): Drawn[] {
-  let lines = s.lines.filter((l) => l.trim() !== '');
-  if (s.state === 'GATHERED' && d.debate_in) lines = [...lines.slice(0, -1), fill('web.detail.debate_in', { harness: d.debate_in })];
-  const out: Drawn[] = [];
-  // The Eval's verdict is the first thing it says.
-  if (s.act === 'eval' && s.state === 'DONE' && s.aside.includes(', ')) out.push({ text: s.aside.slice(0, s.aside.lastIndexOf(', ')), tone: 'needs' });
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const under: string[] = [];
-    while (lines[i + 1]?.startsWith('  ')) under.push(lines[++i].trim());
-    const mark = line.startsWith('✗ ') ? '✗' : line.startsWith('✓ ') ? '✓' : undefined;
-    if (line.startsWith(w('eval.judge'))) {
-      // The judges are behind the line that counts them.
-      const last = out[out.length - 1];
-      if (last) (last.judges ??= []).push(line.replace(/\s{2,}/g, '  '));
-      continue;
-    }
-    // The Eval's and the Seal's readings are dim beside what they found; the
-    // Ask's labels are dim beside the words.
-    const dim = s.act !== 'ask' || line.endsWith(':') || (s.state === w('word.asking') && i === lines.length - 1);
-    // A record the machine could not read says so in its place, in amber (M5.10).
-    if (/ is not on disk$/.test(line)) out.push({ text: line, tone: 'needs' });
-    else if (mark) {
-      const said = { text: line.slice(2), mark };
-      if (wide) out.push({ ...said, rest: under.map((u) => ` — ${u}`).join('') });
-      else out.push(said, ...under.map((u) => ({ text: u, dim: true })));
-    } else if (under.length && line === line.toUpperCase()) out.push({ text: `${line}: ${under.join(', ')}`, dim: true });
-    else out.push({ text: line, dim }, ...under.map((u) => ({ text: u, dim: true })));
-  }
-  if (s.act === 'seal') sealTones(out, d);
-  // On a desktop the Eval's first two readings share a line.
-  if (wide && s.act === 'eval') {
-    const at = out.findIndex((l) => l.judges);
-    if (at > 0 && !out[at - 1].mark) out.splice(at - 1, 2, { ...out[at], text: `${out[at - 1].text} · ${out[at].text}`, dim: true });
-  }
-  return out;
-}
-
-function Line({ line }: { line: Drawn }) {
-  const [shown, setShown] = useState(false);
-  const cls = `detail-line${line.tone ? ` detail-line--${line.tone}` : line.dim ? ' dim' : ''}`;
-  if (line.judges) {
-    return (
-      <>
-        <button class={`${cls} detail-judges`} type="button" aria-expanded={shown} onClick={() => setShown(!shown)}>{line.text}</button>
-        {shown && line.judges.map((j) => <p key={j} class="detail-line dim">{j}</p>)}
-      </>
-    );
-  }
-  return (
-    <p class={cls}>
-      {line.mark && <span class={`detail-mark ${line.mark === '✗' ? 'needs' : 'good'}`}>{line.mark}</span>}
-      {line.mark && <span class="dim"> </span>}
-      {line.text}
-      {line.rest && <span class="dim">{line.rest}</span>}
-    </p>
-  );
-}
-
-function Part({ s, d, wide }: { s: Section; d: Detail; wide: boolean }) {
-  const [open, setOpen] = useState(s.open);
-  return (
-    <section class="detail-section" aria-label={w(`act.${s.act}`)}>
-      <button class="detail-head" type="button" aria-expanded={open} onClick={() => setOpen(!open)}>
-        <span class="detail-caret">{open ? '▾' : '▸'}</span>
-        <span class="detail-name">{w(`act.${s.act}`)}</span>
-        <span class="spacer" />
-        <span class="detail-aside">{aside(s, d, open)}</span>
-      </button>
-      {open && drawn(s, d, wide).map((l, i) => <Line key={i} line={l} />)}
-    </section>
-  );
-}
-
-export function Details({ machine, unit, wide = false }: { machine: Machine; unit: string; wide?: boolean }) {
-  const [d, setD] = useState<Detail | null>(null);
-  const place = placeOf(unit);
-  // Read again as the work moves on.
-  const at = place && JSON.stringify(place.work);
+/** Read once, and again when `again` changes. */
+export function useRead<T>(message: Record<string, unknown>, what: string, again: unknown[] = []): T | null {
+  const [got, setGot] = useState<T | null>(null);
   useEffect(() => {
-    void m.request({ type: 'read', what: 'detail', unit })?.then((a) => a.type === 'ok' && setD(a.detail as Detail));
-  }, [unit, at]);
-  const followUp = () =>
-    d && (asking.value = { project: place?.p.project, agent: place?.h.agent ?? undefined, follow: { unit, title: d.title, follows: d.follows } });
-  const evalView = () => go({ name: 'eval', machine: machine.id, unit });
-  const acts = d && (
-    <div class={wide ? 'detail-acts detail-acts--wide detail-work-acts' : 'detail-acts'}>
-      {d.proceed && (
-        <button class="tree-act tree-act--go" type="button" onClick={() => void act({ act: 'proceed', unit })}>{w('act.proceed')}</button>
-      )}
-      <button class="tree-act" type="button" onClick={followUp}>{w('act.follow_up')}</button>
-      {d.eval_view && <button class="tree-act" type="button" onClick={evalView}>{w('act.eval_view')}</button>}
-      {wide && (
-        <>
-          <span class="spacer" />
-          <button class="tree-act" type="button" onClick={back}>{w('act.close')}</button>
-        </>
-      )}
-    </div>
+    void m.request({ type: 'read', what, ...message })?.then((a) => a.type === 'ok' && setGot(a[what] as T));
+  }, [JSON.stringify(message), ...again]);
+  return got;
+}
+
+/** The parts of a breadcrumb, with `›` between them; a part with a press is a link. */
+type Part = { text: ComponentChildren; go?: () => void; tone?: string };
+
+function Crumbs({ parts }: { parts: Part[] }) {
+  return (
+    <span class="crumbs">
+      {parts.map((p, i) => (
+        <span key={i} class="crumb-part">
+          {i > 0 && <span class="crumb-sep">›</span>}
+          {p.go ? (
+            <button class={`crumb crumb--link${i === 0 ? ' crumb--first' : ''}`} type="button" onClick={p.go}>{p.text}</button>
+          ) : (
+            <span class={`crumb${i === 0 ? ' crumb--first' : ''}${p.tone ? ` ${p.tone}` : ''}`}>{p.text}</span>
+          )}
+        </span>
+      ))}
+    </span>
   );
-  const body = d && (
-    <div class="detail detail-work">
-      {!wide && <h2 class="detail-title">{d.title}</h2>}
-      <div class="detail-chips">
-        {(['ask', 'eval', 'seal'] as const).map((a) => {
-          // Until the Ask is sent the other two have not run, and have no section.
-          const s = d.sections.find((x) => x.act === a) ?? { act: a, state: "HAVEN'T RUN", aside: '', lines: [], open: false };
-          return <span key={a} class={tone(s, d)}>{`${a.toUpperCase()} ${s.state}`}</span>;
-        })}
-      </div>
-      <p class="detail-prov">{d.provenance}</p>
-      {d.sections.map((s) => <Part key={s.act} s={s} d={d} wide={wide} />)}
-    </div>
-  );
+}
+
+/**
+ * One Details view: on a phone a page under `‹ project` with its acts under
+ * it, the why of an act that does not apply above them; on a desktop the
+ * agent's place, its breadcrumb on top and Close among its acts.
+ */
+export function Frame({ machine, project, label, crumbs, right, mono = false, aside, wide, acts, children }: {
+  machine: Machine;
+  project: string;
+  label: string;
+  crumbs: Part[];
+  right?: string;
+  mono?: boolean;
+  aside?: ComponentChildren;
+  wide: boolean;
+  acts?: ComponentChildren;
+  children?: ComponentChildren;
+}) {
+  const rightSaid = right && <span class={mono ? 'detail-id' : 'detail-harness'}>{right}</span>;
   if (wide) {
     return (
-      <div class="detail-pane" role="region" aria-label={d?.title ?? ''}>
-        <div class="detail-top detail-work-top">
-          <strong>{d?.title}</strong>
+      <div class="detail-pane" role="region" aria-label={label}>
+        <div class="detail-top">
+          <Crumbs parts={crumbs} />
           <span class="spacer" />
-          <span class="detail-harness">{d?.harness}</span>
+          {rightSaid}
         </div>
-        {body}
-        {acts}
+        <div class="detail detail-v3">
+          {aside && <p class="detail-prov">{aside}</p>}
+          {children}
+        </div>
+        <div class="detail-acts detail-acts--wide">
+          {acts}
+          <span class="spacer" />
+          <button class="tree-act" type="button" onClick={back}>{w('act.close')}</button>
+        </div>
       </div>
     );
   }
   return (
     <div class="app">
       <div class="appbar">
-        <button class="back" type="button" onClick={back}>{`‹ ${place?.p.project ?? machine.name}`}</button>
+        <button class="back" type="button" onClick={back}>{`‹ ${project || machine.name}`}</button>
         <span class="spacer" />
-        <span class="detail-harness">{d?.harness}</span>
+        {rightSaid}
       </div>
-      <div class="page detail-page" role="region" aria-label={d?.title ?? ''}>{body}</div>
-      {acts}
+      <div class="page detail-page detail-v3" role="region" aria-label={label}>
+        <h2 class="detail-crumbs"><Crumbs parts={crumbs} /></h2>
+        {aside && <p class="detail-prov">{aside}</p>}
+        {children}
+      </div>
+      {(acts || said.value) && (
+        <div class="detail-foot">
+          {said.value && <p class="tree-said" role="status">{said.value}</p>}
+          {acts && <div class="detail-acts">{acts}</div>}
+        </div>
+      )}
     </div>
+  );
+}
+
+/** A labelled line of a Details view, as `Verdict  aligned`; with a press, a › at its end. */
+export function Fact({ label, children, go: onGo }: { label: string; children: ComponentChildren; go?: () => void }) {
+  const body = (
+    <>
+      <span class="fact-label">{label}</span>
+      <span class="fact-value">{children}</span>
+      {onGo && <span class="tree-more" aria-hidden="true">›</span>}
+    </>
+  );
+  return onGo ? (
+    <button class="fact fact--link" type="button" onClick={onGo}>{body}</button>
+  ) : (
+    <div class="fact">{body}</div>
+  );
+}
+
+/** A section's head: its label in capitals, and how many. */
+export function Head({ label, n }: { label: string; n?: number }) {
+  return (
+    <div class="detail-head-row">
+      <span class="detail-label">{label}</span>
+      {n !== undefined && <span class="detail-count">{n}</span>}
+    </div>
+  );
+}
+
+/** An Ask in a list of Details: its title, then its harness or its word, and › to its own Details. */
+export function AskLine({ title, aside, onGo }: { title: string; aside: string; onGo: () => void }) {
+  return (
+    <button class="detail-ask" type="button" onClick={onGo} aria-label={title}>
+      <span class="tree-name">{title}</span>
+      <span class="tree-aside">{aside}</span>
+      <span class="tree-more" aria-hidden="true">›</span>
+    </button>
+  );
+}
+
+/** Where the Details views lead. */
+export function moves(machine: Machine, project: string) {
+  return {
+    work: (unit: string) => go({ name: 'detail', machine: machine.id, project, unit }),
+    round: (eval_: string) => go({ name: 'round', machine: machine.id, project, eval: eval_ }),
+    seal: (seal: string) => go({ name: 'seal', machine: machine.id, project, seal }),
+    session: (session: string) => go({ name: 'session', machine: machine.id, project, session }),
+    agent: (agent: string) => go({ name: 'agent', machine: machine.id, agent }),
+    view: (eval_: string, at?: string) => go({ name: 'eval', machine: machine.id, project, eval: eval_, at }),
+  };
+}
+
+const coverage = (n: number) => (n === 1 ? w('web.detail.covers_one') : fill('web.detail.covers', { n: String(n) }));
+
+/** A work's Details (M11.2, D11.2): the Ask only, and the session it was asked in. */
+export function Details({ machine, project, unit, wide = false }: { machine: Machine; project: string; unit: string; wide?: boolean }) {
+  // Read again as the tree moves on.
+  const d = useRead<Work>({ unit }, 'detail', [JSON.stringify(m.tree.value.find((p) => p.project === project)?.work)]);
+  const to = moves(machine, project);
+  if (!d) return <Frame machine={machine} project={project} label="" crumbs={[]} wide={wide} />;
+  const e = d.crumb.eval;
+  const crumbs: Part[] = [{ text: d.title }];
+  if (!e) crumbs.push({ text: w('web.detail.not_evaluated'), tone: 'dim' });
+  else {
+    crumbs.push({ text: <>{`${evalName(e.n)} `}{e.verdict ? w(`verdict.${e.verdict}`) : w('tree.judging')}</>, go: () => to.round(e.eval) });
+    if (d.crumb.seal) {
+      const s = d.crumb.seal;
+      crumbs.push({ text: sealName(s.n), go: () => to.seal(s.seal) });
+    } else crumbs.push({ text: w('tree.not_sealed'), tone: wide ? 'needs' : 'dim' });
+  }
+  const followUp = () => (asking.value = { project, agent: d.session?.agent ?? undefined, follow: { unit, title: d.title, follows: d.follows } });
+  const s = d.session;
+  // Its session: its agent while a pane holds it, else its Details.
+  const toSession = s && (() => (s.agent ? to.agent(s.agent) : to.session(s.session)));
+  const waiting = s?.state === 'running' && s.turn === 'waiting';
+  return (
+    <Frame
+      machine={machine}
+      project={project}
+      label={d.title}
+      crumbs={crumbs}
+      right={d.harness}
+      aside={d.ask.aside}
+      wide={wide}
+      acts={
+        <>
+          {d.proceed && <button class="tree-act tree-act--go" type="button" onClick={() => void act({ act: 'proceed', unit })}>{w('act.proceed')}</button>}
+          <button class="tree-act" type="button" onClick={followUp}>{w('act.follow_up')}</button>
+        </>
+      }
+    >
+      <section class="detail-section" aria-label={w('act.ask')}>
+        <div class="detail-section-head">
+          <span class="detail-name">{w('act.ask')}</span>
+          <span class="detail-aside">{stateWord(d.ask.state === 'DONE' ? 'asked' : 'asking')}</span>
+        </div>
+        {d.ask.lines.filter((l) => l.trim() !== '').map((l, i) => (
+          <p key={i} class={l.endsWith(':') ? 'detail-line dim' : / is not on disk$/.test(l) ? 'detail-line detail-line--needs' : 'detail-line'}>{l}</p>
+        ))}
+      </section>
+      {s && toSession && (
+        <button class="fact fact--link fact--session" type="button" onClick={toSession}>
+          <span class="fact-label">{w('web.detail.its_session')}</span>
+          <span class="fact-value">
+            <span class={waiting ? 'needs' : s.state === 'running' ? 'good' : 'dim'}>{s.state === 'running' ? '● ' : '○ '}</span>
+            {`${s.harness} · ${s.state === 'running' ? clock(s.at) : stateOf(s)}`}
+          </span>
+          <span class="tree-more" aria-hidden="true">›</span>
+        </button>
+      )}
+    </Frame>
+  );
+}
+
+/** An Eval's Details (M11.3, D11.3): once, with the Asks it covers; Seal stays drawn, and says why when it does not apply (D12.6). */
+export function RoundDetails({ machine, project, eval: id, wide = false }: { machine: Machine; project: string; eval: string; wide?: boolean }) {
+  const d = useRead<Judged>({ project, eval: id }, 'eval', [JSON.stringify(m.tree.value.find((p) => p.project === project)?.work.evals)]);
+  const to = moves(machine, project);
+  if (!d) return <Frame machine={machine} project={project} label="" crumbs={[]} wide={wide} />;
+  const crumbs: Part[] = [{ text: evalName(d.n) }];
+  if (d.judging) crumbs.push({ text: w('tree.judging'), tone: 'dim' });
+  else if (d.sealed) {
+    const s = d.sealed;
+    crumbs.push({ text: sealName(s.n), go: () => to.seal(s.seal) });
+  } else crumbs.push({ text: w('tree.not_sealed'), tone: wide ? 'needs' : 'dim' });
+  const aside = [d.at !== null ? fill('web.eval.judged', { time: stamp(d.at) }) : null, coverage(d.asks.length)].filter(Boolean).join(' · ');
+  const check = d.checks[0];
+  return (
+    <Frame
+      machine={machine}
+      project={project}
+      label={evalName(d.n)}
+      crumbs={crumbs}
+      right={d.eval}
+      mono
+      aside={aside}
+      wide={wide}
+      acts={
+        <>
+          <button class="tree-act tree-act--go" type="button" onClick={() => void sealRound(project, d.eval, d.seal)}>{w('act.seal')}</button>
+          <button class="tree-act" type="button" onClick={() => to.view(d.eval)}>{w('act.eval_view')}</button>
+        </>
+      }
+    >
+      <div class="facts">
+        <Fact label={w('web.eval.verdict')}>{d.verdict ? <Verdict verdict={d.verdict} /> : w('tree.judging')}</Fact>
+        {d.agreement && <Fact label={w('web.eval.agreement')}>{d.agreement}</Fact>}
+        {d.judged_by && <Fact label={w('web.eval.judged_by')}>{d.judged_by}</Fact>}
+        <Fact label={w('eval_view.findings')} go={() => to.view(d.eval, 'h:findings')}>{d.findings.length}</Fact>
+        <Fact label={w('eval_view.checks')} go={() => to.view(d.eval, 'h:checks')}>
+          {check && (
+            <>
+              <span class={check.mark === '✓' ? 'good' : check.mark === '✗' ? 'needs' : undefined}>{`${check.mark} `}</span>
+              {`${check.text} ${check.result}`}
+            </>
+          )}
+        </Fact>
+      </div>
+      <Head label={w('web.eval.asks')} n={d.asks.length} />
+      <div class="detail-asks">
+        {d.asks.map((a) => <AskLine key={a.unit} title={a.title} aside={a.harness} onGo={() => to.work(a.unit)} />)}
+      </div>
+      {d.sealed ? (
+        <button class="detail-sealed" type="button" onClick={() => to.seal(d.sealed!.seal)}>
+          {fill('web.eval.sealed_in', { n: String(d.sealed.n) })}
+          <span class="tree-more" aria-hidden="true">›</span>
+        </button>
+      ) : (
+        !d.judging && (
+          <div class="detail-note">
+            <p class="detail-note-head">{w('tree.not_sealed')}</p>
+            <p class="detail-line dim">{fill('web.eval.seal_what', { n: String(d.asks.length) })}</p>
+          </div>
+        )
+      )}
+    </Frame>
+  );
+}
+
+/** A Seal's Details (M11.4, D11.4): once, with no act; its Asks a page at a time, the next read as the last comes into view. */
+export function SealDetails({ machine, project, seal, wide = false }: { machine: Machine; project: string; seal: string; wide?: boolean }) {
+  const first = useRead<Sealed>({ project, seal }, 'seal');
+  const [more, setMore] = useState<{ asks: m.Ask[]; next: string | null } | null>(null);
+  const end = useRef<HTMLDivElement>(null);
+  const asks = [...(first?.asks ?? []), ...(more?.asks ?? [])];
+  const next = more ? more.next : first?.next ?? null;
+  useEffect(() => {
+    const el = end.current;
+    if (!el || !next) return;
+    const seen = new IntersectionObserver((e) => {
+      if (!e.some((x) => x.isIntersecting)) return;
+      seen.disconnect();
+      void m.request({ type: 'read', what: 'seal', project, seal, after: next })?.then((a) => {
+        if (a.type !== 'ok') return;
+        const page = a.seal as Sealed;
+        setMore((had) => ({ asks: [...(had?.asks ?? []), ...page.asks], next: page.next }));
+      });
+    });
+    seen.observe(el);
+    return () => seen.disconnect();
+  }, [next]);
+  const to = moves(machine, project);
+  const d = first;
+  if (!d) return <Frame machine={machine} project={project} label="" crumbs={[]} wide={wide} />;
+  const n = sealedCount(project, d.seal) ?? asks.length;
+  const accepted = d.decision === 'accepted';
+  return (
+    <Frame
+      machine={machine}
+      project={project}
+      label={sealName(d.n)}
+      crumbs={[{ text: <>{sealName(d.n)}<span class={accepted ? 'chip chip--good detail-chip' : 'chip detail-chip'}>{d.decision.toUpperCase()}</span></> }]}
+      right={d.seal}
+      mono
+      aside={[d.at !== null ? fill('web.seal.sealed', { time: stamp(d.at) }) : null, coverage(n)].filter(Boolean).join(' · ')}
+      wide={wide}
+      acts={wide && d.eval ? <button class="tree-act" type="button" onClick={() => to.view(d.eval!.eval)}>{w('act.eval_view')}</button> : undefined}
+    >
+      <div class="facts">
+        <Fact label={w('web.seal.decision')}><span class={accepted ? 'good' : undefined}>{d.decision}</span></Fact>
+        {d.at !== null && <Fact label={w('web.seal.when')}>{stamp(d.at)}</Fact>}
+        <Fact label={w('web.seal.by')}>{d.by}</Fact>
+        {d.eval && (
+          <Fact label={w('web.seal.eval')} go={() => to.round(d.eval!.eval)}>
+            <span class="fact-strong">{`${evalName(d.eval.n)} · `}</span>
+            <Verdict verdict={d.eval.verdict} />
+            {d.eval.agreement && ` · ${d.eval.agreement}`}
+          </Fact>
+        )}
+        <Fact label={w('web.seal.receipt')}><span class="mono">{d.receipt}</span></Fact>
+      </div>
+      <Head label={w('web.seal.asks')} n={n} />
+      <div class="detail-asks">
+        {asks.map((a) => <AskLine key={a.unit} title={a.title} aside={a.harness} onGo={() => to.work(a.unit)} />)}
+        {next && <div ref={end} class="tree-more-rows" aria-hidden="true" />}
+      </div>
+      <div class="detail-note">
+        {d.holds === true && <p class="detail-line detail-line--good">{w('web.seal.holds')}</p>}
+        {d.holds === false && (
+          <>
+            <p class="detail-line detail-line--loud">{w('web.seal.broken')}</p>
+            {d.broken.map((b) => <p key={b} class="detail-line detail-line--needs">{b}</p>)}
+          </>
+        )}
+        <p class="detail-line dim">{w('web.seal.final')}</p>
+      </div>
+    </Frame>
   );
 }

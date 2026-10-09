@@ -163,6 +163,7 @@
   "web.refused.other": "Your machine refused this device.",
   "web.refused.title": "Not allowed",
   "web.refused.version": "This page and Weft on your machine are different versions. Reload this page; if it stays, update Weft on your machine.",
+  "web.resume.ask": "Resume {harness} {session}?",
   "web.seal.asks": "The Asks it covered",
   "web.seal.broken": "THE RECEIPT NO LONGER HOLDS",
   "web.seal.by": "By",

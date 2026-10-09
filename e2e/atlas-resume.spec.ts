@@ -50,7 +50,7 @@ test('M4.12 D4.12: no agent runs where the act goes: Resume the session the mach
     return [{ type: 'error', req: m.req, code: 'not_running', message: 'codex is not running', harness: 'codex', session: ended }];
   };
   await evalOn(page, context, machine);
-  const bar = page.getByRole('dialog', { name: 'Resume codex on s 0199c0a8…e6f7?' });
+  const bar = page.getByRole('dialog', { name: 'Resume codex 0199c0a8…e6f7?' });
   await expect(bar.getByText('Weft starts codex again on this session, in a new pane.')).toBeVisible();
   await expect(bar.getByText('Your work is in the record either way.')).toBeVisible();
   await bar.getByRole('button', { name: 'Resume', exact: true }).click();

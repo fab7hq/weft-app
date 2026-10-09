@@ -210,7 +210,7 @@ test('M11.5 D11.5: an ended session\'s Details; Resume this session asks first, 
   expect(await facts(page)).toEqual([['State', 'ended 09:12'], ['Started', '2026-10-08 08:47'], ['Session', '3f9c2b71…a21e'], ['Project', 'weft']]);
   expect(await asks(page)).toEqual([['readme fix', 'SEALED']]);
   await act(page, 'Resume this session').click();
-  const confirm = page.getByRole('dialog', { name: 'Resume claude on s 3f9c2b71…a21e?' });
+  const confirm = page.getByRole('dialog', { name: 'Resume claude 3f9c2b71…a21e?' });
   await expect(confirm.getByText('Weft starts claude again on this session, in a new pane.')).toBeVisible();
   await confirm.getByRole('button', { name: 'Cancel', exact: true }).click();
   await expect(confirm).toHaveCount(0);
@@ -248,7 +248,7 @@ test('M11.5: a quiet session: its last active time on the row and in the confirm
   await expect(row(page, 'codex · lint pass').locator('.agent-state')).toHaveText('last active 08:30');
   await details(page, 'codex · lint pass');
   await act(page, 'Resume this session').click();
-  await expect(page.getByRole('dialog', { name: 'Resume codex on s 0199c0a8…e6f7?' }).getByText("Weft can't tell whether it still runs: it was last active 08:30.")).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Resume codex 0199c0a8…e6f7?' }).getByText("Weft can't tell whether it still runs: it was last active 08:30.")).toBeVisible();
   await machine.close();
 });
 

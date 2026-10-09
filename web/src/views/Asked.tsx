@@ -141,7 +141,7 @@ function GoneBar({ gone: g }: { gone: Gone }) {
     close();
     if (machine) go({ name: 'start', machine: machine.id, from: g.project, harness: g.harness });
   };
-  const title = s ? fill('resume.ask', { harness: g.harness, session: shortId(s.session) }) : g.said ?? '';
+  const title = s ? fill('web.resume.ask', { harness: g.harness, session: shortId(s.session) }) : g.said ?? '';
   return (
     <div class="pending-bar" role="dialog" aria-label={title}>
       <div class="pending-head">

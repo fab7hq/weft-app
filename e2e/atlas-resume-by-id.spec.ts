@@ -36,7 +36,7 @@ test('M11.5 D11.5: of two ended claude sessions, Resume this session on the olde
   if (wideOf(page)) await row(page, name).click();
   else await row(page, name).getByRole('button', { name: `Details of ${name}` }).click();
   await page.getByRole('button', { name: 'Resume this session', exact: true }).click();
-  await page.getByRole('dialog', { name: 'Resume claude on s c7d8e9f0…9e0f?' }).getByRole('button', { name: 'Resume', exact: true }).click();
+  await page.getByRole('dialog', { name: 'Resume claude c7d8e9f0…9e0f?' }).getByRole('button', { name: 'Resume', exact: true }).click();
   await expect.poll(() => machine.of('start')).toEqual([{ type: 'start', project: 'weft', harness: 'claude', resume: older.session, req: expect.anything() }]);
   expect(machine.of('start')[0].resume).not.toBe(newer.session);
   // Its agent opens; back on the tree, its row is running.

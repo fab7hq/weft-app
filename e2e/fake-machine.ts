@@ -122,7 +122,6 @@ export interface SealDetail {
   n: number;
   decision: string;
   at: number | null;
-  by: string;
   eval: { eval: string; n: number; verdict: Round['verdict']; agreement: string | null } | null;
   receipt: string;
   holds: boolean | null;
@@ -403,7 +402,7 @@ export function treeOf(agents: Agent[]): Project[] {
 /**
  * The Atlas's sample (M11.1–M11.6, D11.1–D11.6; spec/atlas.md §6): projects
  * weft and docs on studio. In weft, codex at work with no Ask yet, claude
- * waiting for you on fix login, codex whose turn ended on health endpoint,
+ * needs you on fix login, codex whose turn ended on health endpoint,
  * and three ended sessions, 12 earlier; Open since Eval 3 (fix login,
  * telemetry), Eval 3 aligned and not sealed, Sealed · 4 seals 31. In docs, a
  * claude ready with nothing asked.

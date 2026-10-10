@@ -56,7 +56,6 @@ interface Sealed {
   n: number;
   decision: string;
   at: number | null;
-  by: string;
   eval: { eval: string; n: number; verdict: m.Round['verdict']; agreement: string | null } | null;
   receipt: string;
   holds: boolean | null;
@@ -439,7 +438,6 @@ export function SealDetails({ machine, project, seal, wide = false }: { machine:
           <div class="detail-block">
             <Grid rows={[
               ...(d.at !== null ? [[w('web.seal.when'), stamp(d.at)] as [string, ComponentChildren]] : []),
-              [w('web.seal.by'), d.by],
               ...(d.eval ? [[w('web.seal.eval'), (
                 <>
                   <button class="detail-link" type="button" onClick={() => to.round(d.eval!.eval)}>{`${evalName(d.eval.n)} ›`}</button>
@@ -460,7 +458,6 @@ export function SealDetails({ machine, project, seal, wide = false }: { machine:
       <div class="facts">
         <Fact label={w('web.seal.decision')}><span class={accepted ? 'good' : undefined}>{d.decision}</span></Fact>
         {d.at !== null && <Fact label={w('web.seal.when')}>{stamp(d.at)}</Fact>}
-        <Fact label={w('web.seal.by')}>{d.by}</Fact>
         {d.eval && (
           <Fact label={w('web.seal.eval')} go={() => to.round(d.eval!.eval)}>
             <span class="fact-strong">{`${evalName(d.eval.n)} · `}</span>

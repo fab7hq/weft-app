@@ -12,7 +12,7 @@ test('a replaced words.json shows its word after a reload', async ({ page, conte
   await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
   await page.goto('/');
   const fix = page.getByRole('treeitem', { name: 'claude · fix login', exact: true });
-  await expect(fix).toContainText('waiting for you');
+  await expect(fix).toContainText('needs you');
 
   const kept = readFileSync(served, 'utf8');
   try {

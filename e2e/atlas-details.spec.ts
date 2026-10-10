@@ -42,9 +42,9 @@ test('M11.2 D11.2: a work\'s Details hold its Ask only, under where it stands; P
   await expect(view).toBeVisible();
   await expect.poll(() => machine.of('read').at(-1)).toEqual(expect.objectContaining({ what: 'detail', unit: 'ask_1' }));
   await expect(crumbs(page)).toHaveText('fix login›not evaluated yet');
-  await expect(view.getByText('asked 2026-10-08 11:29 · waiting for your yes')).toBeVisible();
+  await expect(view.getByText('asked 2026-10-08 11:29 · not sent yet')).toBeVisible();
   const lines = ['You asked:', 'Refresh the token before it expires, not after', 'The prompt claude composed:',
-    'In src/login.rs refresh the session token 60 s before expiry …', 'How it was sent:', 'not sent yet · waiting for your yes'];
+    'In src/login.rs refresh the session token 60 s before expiry …', 'How it was sent:', 'not sent yet, waiting for proceeding'];
   if (wideOf(page)) {
     // D11.2: the Ask folds under ▾, with no state word; what waits for your yes is amber; its session a link.
     await expect(view.locator('.detail-section-head')).toHaveText('▾Ask');
@@ -184,12 +184,12 @@ test('M11.4 D11.4: a Seal\'s Details, once: its decision, when, by whom, its Eva
     // D11.4: the decision in the breadcrumb and large, its facts as labelled lines.
     await expect(crumbs(page)).toHaveText('Seal 4›accepted');
     await expect(view.locator('.summary-head')).toHaveText('accepted');
-    expect(await grid(page)).toEqual([['When', '2026-10-08 09:40'], ['By', 'you'], ['The Eval it seals', 'Eval 2 › · aligned · 1.0'], ['Receipt', 'rcp_7f3a2c']]);
+    expect(await grid(page)).toEqual([['When', '2026-10-08 09:40'], ['The Eval it seals', 'Eval 2 › · aligned · 1.0'], ['Receipt', 'rcp_7f3a2c']]);
     await expect(view.locator('.detail-head-row')).toHaveText('The Asks it covered· 2');
   } else {
     await expect(crumbs(page)).toHaveText('Seal 4ACCEPTED');
     await expect(view.getByText('sealed 2026-10-08 09:40 · covers 2 Asks')).toBeVisible();
-    expect(await facts(page)).toEqual([['Decision', 'accepted'], ['When', '2026-10-08 09:40'], ['By', 'you'], ['The Eval it seals', 'Eval 2 · aligned · 1.0'], ['Receipt', 'rcp_7f3a2c']]);
+    expect(await facts(page)).toEqual([['Decision', 'accepted'], ['When', '2026-10-08 09:40'], ['The Eval it seals', 'Eval 2 · aligned · 1.0'], ['Receipt', 'rcp_7f3a2c']]);
   }
   expect(await asks(page)).toEqual([['readme fix', 'claude'], ['docs links', 'claude']]);
   await expect(view.getByText('The receipt still matches what RingFrame wrote.')).toBeVisible();

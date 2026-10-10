@@ -25,7 +25,7 @@ const said = (page: Page) => page.locator('.tree-bar .tree-said');
 const empty = (ask: Project['ask'], setup: Project['setup'] = null): Project[] => [{ ...project('weft', []), ask, setup }];
 const noneDisabled = (page: Page) => expect(page.locator('button:disabled, input:disabled, textarea:disabled, select:disabled')).toHaveCount(0);
 
-test('M11.1 D11.1: AGENTS and WORK, as the cards draw them, amber only for waiting for you', async ({ page, context }) => {
+test('M11.1 D11.1: AGENTS and WORK, as the cards draw them, amber only for an agent that needs you', async ({ page, context }) => {
   const machine = await opened(page, context);
   await expect(row(page, 'weft')).toContainText('2 open · 1 ●');
   await expect(page.locator('.tree-section')).toHaveText(['AGENTS3 running · 15 ended', 'WORKby Eval round', 'AGENTS1 running · 0 ended', 'WORKby Eval round']);
@@ -33,7 +33,7 @@ test('M11.1 D11.1: AGENTS and WORK, as the cards draw them, amber only for waiti
   await expect(agents).toHaveCount(7);
   const read = (i: number) => Promise.all(['.agent-harness', '.agent-state', '.agent-at', '.agent-title'].map((c) => agents.nth(i).locator(c).textContent()));
   expect(await read(0)).toEqual(['codex', 'working', '11:31', 'no Ask yet']);
-  expect(await read(1)).toEqual(['claude', 'waiting for you', '11:29', 'fix login']);
+  expect(await read(1)).toEqual(['claude', 'needs you', '11:29', 'fix login']);
   expect(await read(2)).toEqual(['codex', 'turn ended', '10:52', 'health endpoint']);
   expect(await read(3)).toEqual(['claude', 'ended', '09:12', 'readme fix']);
   expect(await read(4)).toEqual(['codex', 'ended', '08:30', 'lint pass']);

@@ -130,7 +130,7 @@ export const EVALS: Record<string, EvalDetail> = {
 /** A Seal's Details (M11.4, D11.4). */
 export const SEALS: Record<string, SealDetail> = {
   rcp_7f3a2c: {
-    seal: 'rcp_7f3a2c', n: 4, decision: 'accepted', at: at(9, 40), by: 'you · from this phone',
+    seal: 'rcp_7f3a2c', n: 4, decision: 'accepted', at: at(9, 40), by: 'you',
     eval: { eval: 'evl_2', n: 2, verdict: 'aligned', agreement: '1.0' }, receipt: 'rcp_7f3a2c', holds: true, broken: [],
     asks: EVALS.evl_2.asks,
   },

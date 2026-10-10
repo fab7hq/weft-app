@@ -244,9 +244,9 @@ test('M11.5 D11.5: an ended session\'s Details; Resume this session asks first, 
     // D11.5: harness › state, the state large, its facts as labelled lines; an Ask with its Seal.
     await expect(crumbs(page)).toHaveText('claude›ended 09:12');
     await expect(view.locator('.summary-head')).toHaveText('○ ended 09:12');
-    expect(await grid(page)).toEqual([['Started', '2026-10-08 08:47'], ['ended', '2026-10-08 09:12'], ['Session', '3f9c2b71'], ['Project', 'weft']]);
+    expect(await grid(page)).toEqual([['Harness', 'claude'], ['Started', '2026-10-08 08:47'], ['ended', '2026-10-08 09:12'], ['Session', '3f9c2b71'], ['Project', 'weft']]);
     expect(await asks(page)).toEqual([['readme fix', 'SEALED · Seal 4']]);
-    await expect(view.getByText('Weft starts claude again on this session, in a new pane.')).toBeVisible();
+    await expect(view.getByText('Resume this session starts claude again on session 3f9c2b71 in a new agent. Weft asks you first.')).toBeVisible();
   } else {
     await expect(crumbs(page)).toHaveText('○claudeENDED');
     await expect(view.getByText('ended 2026-10-08 09:12 · 1 Ask made in it')).toBeVisible();
@@ -304,6 +304,11 @@ test('M11.6 D11.6: the earlier sessions, grouped, newest first; a row opens its 
   await expect.poll(() => machine.of('read').at(-1)).toEqual(expect.objectContaining({ what: 'sessions', project: 'weft' }));
   expect(machine.of('read').at(-1)).not.toHaveProperty('q');
   await expect(view.locator('.detail-head-row')).toHaveText(['TODAY2', 'YESTERDAY4', 'THIS WEEK6']);
+  if (wideOf(page)) {
+    // D11.6: the project and its count beside the title; how the list runs, beside Close.
+    await expect(crumbs(page)).toHaveText('Earlier sessions›weft · 12 earlier');
+    await expect(view.locator('.detail-acts')).toContainText('newest first · scroll for more');
+  }
   const list = view.getByRole('list', { name: 'Earlier sessions' });
   await expect(list.getByRole('listitem')).toHaveCount(12);
   await expect(list.getByRole('listitem').first()).toContainText('codex');

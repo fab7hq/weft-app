@@ -81,6 +81,7 @@ export function SessionDetails({ machine, project, session, wide = false }: { ma
           </p>
           <div class="detail-block">
             <Grid rows={[
+              [w('web.session.harness'), d.harness],
               [w('web.session.started'), stamp(d.started)],
               ...(d.state === 'ended' ? [[w('state.ended'), stamp(d.last)] as [string, string]] : []),
               [w('web.session.session'), <span class="mono">{d.session.slice(0, 8)}</span>],
@@ -107,7 +108,7 @@ export function SessionDetails({ machine, project, session, wide = false }: { ma
           return <AskLine key={a.unit} title={a.title} aside={`${stateWord(a.word)}${where || ''}`} onGo={() => to.work(a.unit)} />;
         })}
       </div>
-      {wide && !live && <p class="detail-line dim detail-after">{fill('resume.how', { harness: d.harness })}</p>}
+      {wide && !live && <p class="detail-line dim detail-after">{fill('web.session.resume_how', { harness: d.harness, session: d.session.slice(0, 8) })}</p>}
     </Frame>
   );
 }
@@ -160,16 +161,16 @@ export function EarlierSessions({ machine, project, wide = false }: { machine: M
   const to = moves(machine, project);
   const p = m.tree.value.find((x) => x.project === project);
   const count = p?.agents.earlier ?? got?.total ?? 0;
-  const earlier = count === 1 ? w('tree.earlier_one') : fill('tree.earlier', { n: String(count) });
   const rows = got?.rows ?? [];
   return (
     <Frame
       machine={machine}
       project={project}
       label={w('earlier.title')}
-      crumbs={wide ? [{ text: w('earlier.title') }, { text: `${project} · ${earlier}`, tone: 'dim' }] : [{ text: w('earlier.title') }]}
+      crumbs={wide ? [{ text: w('earlier.title') }, { text: `${project} · ${fill('web.earlier.wide', { n: String(count) })}`, tone: 'dim' }] : [{ text: w('earlier.title') }]}
       right={wide ? undefined : fill('web.earlier.count', { n: String(count) })}
       wide={wide}
+      acts={wide ? <span class="dim detail-note">{w('web.earlier.foot')}</span> : undefined}
     >
       <label class="earlier-search">
         <span class="earlier-glass" aria-hidden="true">⌕</span>

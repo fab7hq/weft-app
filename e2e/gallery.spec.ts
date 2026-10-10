@@ -581,9 +581,10 @@ const SCREENS: Screen[] = [
     await tree(at);
     await item(at, 'claude · fix login').click();
   } },
-  // D11.1: claude open beside the tree, asking; Eval 3 folded so the tree fits.
-  { ids: ['D11.1'], run: async (at) => {
-    await folded(at, ['docs', 'weft/evl_3']);
+  // D11.1: claude open beside the tree, asking; Eval 3 folded so the tree fits. The card's machine has
+  // one project, so its tabs are weft's three agents.
+  { ids: ['D11.1'], sample: () => { const s = atlas(); return { ...s, agents: s.agents.filter((a) => a.project === 'weft'), tree: s.tree.filter((p) => p.project === 'weft') }; }, run: async (at) => {
+    await folded(at, ['weft/evl_3']);
     await onClaude(at, ASKING);
   } },
   { ids: ['M11.2'], run: (at) => details(at, 'ask_1') },

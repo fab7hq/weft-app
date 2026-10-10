@@ -16,7 +16,9 @@ export const SQL = {
   addMachine: `INSERT INTO machines (id, user_id, name, token_hash, created_at) VALUES (?, ?, ?, ?, ?)`,
   machineByToken: 'SELECT id, user_id AS userId FROM machines WHERE token_hash = ?',
   setAddress: 'UPDATE machines SET address = ?, address_at = ? WHERE id = ?',
-  machines: `SELECT id, name, address, address_at FROM machines WHERE user_id = ? ORDER BY created_at`,
+  // Every report sets address_at, the same address or not: it is also when
+  // the service last heard from the machine (ADR-0034 D4).
+  machines: `SELECT id, name, address, address_at, address_at AS seen_at FROM machines WHERE user_id = ? ORDER BY created_at`,
   removeMachine: 'DELETE FROM machines WHERE id = ? AND user_id = ?',
   leave: 'DELETE FROM machines WHERE id = ?',
   machineOwner: 'SELECT user_id AS userId FROM machines WHERE id = ?',

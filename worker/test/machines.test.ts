@@ -46,7 +46,7 @@ describe('machines', () => {
 
     const me = await signIn('web');
     const list = await call('GET', '/api/machines', { cookie: me });
-    expect(await list.json()).toEqual([{ id: m.machine_id, name: 'studio', address: null, address_at: null }]);
+    expect(await list.json()).toEqual([{ id: m.machine_id, name: 'studio', address: null, address_at: null, seen_at: null }]);
     const eve = await signIn('other');
     expect(await (await call('GET', '/api/machines', { cookie: eve })).json()).toEqual([]);
     expect((await call('DELETE', `/api/machines/${m.machine_id}`, { cookie: eve })).status).toBe(404);
@@ -81,6 +81,31 @@ describe('machines', () => {
     expect(nonsense.status).toBe(400);
 
     // The Mac leaves.
+    expect((await call('DELETE', '/api/machine', { bearer: laptop.machine_token })).status).toBe(204);
+    expect((await call('PUT', '/api/machine/address', { body: address, bearer: laptop.machine_token })).status).toBe(401);
+  });
+
+  // ADR-0034 D4: the service keeps when it last heard from each machine, and
+  // the person's list says so, for the phone to show while it cannot reach it.
+  it('every report, the same address or not, is when the service last heard from the machine', async () => {
+    fakeGitHub({ a: { id: 91, login: 'octo' }, web: { id: 91, login: 'octo' } });
+    const studio = await enrol('gho_a', 'studio');
+    const address = { address: 'https://seating-texas-air-guns.trycloudflare.com' };
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(1_790_000_000_000);
+    expect((await call('PUT', '/api/machine/address', { body: address, bearer: studio.machine_token })).status).toBe(204);
+    const me = await signIn('web');
+    const first = (await (await call('GET', '/api/machines', { cookie: me })).json()) as { seen_at: number }[];
+    expect(first[0].seen_at).toBe(1_790_000_000_000);
+    clock.mockReturnValue(1_790_000_300_000);
+    await call('PUT', '/api/machine/address', { body: address, bearer: studio.machine_token });
+    const again = (await (await call('GET', '/api/machines', { cookie: me })).json()) as { seen_at: number }[];
+    expect(again[0].seen_at).toBe(1_790_000_300_000);
+  });
+
+  it('a Mac that left is 401 when it reports', async () => {
+    fakeGitHub({ b: { id: 92, login: 'octo' } });
+    const laptop = await enrol('gho_b', 'laptop');
+    const address = { address: 'https://seating-texas-air-guns.trycloudflare.com' };
     expect((await call('DELETE', '/api/machine', { bearer: laptop.machine_token })).status).toBe(204);
     expect((await call('PUT', '/api/machine/address', { body: address, bearer: laptop.machine_token })).status).toBe(401);
   });

@@ -170,7 +170,7 @@ export function EarlierSessions({ machine, project, wide = false }: { machine: M
       crumbs={wide ? [{ text: w('earlier.title') }, { text: `${project} · ${fill('web.earlier.wide', { n: String(count) })}`, tone: 'dim' }] : [{ text: w('earlier.title') }]}
       right={wide ? undefined : fill('web.earlier.count', { n: String(count) })}
       wide={wide}
-      acts={wide ? <span class="dim detail-note">{w('web.earlier.foot')}</span> : undefined}
+      hint={wide ? w('web.earlier.foot') : undefined}
     >
       <label class="earlier-search">
         <span class="earlier-glass" aria-hidden="true">⌕</span>

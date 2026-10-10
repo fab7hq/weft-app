@@ -307,7 +307,10 @@ test('M11.6 D11.6: the earlier sessions, grouped, newest first; a row opens its 
   if (wideOf(page)) {
     // D11.6: the project and its count beside the title; how the list runs, beside Close.
     await expect(crumbs(page)).toHaveText('Earlier sessions›weft · 12 earlier');
-    await expect(view.locator('.detail-acts')).toContainText('newest first · scroll for more');
+    await expect(view.locator('.detail-acts .detail-hint')).toHaveText('newest first · scroll for more');
+    // Beside Close, as the card draws it: after the spacer, not at the left.
+    const [hint, close] = await Promise.all([view.locator('.detail-hint').boundingBox(), view.locator('.detail-acts').getByRole('button', { name: 'Close' }).boundingBox()]);
+    expect(close!.x - (hint!.x + hint!.width)).toBeLessThan(40);
   }
   const list = view.getByRole('list', { name: 'Earlier sessions' });
   await expect(list.getByRole('listitem')).toHaveCount(12);

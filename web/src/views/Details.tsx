@@ -98,7 +98,7 @@ function Crumbs({ parts }: { parts: Part[] }) {
  * it, the why of an act that does not apply above them; on a desktop the
  * agent's place, its breadcrumb on top and Close among its acts.
  */
-export function Frame({ machine, project, label, crumbs, right, mono = false, aside, wide, acts, children }: {
+export function Frame({ machine, project, label, crumbs, right, mono = false, aside, wide, acts, hint, children }: {
   machine: Machine;
   project: string;
   label: string;
@@ -108,6 +108,8 @@ export function Frame({ machine, project, label, crumbs, right, mono = false, as
   aside?: ComponentChildren;
   wide: boolean;
   acts?: ComponentChildren;
+  /** On a desktop, a line beside Close (D11.6). */
+  hint?: string;
   children?: ComponentChildren;
 }) {
   const rightSaid = right && <span class={mono ? 'detail-id' : 'detail-harness'}>{right}</span>;
@@ -126,6 +128,7 @@ export function Frame({ machine, project, label, crumbs, right, mono = false, as
         <div class="detail-acts detail-acts--wide">
           {acts}
           <span class="spacer" />
+          {hint && <span class="detail-hint">{hint}</span>}
           <button class="tree-act" type="button" onClick={back}>{w('act.close')}</button>
         </div>
       </div>

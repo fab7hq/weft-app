@@ -134,7 +134,10 @@
 .detail-pane .earlier-row .agent-harness { flex: none; width: 64px; }
 .detail-pane .earlier-title { font-size: 15px; color: var(--fab7-text); }
 .detail-pane .earlier-title.agent-title--none { color: var(--fab7-faint); }
-.detail-pane .earlier-id { flex: none; width: 120px; text-align: center; }
-.detail-pane .earlier-row .agent-at { width: 80px; text-align: right; }
+.detail-pane .earlier-row .agent-state { width: 120px; }
+.detail-pane .earlier-id { flex: none; width: 76px; }
+.detail-pane .earlier-row .agent-at { width: 72px; text-align: right; }
+/* D11.6: how the list runs, small and muted beside Close. */
+.detail-hint { font-size: 12px; color: var(--fab7-muted); }
 .crumb.good { color: var(--fab7-teal); }
 .crumb.needs { color: var(--fab7-amber-text); }

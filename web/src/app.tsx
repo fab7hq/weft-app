@@ -211,7 +211,7 @@ export function App() {
         : view.name === 'seal' ? <SealDetails key={view.seal} machine={m} project={view.project} seal={view.seal} />
         : view.name === 'session' ? <SessionDetails key={view.session} machine={m} project={view.project} session={view.session} />
         : view.name === 'earlier' ? <EarlierSessions key={view.project} machine={m} project={view.project} />
-        : view.name === 'start' ? <StartPage machine={m} from={view.from} harness={view.harness} />
+        : view.name === 'start' ? <StartPage machine={m} from={view.from} harness={view.harness} project={view.project} />
         : view.name === 'agent' ? <Agent machine={m} agent={view.agent} />
         : <TreePage machine={m} />;
       return (

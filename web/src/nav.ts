@@ -17,7 +17,7 @@ export type View =
   | { name: 'earlier'; machine: string; project: string }
   /** The Eval view of an Eval (M6.x), at one of its pages. */
   | { name: 'eval'; machine: string; project: string; eval: string; at?: string; files?: boolean }
-  | { name: 'start'; machine: string; from: string; harness?: string }
+  | { name: 'start'; machine: string; from: string; harness?: string; project?: string }
   | { name: 'settings' };
 
 export const stack = signal<View[]>([]);

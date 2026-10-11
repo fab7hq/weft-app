@@ -10,6 +10,8 @@
 .fab7-group.start-pick { padding: 14px 16px 6px; }
 .start-list { display: flex; flex-direction: column; padding: 4px 0; border: 1px solid var(--fab7-line); border-radius: 10px; background: var(--fab7-surface); }
 .start-option { display: flex; gap: 10px; align-items: center; padding: 12px; border: 0; background: none; color: var(--fab7-text); font: 400 15px var(--font-sans); text-align: left; cursor: pointer; }
+.start-name { flex: 1; min-width: 0; }
+.start-aside { font-size: 12px; color: var(--fab7-muted); }
 .start-radio { color: var(--fab7-muted); }
 .start-radio--off { line-height: 15px; }
 .start-option[aria-checked="true"] { background: #16233a; color: var(--fab7-accent); }

@@ -282,6 +282,15 @@ function ProjectRows({ p, moves }: { p: m.Project; moves: Moves }) {
             </>
           )}
         </span>
+        {/* Start an agent in this project (M9.8): the project is already chosen. */}
+        <button
+          class="tree-plus"
+          type="button"
+          aria-label={fill('web.start.in', { project: p.project })}
+          onClick={(e) => (e.stopPropagation(), go({ name: 'start', machine: machine.id, from: p.project, project: p.project }))}
+        >
+          +
+        </button>
       </div>
       {open && p.reopened && <Reopened p={p} machine={machine} />}
       {open && p.setup && <Checklist needs={p.setup} />}

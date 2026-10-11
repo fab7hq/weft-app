@@ -52,7 +52,8 @@ test('M10.2 D10.2: a text the machine did not type says why above the message bo
   await openAgent(page, 'claude · fix login');
   const box = page.getByPlaceholder('Message claude…');
   await box.fill('try again');
-  await box.press('Enter');
+  // ▶ sends: on a touch screen Enter is a new line (M3.13).
+  await page.getByRole('button', { name: 'Send', exact: true }).click();
   await expect(page.getByRole('status')).toHaveText('Weft did not type it: it is still typing the last one.');
   // On a phone the box stands without ▶ until it is used again (M10.2); a desktop keeps it (D10.2).
   const send = page.getByRole('button', { name: 'Send', exact: true });
@@ -68,7 +69,7 @@ test('M10.2 D10.2: a text the machine did not type says why above the message bo
   await expect(page.getByText('Reconnecting')).toBeVisible();
   await noneDisabled(page);
   await box.fill('again');
-  await box.press('Enter');
+  await page.getByRole('button', { name: 'Send', exact: true }).click();
   await expect(page.locator('.tree-said')).toHaveText('Not connected to the machine.');
   await machine.close();
 });

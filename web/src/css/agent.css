@@ -44,8 +44,8 @@
 .message-foot--said { padding: 10px 16px 30px; }
 .message-foot.message-foot--keys { padding-bottom: 8px; }
 .message-foot .message-said { margin: 0; padding: 0; border: 0; font-size: 13px; color: var(--fab7-amber-text); }
-.message-row { display: flex; gap: 8px; align-items: center; }
-.message-input { flex: 1; min-width: 0; box-sizing: border-box; margin: 0; padding: 10px 14px; border: 1px solid var(--fab7-line); border-radius: 20px; background: var(--fab7-surface); color: var(--fab7-text); font: 400 13px/18px var(--font-sans); outline: none; }
+.message-row { display: flex; gap: 8px; align-items: flex-end; }
+.message-input { flex: 1; min-width: 0; box-sizing: border-box; margin: 0; padding: 10px 14px; border: 1px solid var(--fab7-line); border-radius: 20px; background: var(--fab7-surface); color: var(--fab7-text); font: 400 13px/18px var(--font-sans); outline: none; resize: none; overflow-y: auto; max-height: calc(5lh + 22px); }
 .message-input::placeholder { color: var(--fab7-faint); opacity: 1; }
 .message-input:focus { border-color: var(--fab7-accent); }
 /* A phone zooms into a box under 16 px when it takes the focus: the words

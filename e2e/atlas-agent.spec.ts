@@ -237,3 +237,29 @@ test('on a phone, a pull in an agent that asked for mouse reports scrolls it wit
   expect(machine.of('read').filter((r) => r.what === 'history')).toHaveLength(0);
   await machine.close();
 });
+
+test('M3.13 D3.13: the message box takes several lines; Enter adds one on a touch screen and sends with a keyboard', async ({ page, context }, info) => {
+  const machine = await opened(page, context);
+  const box = page.getByLabel('Message');
+  await box.click();
+  await box.pressSequentially('first line');
+  const one = (await box.boundingBox())!.height;
+  if (info.project.name === 'desktop') {
+    // Shift+Enter adds a line; Enter sends the whole text.
+    await box.press('Shift+Enter');
+    await box.pressSequentially('second line');
+    expect((await box.boundingBox())!.height).toBeGreaterThan(one);
+    await box.press('Enter');
+  } else {
+    // On a touch screen Enter is a new line; ▶ sends.
+    await box.press('Enter');
+    await box.pressSequentially('second line');
+    expect((await box.boundingBox())!.height).toBeGreaterThan(one);
+    expect(machine.of('text')).toHaveLength(0);
+    await page.getByRole('button', { name: 'Send' }).tap();
+  }
+  await expect.poll(() => machine.of('text')).toEqual([expect.objectContaining({ text: 'first line\nsecond line' })]);
+  await expect(box).toHaveValue('');
+  await expect.poll(async () => (await box.boundingBox())!.height).toBeLessThanOrEqual(one + 1);
+  await machine.close();
+});

@@ -53,7 +53,7 @@ export function Wide({ login, machine, agent, starting = null, view }: { login: 
           : view.name === 'seal' ? <SealDetails key={view.seal} machine={machine} project={view.project} seal={view.seal} wide />
           : view.name === 'session' ? <SessionDetails key={view.session} machine={machine} project={view.project} session={view.session} wide />
           : view.name === 'earlier' ? <EarlierSessions key={view.project} machine={machine} project={view.project} wide />
-          : starting !== null ? <StartPanel machine={machine} harness={starting} /> : agent ? <Agent key={agent} machine={machine} agent={agent} embedded /> : <Woven machine={machine} />}
+          : starting !== null ? <StartPanel machine={machine} harness={starting} project={view.name === 'start' ? view.project : undefined} /> : agent ? <Agent key={agent} machine={machine} agent={agent} embedded /> : <Woven machine={machine} />}
           <AskDock />
         </main>
       </div>

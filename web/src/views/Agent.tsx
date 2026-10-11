@@ -25,6 +25,7 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
   if (!driving) sized.delete(agent);
   const box = useRef<HTMLDivElement>(null);
   const [message, setMessage] = useState('');
+  const field = useRef<HTMLTextAreaElement>(null);
   const [history, setHistory] = useState<string | null>(null);
   // At the top of the history, with nothing older to read (M3.6).
   const [top, setTop] = useState(false);
@@ -63,6 +64,20 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
       setMessage('');
       void sent.then(refused);
     }
+  };
+  // The box grows with its lines up to five, then scrolls inside (M3.13).
+  useEffect(() => {
+    const el = field.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight + 2}px`;
+  }, [message]);
+  // Enter sends where a keyboard is attached and adds a line on a touch screen;
+  // Shift+Enter adds a line everywhere (D3.13).
+  const enter = (e: KeyboardEvent) => {
+    if (e.key !== 'Enter' || e.shiftKey || e.isComposing) return;
+    if (matchMedia('(pointer: coarse)').matches) return;
+    sendText(e);
   };
   const showHistory = async () => {
     const answer = await m.request({ type: 'read', agent, what: 'history' });
@@ -137,11 +152,14 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
           {(a?.running || !wide) && (
             <form class="message-row" onSubmit={sendText}>
               <label for="message" style={{ position: 'absolute', left: '-9999px' }}>{w('web.agent.message_box')}</label>
-              <input
+              <textarea
                 id="message"
+                ref={field}
+                rows={1}
                 class="message-input"
                 value={message}
-                onInput={(e) => (setMessage((e.target as HTMLInputElement).value), setSaid(null))}
+                onInput={(e) => (setMessage((e.target as HTMLTextAreaElement).value), setSaid(null))}
+                onKeyDown={enter}
                 onFocus={() => setTyping(true)}
                 onBlur={() => setTyping(false)}
                 onBeforeInput={(e) => {

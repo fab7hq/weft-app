@@ -87,7 +87,7 @@ export function NoConnection() {
       <div class="page">
         <h2>No connection</h2>
         <p class="lede">Weft needs the network to reach your machines. It will try again when you are back online.</p>
-        <button class="start-button start-button--plain" type="button" onClick={() => void lookWho()}>Try again</button>
+        <button class="start-button start-button--plain" type="button" onClick={() => void lookWho()}>{w('web.try_again')}</button>
       </div>
     </div>
   );
@@ -119,12 +119,47 @@ function Asking({ name }: { name: string }) {
   );
 }
 
-/** Not allowed (M8.2–M8.4, D8.2): why, and Your machines, the way on. */
+/** The refusals that need the person (M13.2–M13.4): a title naming the
+ * machine, what to do, and the way on. */
+const NEEDS_YOU: Record<string, { title: string; act: 'again' | 'reload' }> = {
+  'web.refused.update': { title: 'web.refused.update_title', act: 'again' },
+  'web.refused.reload': { title: 'web.refused.reload_title', act: 'reload' },
+  'web.refused.signed_out': { title: 'web.refused.signed_out_title', act: 'again' },
+};
+
+/** Not allowed (M8.2–M8.4, D8.2): why, and Your machines, the way on; or what
+ * to do first, when it needs the person (M13.2–M13.4). */
 function Refused({ name }: { name: string }) {
   const machines = () => {
     machine.close();
     go({ name: 'machines' });
   };
+  const key = machine.refusal.value ?? 'web.refused.other';
+  const needs = NEEDS_YOU[key];
+  if (needs) {
+    return (
+      <div class="app">
+        <div class="appbar">
+          <Mark />
+          <h1>{name}</h1>
+          <span class="spacer" />
+          <span class="link-pill">{w('web.link.refused')}</span>
+        </div>
+        <div class="page allow">
+          <h2>{fill(needs.title, { machine: name })}</h2>
+          <p class="lede">{fill(key, { machine: name })}</p>
+          <div class="refused-acts">
+            {needs.act === 'reload' ? (
+              <button class="start-button start-button--go" type="button" onClick={() => location.reload()}>{w('web.reload')}</button>
+            ) : (
+              <button class="start-button start-button--go" type="button" onClick={() => machine.again()}>{w('web.try_again')}</button>
+            )}
+            <button class="start-button" type="button" onClick={machines}>{w('web.machines.title')}</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
   return (
     <div class="app">
       <div class="appbar">

@@ -103,3 +103,7 @@
 .tree-side .group-title { font-size: 14px; font-weight: 600; }
 .tree-side .group-aside { font-size: 12px; }
 .tree-side .tree-row--work, .tree-side .tree-row--seal { padding-left: 52px; }
+/* A project reopened after Weft on the machine ended uncleanly (M13.5). */
+.reopened { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin: 0 16px 6px 32px; padding: 12px 14px; background: var(--fab7-surface); border: 1px solid var(--fab7-line); border-radius: 10px; }
+.reopened-notice { margin: 0; font-size: 13px; line-height: 19px; color: var(--fab7-text); }
+.reopened-dismiss { padding: 7px 14px; font-size: 13px; }

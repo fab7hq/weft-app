@@ -12,7 +12,7 @@ import * as m from '../machine';
 import { go, here } from '../nav';
 import { fill, stateWord, turnWord, w } from '../words';
 import { TreeBar, askOn, evalOn, sealOn } from './Bar';
-import { HeaderPills } from './Status';
+import { HeaderPills, Strips } from './Status';
 
 /** What the bar's acts are on: a row of the tree, by what it is. */
 export type Selected =
@@ -245,6 +245,21 @@ export function TreeList({ machine, onAgent, wide = false }: { machine: Machine;
   );
 }
 
+/** A project Weft on the machine reopened after it ended uncleanly (M13.5):
+ * when, that its agents ended, and Dismiss, which closes it there. */
+function Reopened({ p, machine }: { p: m.Project; machine: Machine }) {
+  const dismiss = (e: Event) => {
+    e.stopPropagation();
+    void m.request({ type: 'act', act: 'dismiss', project: p.project });
+  };
+  return (
+    <div class="reopened" role="note">
+      <p class="reopened-notice">{fill('web.reopened.notice', { machine: machine.name, time: clock(p.reopened ?? 0) })}</p>
+      <button class="start-button reopened-dismiss" type="button" onClick={dismiss}>{w('web.reopened.dismiss')}</button>
+    </div>
+  );
+}
+
 function ProjectRows({ p, moves }: { p: m.Project; moves: Moves }) {
   const open = isOpen(p.project);
   const { machine } = moves;
@@ -253,10 +268,10 @@ function ProjectRows({ p, moves }: { p: m.Project; moves: Moves }) {
       <div class="tree-row tree-row--project" role="treeitem" aria-label={p.project} aria-expanded={open} onClick={() => fold(p.project)}>
         <span class="tree-fold">{open ? '▾' : '▸'}</span>
         <span class="tree-name">{p.project}</span>
-        {/* Its Open Asks and the agents that need you (D12.3). */}
+        {/* Its Open Asks and the agents that need you (D12.3); reopened, in their place (M13.5). */}
         <span class="tree-aside">
-          {`${p.open} ${w('title.open')}`}
-          {p.needs > 0 && (
+          {p.reopened ? w('web.reopened') : `${p.open} ${w('title.open')}`}
+          {!p.reopened && p.needs > 0 && (
             <>
               {' · '}
               <span class="needs" data-needs-you="true">{`${p.needs} ●`}</span>
@@ -264,6 +279,7 @@ function ProjectRows({ p, moves }: { p: m.Project; moves: Moves }) {
           )}
         </span>
       </div>
+      {open && p.reopened && <Reopened p={p} machine={machine} />}
       {open && p.setup && <Checklist needs={p.setup} />}
       {open && !bare(p) && (
         <>
@@ -545,6 +561,7 @@ export function TreePage({ machine }: { machine: Machine }) {
         <HeaderPills machine={machine} />
         <button class="menu" type="button" aria-label="Menu" onClick={() => go({ name: 'settings' })}>☰</button>
       </div>
+      <Strips machine={machine} />
       <TreeList machine={machine} onAgent={(agent) => go({ name: 'agent', machine: machine.id, agent })} />
       <TreeBar machine={machine} wide={false} />
     </div>

@@ -12,7 +12,7 @@ import { EarlierSessions, SessionDetails } from './Session';
 import { EvalView } from './EvalView';
 import { Mark, StartButton, TreeList } from './Tree';
 import { StartPanel } from './Start';
-import { HeaderPills } from './Status';
+import { HeaderPills, Strips } from './Status';
 import { TreeBar } from './Bar';
 import { MenuButton } from './Settings';
 
@@ -41,6 +41,7 @@ export function Wide({ login, machine, agent, starting = null, view }: { login: 
         <HeaderPills machine={machine} />
         <MenuButton login={login} />
       </div>
+      <Strips machine={machine} />
       <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
         <nav aria-label="Work" class="tree-side">
           <TreeList machine={machine} wide onAgent={(a) => swap({ name: 'agent', machine: machine.id, agent: a })} />

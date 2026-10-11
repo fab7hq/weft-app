@@ -9,7 +9,7 @@ import { Agent } from './views/Agent';
 import { PendingBar } from './views/Asked';
 import { AskSheet } from './views/Ask';
 import { Details, RoundDetails, SealDetails } from './views/Details';
-import { EarlierSessions, SessionDetails } from './views/Session';
+import { SessionDetails } from './views/Session';
 import { EvalView } from './views/EvalView';
 import { Mark, TreePage } from './views/Tree';
 import { StartPage } from './views/Start';
@@ -194,7 +194,6 @@ export function App() {
     case 'round':
     case 'seal':
     case 'session':
-    case 'earlier':
     case 'eval':
     case 'start': {
       const m = a.machines.find((x) => x.id === view.machine);
@@ -210,7 +209,6 @@ export function App() {
         : view.name === 'round' ? <RoundDetails key={view.eval} machine={m} project={view.project} eval={view.eval} />
         : view.name === 'seal' ? <SealDetails key={view.seal} machine={m} project={view.project} seal={view.seal} />
         : view.name === 'session' ? <SessionDetails key={view.session} machine={m} project={view.project} session={view.session} />
-        : view.name === 'earlier' ? <EarlierSessions key={view.project} machine={m} project={view.project} />
         : view.name === 'start' ? <StartPage machine={m} from={view.from} harness={view.harness} project={view.project} />
         : view.name === 'agent' ? <Agent machine={m} agent={view.agent} />
         : <TreePage machine={m} />;

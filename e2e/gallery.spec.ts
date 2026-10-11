@@ -643,13 +643,21 @@ const SCREENS: Screen[] = [
       await expect(at.page.getByRole('region', { name: 'claude · 3f9c2b71…a21e' })).toBeVisible();
     },
   })),
-  ...(['M11.6', 'D11.6'] as const).map((id): Screen => ({
+  ...(['M11.7', 'D11.7'] as const).map((id): Screen => ({
     ids: [id],
     run: async (at) => {
       await folded(at, ['docs', 'weft/evl_3']);
       await tree(at);
       await item(at, '12 earlier sessions').click();
-      await expect(at.page.getByRole('listitem')).toHaveCount(12);
+      await expect(at.page.locator('.tree-row--past')).toHaveCount(12);
+    },
+  })),
+  ...(['M11.8', 'D11.8'] as const).map((id): Screen => ({
+    ids: [id],
+    run: async (at) => {
+      await tree(at);
+      await at.page.getByRole('searchbox').fill('login');
+      await expect(item(at, 'weft')).toContainText('2 match');
     },
   })),
 

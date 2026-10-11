@@ -98,7 +98,7 @@ function Crumbs({ parts }: { parts: Part[] }) {
  * it, the why of an act that does not apply above them; on a desktop the
  * agent's place, its breadcrumb on top and Close among its acts.
  */
-export function Frame({ machine, project, label, crumbs, right, mono = false, aside, wide, acts, hint, children }: {
+export function Frame({ machine, project, label, crumbs, right, mono = false, aside, wide, acts, children }: {
   machine: Machine;
   project: string;
   label: string;
@@ -108,8 +108,6 @@ export function Frame({ machine, project, label, crumbs, right, mono = false, as
   aside?: ComponentChildren;
   wide: boolean;
   acts?: ComponentChildren;
-  /** On a desktop, a line beside Close (D11.6). */
-  hint?: string;
   children?: ComponentChildren;
 }) {
   const rightSaid = right && <span class={mono ? 'detail-id' : 'detail-harness'}>{right}</span>;
@@ -128,7 +126,6 @@ export function Frame({ machine, project, label, crumbs, right, mono = false, as
         <div class="detail-acts detail-acts--wide">
           {acts}
           <span class="spacer" />
-          {hint && <span class="detail-hint">{hint}</span>}
           <button class="tree-act" type="button" onClick={back}>{w('act.close')}</button>
         </div>
       </div>
@@ -173,11 +170,11 @@ export function Fact({ label, children, go: onGo }: { label: string; children: C
 }
 
 /** A section's head: its label in capitals, and how many. */
-export function Head({ label, n, inline = false }: { label: string; n?: number; inline?: boolean | 'plain' }) {
+export function Head({ label, n, inline = false }: { label: string; n?: number; inline?: boolean }) {
   return (
     <div class={inline ? 'detail-head-row detail-head-row--inline' : 'detail-head-row'}>
       <span class="detail-label">{label}</span>
-      {n !== undefined && <span class="detail-count">{inline === true ? `· ${n}` : n}</span>}
+      {n !== undefined && <span class="detail-count">{inline ? `· ${n}` : n}</span>}
     </div>
   );
 }

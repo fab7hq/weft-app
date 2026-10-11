@@ -160,7 +160,7 @@ test('D11.1: the bar names the selection, and Ask, Eval and Seal sit on their ro
   await machine.close();
 });
 
-test('M11.1 D11.1: › on a session, an Ask and an Eval open their Details; n earlier sessions › the earlier ones', async ({ page, context }) => {
+test('M11.1 D11.1: › on a session, an Ask and an Eval open their Details', async ({ page, context }) => {
   const machine = await opened(page, context);
   const wide = wideOf(page);
   if (wide) await row(page, 'claude · readme fix').click();
@@ -175,9 +175,6 @@ test('M11.1 D11.1: › on a session, an Ask and an Eval open their Details; n ea
   else await row(page, 'Eval 3').getByRole('button', { name: 'Details of Eval 3' }).click();
   await expect(page.getByRole('region', { name: 'Eval 3' })).toBeVisible();
   expect(machine.of('read').at(-1)).toMatchObject({ what: 'eval', project: 'weft', eval: 'evl_3' });
-  if (!wide) await page.goBack();
-  await row(page, '12 earlier sessions').click();
-  await expect(page.getByRole('region', { name: 'Earlier sessions' })).toBeVisible();
   await machine.close();
 });
 

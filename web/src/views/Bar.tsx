@@ -106,8 +106,6 @@ function named(s: Chosen): string {
       return `${s.ask.title} · ${s.round ? evalName(s.round.n) : w('web.bar.open_round')}`;
     case 'seal':
       return sealName(s.seal.n);
-    case 'earlier':
-      return s.p.agents.earlier === 1 ? w('tree.earlier_one') : fill('tree.earlier', { n: String(s.p.agents.earlier) });
   }
 }
 

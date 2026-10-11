@@ -93,20 +93,8 @@
 .detail-foot { flex: none; background: var(--fab7-panel); border-top: 1px solid var(--fab7-line); }
 .detail-foot .detail-acts { border-top: 0; }
 .detail-foot .tree-said { border-bottom: 0; }
-/* The earlier sessions (M11.6, D11.6): the search, the groups, a row each. */
-.earlier-search { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid var(--fab7-line); border-radius: 10px; background: var(--fab7-surface); }
-.earlier-glass { font-size: 15px; color: var(--fab7-faint); }
-.earlier-field { flex: 1; min-width: 0; padding: 0; border: 0; background: none; color: var(--fab7-text); font: 400 16px var(--font-sans); outline: none; }
-.earlier-field::placeholder { color: var(--fab7-faint); }
-.earlier { display: flex; flex-direction: column; }
-.earlier-row { display: flex; align-items: center; gap: 10px; width: calc(100% + 32px); height: 58px; margin: 0 -16px; padding: 0 16px; border: 0; background: none; color: var(--fab7-text); font: inherit; text-align: left; cursor: pointer; }
-.earlier-row .agent-title { padding-left: 20px; }
-.detail-pane .earlier-row { width: calc(100% + 40px); height: 40px; margin: 0 -20px; padding: 0 20px; }
-.earlier-title { flex: 1; min-width: 0; font-size: 13px; color: var(--fab7-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.earlier-id { font: 11px var(--font-mono); color: var(--fab7-faint); }
-.detail-pane .earlier-row .agent-state { flex: none; }
 /* A › at the end of a row that is itself the press: the row's height, not a touch target of its own. */
-.fact .tree-more, .detail-ask .tree-more, .detail-sealed .tree-more, .earlier-row .tree-more { min-height: 0; margin: 0; padding: 0; line-height: normal; }
+.fact .tree-more, .detail-ask .tree-more, .detail-sealed .tree-more { min-height: 0; margin: 0; padding: 0; line-height: normal; }
 /* M11.2: the Ask's state word at the right edge. D11.2: the Ask folds under ▾; its session a link. */
 .detail-aside--end { margin-left: auto; }
 .detail-fold { width: 100%; padding: 0; border: 0; background: none; color: var(--fab7-text); font: inherit; text-align: left; cursor: pointer; align-items: center; }
@@ -126,18 +114,5 @@
 .detail-head-row--inline .detail-label { flex: none; }
 .detail-after { padding-top: 12px; }
 .detail-note-head.needs { color: var(--fab7-amber-text); }
-/* M11.6: the search a pill; a rule above each day after the first. D11.6: a row in columns. */
-.earlier-search { border-radius: 20px; padding: 8px 16px; }
-.earlier > div + div { margin: 6px -16px 0; padding: 0 16px; border-top: 1px solid var(--fab7-line); }
-.detail-pane .earlier > div + div { margin: 0 -20px; padding: 0 20px; border-top: 0; }
-.detail-pane .earlier-row { height: 46px; border-bottom: 1px solid var(--fab7-line); }
-.detail-pane .earlier-row .agent-harness { flex: none; width: 64px; }
-.detail-pane .earlier-title { font-size: 15px; color: var(--fab7-text); }
-.detail-pane .earlier-title.agent-title--none { color: var(--fab7-faint); }
-.detail-pane .earlier-row .agent-state { width: 120px; }
-.detail-pane .earlier-id { flex: none; width: 76px; }
-.detail-pane .earlier-row .agent-at { width: 72px; text-align: right; }
-/* D11.6: how the list runs, small and muted beside Close. */
-.detail-hint { font-size: 12px; color: var(--fab7-muted); }
 .crumb.good { color: var(--fab7-teal); }
 .crumb.needs { color: var(--fab7-amber-text); }

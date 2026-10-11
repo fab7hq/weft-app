@@ -1,6 +1,6 @@
 // A tablet or a desktop: the tree (380 px) beside the open agent, or a
-// Details view, the earlier sessions or an Eval view in its place, the bar
-// under both (D11.1–D11.6, D6.1).
+// Details view or an Eval view in its place, the bar under both (D11.1–D11.8,
+// D6.1).
 // One layout for both.
 import type { Machine } from '../api';
 import * as m from '../machine';
@@ -8,7 +8,7 @@ import { swap, type View } from '../nav';
 import { Agent } from './Agent';
 import { AskDock } from './Ask';
 import { Details, RoundDetails, SealDetails } from './Details';
-import { EarlierSessions, SessionDetails } from './Session';
+import { SessionDetails } from './Session';
 import { EvalView } from './EvalView';
 import { Mark, StartButton, TreeList } from './Tree';
 import { StartPanel } from './Start';
@@ -52,7 +52,6 @@ export function Wide({ login, machine, agent, starting = null, view }: { login: 
           : view.name === 'round' ? <RoundDetails key={view.eval} machine={machine} project={view.project} eval={view.eval} wide />
           : view.name === 'seal' ? <SealDetails key={view.seal} machine={machine} project={view.project} seal={view.seal} wide />
           : view.name === 'session' ? <SessionDetails key={view.session} machine={machine} project={view.project} session={view.session} wide />
-          : view.name === 'earlier' ? <EarlierSessions key={view.project} machine={machine} project={view.project} wide />
           : starting !== null ? <StartPanel machine={machine} harness={starting} project={view.name === 'start' ? view.project : undefined} /> : agent ? <Agent key={agent} machine={machine} agent={agent} embedded /> : <Woven machine={machine} />}
           <AskDock />
         </main>

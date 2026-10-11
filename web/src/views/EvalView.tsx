@@ -246,7 +246,7 @@ export function EvalView({ machine, project, eval: id, at, files = false, wide =
         <div class="detail-acts detail-acts--wide">
           <span class="dim eval-hint">{w('web.eval.click')}</span>
           <span class="spacer" />
-          <button class="tree-act" type="button" onClick={() => leave(['eval', 'round', 'seal', 'detail', 'session', 'earlier'])}>{w('act.close')}</button>
+          <button class="tree-act" type="button" onClick={() => leave(['eval', 'round', 'seal', 'detail', 'session'])}>{w('act.close')}</button>
         </div>
       </div>
     );

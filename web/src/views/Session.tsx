@@ -1,11 +1,9 @@
-// A session's Details (M11.5, D11.5) and the earlier sessions (M11.6,
-// D11.6), as weftd holds them: whichever program runs a session, it reads
-// the same. Resume resumes exactly its id, at once: the page is that one
-// session. A running one goes to its agent, or, run by another program, says
-// why it cannot.
-import { useEffect, useRef, useState } from 'preact/hooks';
+// A session's Details (M11.5, D11.5), as weftd holds it: whichever program
+// runs a session, it reads the same. Resume resumes exactly its id, at once:
+// the page is that one session. A running one goes to its agent, or, run by
+// another program, says why it cannot.
 import type { Machine } from '../api';
-import { clock, stamp, weekday } from '../bar';
+import { clock, stamp } from '../bar';
 import * as m from '../machine';
 import { fill, stateWord, w } from '../words';
 import { resume as again, shortId } from './Asked';
@@ -111,117 +109,6 @@ export function SessionDetails({ machine, project, session, wide = false }: { ma
         })}
       </div>
       {wide && !live && <p class="detail-line dim detail-after">{fill('web.session.resume_how', { harness: d.harness, session: d.session.slice(0, 8) })}</p>}
-    </Frame>
-  );
-}
-
-/** One of the earlier sessions (`read sessions`). */
-interface Earlier {
-  session: string;
-  harness: string;
-  title: string | null;
-  asks: number;
-  at: number;
-  group: 'today' | 'yesterday' | 'week' | 'earlier';
-}
-
-const GROUPS = ['today', 'yesterday', 'week', 'earlier'] as const;
-
-/** When an earlier session ended, as its group says it: a time today and yesterday, a weekday this week, else its day. */
-const when = (e: Earlier) => (e.group === 'week' ? weekday(e.at) : e.group === 'earlier' ? stamp(e.at).slice(0, 10) : clock(e.at));
-
-/**
- * The earlier sessions (M11.6, D11.6): every ended session past the tree's,
- * newest first, grouped by the Mac's date, a page at a time as it scrolls;
- * the search sends what is typed, and keeps the groups.
- */
-export function EarlierSessions({ machine, project, wide = false }: { machine: Machine; project: string; wide?: boolean }) {
-  const [q, setQ] = useState('');
-  const [got, setGot] = useState<{ q: string; rows: Earlier[]; next: string | null; total: number } | null>(null);
-  const asked = useRef('');
-  const reading = useRef(false);
-  const readFrom = async (query: string, after: string | null) => {
-    asked.current = query;
-    if (after) reading.current = true;
-    const answer = await m.request({ type: 'read', what: 'sessions', project, ...(query ? { q: query } : {}), ...(after ? { after } : {}) });
-    if (after) reading.current = false;
-    // An answer to what was typed before is not shown.
-    if (answer?.type !== 'ok' || asked.current !== query) return;
-    const page = answer.sessions as { total: number; rows: Earlier[]; next: string | null };
-    setGot((had) => ({ q: query, rows: after && had ? [...had.rows, ...page.rows] : page.rows, next: page.next, total: page.total }));
-  };
-  useEffect(() => void readFrom(q, null), [q]);
-  const end = useRef<HTMLDivElement>(null);
-  const next = got?.next ?? null;
-  useEffect(() => {
-    const el = end.current;
-    if (!el || !next) return;
-    const seen = new IntersectionObserver((e) => e.some((x) => x.isIntersecting) && !reading.current && void readFrom(q, next));
-    seen.observe(el);
-    return () => seen.disconnect();
-  }, [next, q]);
-  const to = moves(machine, project);
-  const p = m.tree.value.find((x) => x.project === project);
-  const count = p?.agents.earlier ?? got?.total ?? 0;
-  const rows = got?.rows ?? [];
-  return (
-    <Frame
-      machine={machine}
-      project={project}
-      label={w('earlier.title')}
-      crumbs={wide ? [{ text: w('earlier.title') }, { text: `${project} · ${fill('web.earlier.wide', { n: String(count) })}`, tone: 'dim' }] : [{ text: w('earlier.title') }]}
-      right={wide ? undefined : fill('web.earlier.count', { n: String(count) })}
-      wide={wide}
-      hint={wide ? w('web.earlier.foot') : undefined}
-    >
-      <label class="earlier-search">
-        <span class="earlier-glass" aria-hidden="true">⌕</span>
-        <input
-          class="earlier-field"
-          type="search"
-          aria-label={w('web.earlier.search')}
-          placeholder={w('web.earlier.search')}
-          value={q}
-          onInput={(e) => setQ((e.target as HTMLInputElement).value)}
-        />
-      </label>
-      <div class="earlier" role="list" aria-label={w('earlier.title')}>
-        {GROUPS.map((g) => {
-          const mine = rows.filter((r) => r.group === g);
-          if (mine.length === 0) return null;
-          return (
-            <div key={g} role="none">
-              <Head label={w(`earlier.${g}`)} n={mine.length} inline={wide && 'plain'} />
-              {mine.map((r) => (
-                <button key={r.session} class="earlier-row" role="listitem" type="button" aria-label={`${r.harness} · ${r.title ?? w('tree.no_ask')}`} onClick={() => to.session(r.session)}>
-                  {wide ? (
-                    <>
-                      <span class="agent-dot">○</span>
-                      <span class="agent-harness agent-harness--off">{r.harness}</span>
-                      <span class={r.title ? 'earlier-title' : 'earlier-title agent-title--none'}>{r.title ?? w('tree.no_ask')}</span>
-                      <span class="agent-state">{w('state.ended')}</span>
-                      <span class="earlier-id">{r.session.slice(0, 8)}</span>
-                      <span class="agent-at">{when(r)}</span>
-                    </>
-                  ) : (
-                    <span class="agent-lines">
-                      <span class="agent-top">
-                        <span class="agent-dot">○</span>
-                        <span class="agent-harness agent-harness--off">{r.harness}</span>
-                        <span class="agent-state agent-state--off">{w('state.ended')}</span>
-                        <span class="agent-at">{when(r)}</span>
-                      </span>
-                      <span class={r.title ? 'agent-title' : 'agent-title agent-title--none'}>{r.title ?? w('tree.no_ask')}</span>
-                    </span>
-                  )}
-                  <span class="tree-more" aria-hidden="true">›</span>
-                </button>
-              ))}
-            </div>
-          );
-        })}
-        {next && <div ref={end} class="tree-more-rows" aria-hidden="true" />}
-      </div>
     </Frame>
   );
 }

@@ -1,7 +1,7 @@
-// Details, one level each (M11.2–M11.6, D11.2–D11.6): a work's Ask only,
+// Details, one level each (M11.2–M11.5, D11.2–D11.5): a work's Ask only,
 // under a breadcrumb whose parts are links; an Eval once, with Seal; a Seal
 // once, its Asks a page at a time; a session, resumed by its id after a
-// confirm; the earlier sessions, a page at a time, searched as you type.
+// confirm. The earlier sessions unfold in the tree (M11.7, D11.7).
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import { FakeMachine, atlas, type Ask } from './fake-machine';
 import { CLAUDE, README_SESSION, large } from './atlas-fixtures';
@@ -291,53 +291,57 @@ test('M11.5: a quiet session: its last active time on the row and in its Details
   await machine.close();
 });
 
-test('M11.6 D11.6: the earlier sessions, grouped, newest first; a row opens its session', async ({ page, context }) => {
+test('M11.7 D11.7: n earlier sessions unfolds in the tree, newest first; a tap folds it; a row opens its session', async ({ page, context }) => {
   const machine = await opened(page, context);
-  await row(page, '12 earlier sessions').click();
-  const view = region(page, 'Earlier sessions');
-  await expect(view).toBeVisible();
-  await expect.poll(() => machine.of('read').at(-1)).toEqual(expect.objectContaining({ what: 'sessions', project: 'weft' }));
-  expect(machine.of('read').at(-1)).not.toHaveProperty('q');
-  await expect(view.locator('.detail-head-row')).toHaveText(['TODAY2', 'YESTERDAY4', 'THIS WEEK6']);
-  if (wideOf(page)) {
-    // D11.6: the project and its count beside the title; how the list runs, beside Close.
-    await expect(crumbs(page)).toHaveText('Earlier sessions›weft · 12 earlier');
-    await expect(view.locator('.detail-acts .detail-hint')).toHaveText('newest first · scroll for more');
-    // Beside Close, as the card draws it: after the spacer, not at the left.
-    const [hint, close] = await Promise.all([view.locator('.detail-hint').boundingBox(), view.locator('.detail-acts').getByRole('button', { name: 'Close' }).boundingBox()]);
-    expect(close!.x - (hint!.x + hint!.width)).toBeLessThan(40);
-  }
-  const list = view.getByRole('list', { name: 'Earlier sessions' });
-  await expect(list.getByRole('listitem')).toHaveCount(12);
-  await expect(list.getByRole('listitem').first()).toContainText('codex');
-  await expect(list.getByRole('listitem').first()).toContainText('flaky test');
-  await expect(list.getByRole('listitem').first()).toContainText('07:40');
-  await expect(list.getByRole('listitem', { name: 'claude · turn-state map' })).toContainText('Tue 18:22');
-  await list.getByRole('listitem', { name: 'codex · ci cache' }).click();
+  const more = row(page, '12 earlier sessions');
+  const past = page.locator('.tree-row--past');
+  await expect(more).toHaveAttribute('aria-expanded', 'false');
+  await expect(more).toHaveText('▸12 earlier sessions');
+  await expect(past).toHaveCount(0);
+  expect(machine.of('read')).toHaveLength(0);
+  await more.click();
+  await expect(more).toHaveText('▾12 earlier sessions');
+  await expect(past).toHaveCount(12);
+  const reads = () => machine.of('read').filter((r) => r.what === 'sessions');
+  expect(reads()).toEqual([expect.objectContaining({ project: 'weft' })]);
+  expect(reads()[0]).not.toHaveProperty('q');
+  // Newest first, as the agents above: harness, ended, the title, the time.
+  const first = past.first();
+  await expect(first).toContainText('codex');
+  await expect(first).toContainText('flaky test');
+  await expect(first).toContainText('07:40');
+  await expect(row(page, 'claude · turn-state map')).toContainText('Tue 18:22');
+  await expect(row(page, 'claude · turn-state map')).toContainText('ended');
+  await more.click();
+  await expect(more).toHaveText('▸12 earlier sessions');
+  await expect(past).toHaveCount(0);
+  await more.click();
+  await expect(past).toHaveCount(12);
+  // Kept as read: folding and unfolding again asks nothing.
+  expect(reads()).toHaveLength(1);
+  await row(page, 'codex · ci cache').click();
   await expect(region(page, /^codex · 01997a2d/)).toBeVisible();
+  // Open for this visit: back at the tree, it is still unfolded.
+  if (!wideOf(page)) {
+    await page.goBack();
+    await expect(row(page, '12 earlier sessions')).toHaveAttribute('aria-expanded', 'true');
+    await expect(past).toHaveCount(12);
+  }
   await machine.close();
 });
 
-test('M11.6 D11.6: the search sends what is typed and keeps the groups; the list reads a page at a time as it scrolls', async ({ page, context }) => {
+test('M11.7 D11.7: a large project\'s earlier sessions read a page at a time as the tree scrolls', async ({ page, context }) => {
   const big = large();
   const sample = atlas();
   sample.reads.earlier.weft = big.earlier;
   sample.tree[0].agents.earlier = big.earlier.length;
   const machine = await opened(page, context, sample);
   await row(page, '295 earlier sessions').click();
-  const view = region(page, 'Earlier sessions');
-  const rows = view.getByRole('listitem');
+  const rows = page.locator('.tree-row--past');
   await expect(rows).toHaveCount(50);
   await rows.nth(49).scrollIntoViewIfNeeded();
   await expect(rows).toHaveCount(100);
   const pages = () => machine.of('read').filter((r) => r.what === 'sessions');
   expect(pages()[1]).toMatchObject({ project: 'weft', after: big.earlier[49].session });
-  await view.getByRole('searchbox').fill('task 29');
-  await expect.poll(() => pages().at(-1)).toEqual(expect.objectContaining({ q: 'task 29' }));
-  // task 29 and task 290–295 that the page holds: still grouped.
-  await expect(rows).toHaveCount(7);
-  await expect(view.locator('.detail-head-row')).toHaveText(['EARLIER7']);
-  await view.getByRole('searchbox').fill('');
-  await expect(rows).toHaveCount(50);
   await machine.close();
 });

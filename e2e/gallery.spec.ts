@@ -738,7 +738,9 @@ const SCREENS: Screen[] = [
     sample: weftOnly,
     run: async (at) => {
       at.machine.update = '0.2.1';
-      await tree(at);
+      // The desktop card has claude open beside the tree.
+      if (at.wide) await onClaude(at);
+      else await tree(at);
       await expect(at.page.getByRole('status', { name: 'An update waiting' })).toBeVisible();
     },
   })),

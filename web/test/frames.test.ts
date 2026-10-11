@@ -1,4 +1,4 @@
-// weftd's screen frames drawn by xterm.js (Phase 6 step 2; web-app.md §11
+// weftd's screen frames drawn by xterm.js (web-app.md §11
 // test 1). The fixtures are written by weft's crates/weftd/tests/screen_frames.rs
 // from recorded harness output: a full frame, then differences, each with
 // the text vt100 shows after it. xterm.js must show the same text.

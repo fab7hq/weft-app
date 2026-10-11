@@ -32,7 +32,7 @@ export interface Ask {
   word?: 'asked' | 'asking';
 }
 
-/** One session weftd holds, as AGENTS lists it (remote.md §6c), whichever program runs it. */
+/** One session weftd holds, as AGENTS lists it (remote.md §6), whichever program runs it. */
 export interface Session {
   /** Empty for a running agent whose harness has named no session yet. */
   session: string;
@@ -149,12 +149,12 @@ export const current = signal<api.Machine | null>(null);
 
 export const needsYou = computed(() => agents.value.filter((a) => a.turn === 'waiting').length);
 
-/** The remote protocol's version this page speaks (remote.md §6e). */
-export const VERSION = 4;
+/** The remote protocol's version this page speaks (remote.md §6). */
+export const VERSION = 1;
 
 /** The refusals a machine gives, by the words key that says each. */
 const REFUSED = ['denied', 'expired', 'not_owner', 'busy'];
-/** A socket that has not opened by then is closed and tried again (ADR-0034 D4). */
+/** A socket that has not opened by then is closed and tried again. */
 const OPEN_WITHIN = 10_000;
 /** The longest wait between tries, so a machine back is reached within it. */
 const LONGEST_WAIT = 10;
@@ -403,7 +403,7 @@ function later(): void {
 }
 
 /** The network may be another: a connection that seems open is asked, and
- * one that is not is tried at once (ADR-0034 D4). */
+ * one that is not is tried at once. */
 function look(): void {
   if (!machine || link.value === 'refused') return;
   if (link.value === 'connected' && socket?.readyState === WebSocket.OPEN) {

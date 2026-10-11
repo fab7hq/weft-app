@@ -1,4 +1,4 @@
-// Step 38, web-app.md §8: a push from the machine shows, and a tap opens its
+// web-app.md §8: a push from the machine shows, and a tap opens its
 // agent. Headless Chromium has no push service: the subscription is a stub
 // (the push service is the one thing mocked), and the push reaches the real
 // service worker through Chromium's DevTools deliverPushMessage, the path a

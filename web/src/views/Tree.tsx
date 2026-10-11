@@ -1,4 +1,4 @@
-// The TUI's tree (ADR-0029, M11.1, D11.1): each project's AGENTS, every
+// The TUI's tree (M11.1, D11.1): each project's AGENTS, every
 // session weftd holds, newest first, and its WORK by Eval round, with the
 // machine's words. Amber only for an agent that waits for you. A tap selects
 // a row, and the bar's acts follow the selection; › opens its Details. Sealed
@@ -213,7 +213,7 @@ function Skeleton() {
 /** Nothing in the tree but what the machine says is missing. */
 const bare = (p: m.Project) => p.agents.rows.length === 0 && p.work.open.asks.length === 0 && p.work.evals.length === 0 && p.work.sealed.seals === 0;
 
-/** What a session's row says after its harness: its turn, ended, or when it was last active (D11). */
+/** What a session's row says after its harness: its turn, ended, or when it was last active. */
 export function stateOf(s: m.Session): string {
   if (s.state === 'ended') return w('state.ended');
   if (s.state === 'quiet') return fill('state.last_active', { time: clock(s.at) });
@@ -272,7 +272,7 @@ function ProjectRows({ p, moves }: { p: m.Project; moves: Moves }) {
       <div class="tree-row tree-row--project" role="treeitem" aria-label={p.project} aria-expanded={open} onClick={() => fold(p.project)}>
         <span class="tree-fold">{open ? '▾' : '▸'}</span>
         <span class="tree-name">{p.project}</span>
-        {/* Its Open Asks and the agents that need you (D12.3); reopened, in their place (M13.5). */}
+        {/* Its Open Asks and the agents that need you; reopened, in their place (M13.5). */}
         <span class="tree-aside">
           {p.reopened ? w('web.reopened') : `${p.open} ${w('title.open')}`}
           {!p.reopened && p.needs > 0 && (

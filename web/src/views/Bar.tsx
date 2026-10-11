@@ -80,7 +80,7 @@ function fallback(project: string | undefined, harness?: string): string | undef
   return open?.agent ?? (mine.find((a) => a.harness === harness) ?? mine[0])?.agent;
 }
 
-/** Ask, on the selection: an agent takes it, or says why it cannot (D12.4, D9); a round says to select an agent. */
+/** Ask, on the selection: an agent takes it, or says why it cannot; a round says to select an agent. */
 export function askOn(): void {
   const s = chosen();
   if (s?.kind === 'agent') {
@@ -101,7 +101,7 @@ export function askOn(): void {
   asking.value = { agent, project: project ?? of?.project };
 }
 
-/** Eval, on the Open round (D5): on anything else, select Open. */
+/** Eval, on the Open round: on anything else, select Open. */
 export async function evalOn(): Promise<void> {
   const s = chosen();
   if (!(s?.kind === 'open' || (s?.kind === 'ask' && !s.round))) return void (said.value = w('select.open'));
@@ -110,7 +110,7 @@ export async function evalOn(): Promise<void> {
   if (refused) said.value = String(refused.message);
 }
 
-/** Seal, on an Eval's round (D5): on anything else, select an Eval. */
+/** Seal, on an Eval's round: on anything else, select an Eval. */
 export async function sealOn(): Promise<void> {
   const s = chosen();
   const round = s?.kind === 'eval' ? s.round : s?.kind === 'ask' ? s.round : null;
@@ -118,7 +118,7 @@ export async function sealOn(): Promise<void> {
   await sealRound(s.p.project, round.eval, round.seal);
 }
 
-/** Seal this Eval, unless the machine said why not (D12.6: it stays drawn, and says so). */
+/** Seal this Eval, unless the machine said why not (it stays drawn, and says so). */
 export async function sealRound(project: string, eval_: string, why: m.Why | null): Promise<void> {
   if (why) return void (said.value = sentence(why));
   const refused = await act({ act: 'seal', project, eval: eval_ });

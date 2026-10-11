@@ -1,4 +1,4 @@
-// Step 39, web-app.md §11 test 4: on a desktop the list sits beside the
+// web-app.md §11 test 4: on a desktop the list sits beside the
 // agent; typing in the screen sends keys; Cmd shortcuts stay the browser's.
 import { expect, test } from '@playwright/test';
 import { FakeMachine, agent } from './fake-machine';

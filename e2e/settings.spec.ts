@@ -1,4 +1,4 @@
-// Step 38: on an iPhone, notifications ask for the Home Screen first; the
+// On an iPhone, notifications ask for the Home Screen first; the
 // account can be left from Settings.
 import { expect, test } from '@playwright/test';
 import { FakeMachine, agent } from './fake-machine';

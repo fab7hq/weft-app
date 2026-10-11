@@ -314,7 +314,7 @@ const SCREENS: Screen[] = [
     await expect(at.page.getByText('Reconnecting')).toBeVisible();
   } },
 
-  // 02 · The tree. M2.6–M2.9 and their D twins are superseded by M11.1, D11.1 (ADR-0029 D10).
+  // 02 · The tree. M2.6–M2.9 and their D twins are superseded by M11.1, D11.1.
   { ids: ['M2.1', 'D2.1'], sample: () => ({ ...atlas(), agents: [], tree: [] }), run: async (at) => {
     await open(at);
     await expect(at.page.getByText('Nothing asked for yet.')).toBeVisible();
@@ -468,7 +468,7 @@ const SCREENS: Screen[] = [
   } },
 
   // 05 · Details: a work's Ask in each of its states, as M11.2 draws it now. M5.5–M5.8 and
-  // their D twins (the Eval and Seal sections) are superseded by M11.3, M11.4 (ADR-0029 D10).
+  // their D twins (the Eval and Seal sections) are superseded by M11.3, M11.4.
   { ids: ['M5.1'], run: (at) => details(at, 'ask_2') },
   { ids: ['M5.2', 'D5.2'], run: (at) => details(at, 'ask_1') },
   { ids: ['M5.3'], run: (at) => details(at, 'ask_3', { ...DETAILS.ask_3, crumb: { eval: null, seal: null }, proceed: true,
@@ -604,7 +604,7 @@ const SCREENS: Screen[] = [
     await expect(at.page.getByRole('radiogroup', { name: 'Start an agent' })).toBeVisible();
   } },
 
-  // 11 · Agents and rounds (ADR-0029): the cards' moment, docs folded.
+  // 11 · Agents and rounds: the cards' moment, docs folded.
   // M11.1: claude selected; the phone's tree from its top.
   { ids: ['M11.1'], run: async (at) => {
     await tree(at);
@@ -685,7 +685,7 @@ const SCREENS: Screen[] = [
     at.machine.send({ type: 'tree', tree: s.tree });
     await expect(at.page.getByText('claude has ended. Its work is still on the list.')).toBeVisible();
   } },
-  // 13 · Remote that survives (ADR-0034): weft alone, as the cards draw it.
+  // 13 · Remote that survives: weft alone, as the cards draw it.
   ...(['M13.1', 'D13.1'] as const).map((id): Screen => ({
     ids: [id],
     sample: weftOnly,

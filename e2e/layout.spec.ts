@@ -1,4 +1,4 @@
-// Step 39: a tablet has the desktop's layout, the list beside the agent.
+// A tablet has the desktop's layout, the list beside the agent.
 import { expect, test } from '@playwright/test';
 import { FakeMachine, agent } from './fake-machine';
 import { openAgent } from './open';

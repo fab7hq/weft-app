@@ -15,7 +15,7 @@ import { fill, w } from '../words';
 /** The pending this device asked for and shows. */
 export const shown = signal<string | null>(null);
 
-/** A session to resume by its id (ADR-0029 D4), after a confirm: after an act
+/** A session to resume by its id, after a confirm: after an act
  * the machine refused because no agent runs where it goes (`not_running`,
  * which names the session, or none). */
 interface Gone {

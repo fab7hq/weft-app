@@ -1,4 +1,4 @@
-// Step 37, web-app.md §7, §11 test 5: an Ask becomes a pending shown byte for
+// web-app.md §7, §11 test 5: an Ask becomes a pending shown byte for
 // byte; "Answered on the machine" when it is answered there first.
 import { expect, test } from '@playwright/test';
 import { FakeMachine, agent } from './fake-machine';

@@ -1,4 +1,4 @@
-// Step 32: the shell installs as an app and opens with no network to
+// The shell installs as an app and opens with no network to
 // "No connection".
 import { expect, test } from '@playwright/test';
 

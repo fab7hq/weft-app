@@ -1,7 +1,7 @@
 // A person's machines (account.md §5): a machine enrols once with the GitHub token
 // its device flow got, then tells only a new address with its own token.
 // A machine tells its address again every 5 minutes, so the time the service
-// last heard from it is never older than that while it is up (ADR-0034 D4).
+// last heard from it is never older than that while it is up.
 // The app finds out a machine is online by reaching it.
 
 import { random, sha256Hex } from './crypto';

@@ -30,7 +30,7 @@ export function person(login: string, machines: { name: string; address?: string
   const cookie = randomBytes(32).toString('base64url');
   const now = Date.now();
   const rows = machines.map((m, i) => ({ id: `m_${userId}_${i}`, name: m.name, address: m.address ?? null }));
-  // When the service last heard from each: its last report (ADR-0034 D4).
+  // When the service last heard from each: its last report.
   const seen = machines.map((m) => m.seenAt ?? (m.address ? now : null));
   const q = (s: string | null) => (s === null ? 'NULL' : `'${s.replaceAll("'", "''")}'`);
   sql(

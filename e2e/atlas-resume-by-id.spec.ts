@@ -1,4 +1,4 @@
-// Resume names a session (ADR-0029 D4; the `gl` case): of two ended
+// Resume names a session (the `gl` case): of two ended
 // sessions of one harness, the older resumed from its Details starts exactly
 // its id, never "the latest"; once the machine holds it again, its AGENTS row
 // is running.

@@ -1,4 +1,4 @@
-// Details, one level each (ADR-0029 D3): a work's (M11.2, D11.2), its Ask
+// Details, one level each: a work's (M11.2, D11.2), its Ask
 // only, under a breadcrumb of where it stands; an Eval's (M11.3, D11.3), once;
 // a Seal's (M11.4, D11.4), once. Each is read from the machine; a part of the
 // record it names is a link to its own Details. On a phone a page with its
@@ -300,7 +300,7 @@ export function Details({ machine, project, unit, wide = false }: { machine: Mac
   );
 }
 
-/** An Eval's Details (M11.3, D11.3): once, with the Asks it covers; Seal stays drawn, and says why when it does not apply (D12.6). */
+/** An Eval's Details (M11.3, D11.3): once, with the Asks it covers; Seal stays drawn, and says why when it does not apply. */
 export function RoundDetails({ machine, project, eval: id, wide = false }: { machine: Machine; project: string; eval: string; wide?: boolean }) {
   const d = useRead<Judged>({ project, eval: id }, 'eval', [JSON.stringify(m.tree.value.find((p) => p.project === project)?.work.evals)]);
   const to = moves(machine, project);

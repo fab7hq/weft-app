@@ -1,4 +1,4 @@
-// Phase 6 slice J, web-app.md §4, §6, §7: the controls, as the TUI. Under the
+// web-app.md §4, §6, §7: the controls, as the TUI. Under the
 // pane one row, [⌃] Message… [▶]; the TUI's bar is a sheet behind ⌃.
 import { expect, test, type Page } from '@playwright/test';
 import { FakeMachine, agent } from './fake-machine';

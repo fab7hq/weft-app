@@ -1,8 +1,8 @@
 // A session's Details (M11.5, D11.5) and the earlier sessions (M11.6,
-// D11.6), as weftd holds them (ADR-0029 D1): whichever program runs a
-// session, it reads the same. Resume resumes exactly its id (D4), at once:
-// the page is that one session (the owner, 2026-10-11). A running one goes to
-// its agent, or, run by another program, says why it cannot (D9).
+// D11.6), as weftd holds them: whichever program runs a session, it reads
+// the same. Resume resumes exactly its id, at once: the page is that one
+// session. A running one goes to its agent, or, run by another program, says
+// why it cannot.
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Machine } from '../api';
 import { clock, stamp, weekday } from '../bar';
@@ -45,7 +45,7 @@ export function SessionDetails({ machine, project, session, wide = false }: { ma
   const s = asRow(d);
   const state = d.state === 'ended' ? `${w('state.ended')} ${clock(d.last)}` : stateOf(s);
   const resume = () => (d.resume ? void again(project, d.harness, d.session) : void (said.value = w('resume.nothing')));
-  // Run by another program, it has no pane to go to (D9).
+  // Run by another program, it has no pane to go to.
   const goTo = () => (d.agent ? to.agent(d.agent) : void (said.value = fill('why.elsewhere', { harness: d.harness })));
   const chip = d.state === 'quiet' ? stateOf(s) : w(`state.${d.state}`).toUpperCase();
   return (
@@ -104,7 +104,7 @@ export function SessionDetails({ machine, project, session, wide = false }: { ma
         </>
       )}
       <div class="detail-asks">
-        {/* A session's Asks keep their state word (D6), a cancelled one too (D12.2); a desktop adds its Seal or Eval. */}
+        {/* A session's Asks keep their state word, a cancelled one too; a desktop adds its Seal or Eval. */}
         {d.asks.map((a) => {
           const where = wide && (a.seal !== null ? ` · ${sealName(a.seal)}` : a.eval !== null ? ` · ${fill('tree.eval', { n: String(a.eval) })}` : '');
           return <AskLine key={a.unit} title={a.title} aside={`${stateWord(a.word)}${where || ''}`} onGo={() => to.work(a.unit)} />;

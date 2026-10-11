@@ -17,7 +17,7 @@ export const SQL = {
   machineByToken: 'SELECT id, user_id AS userId FROM machines WHERE token_hash = ?',
   setAddress: 'UPDATE machines SET address = ?, address_at = ? WHERE id = ?',
   // Every report sets address_at, the same address or not: it is also when
-  // the service last heard from the machine (ADR-0034 D4).
+  // the service last heard from the machine.
   machines: `SELECT id, name, address, address_at, address_at AS seen_at FROM machines WHERE user_id = ? ORDER BY created_at`,
   removeMachine: 'DELETE FROM machines WHERE id = ? AND user_id = ?',
   leave: 'DELETE FROM machines WHERE id = ?',

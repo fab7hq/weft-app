@@ -1,4 +1,4 @@
-// A fake machine: speaks the remote protocol, version 4 (remote.md §6e), as
+// A fake machine: speaks the remote protocol (remote.md §6), as
 // `weft remote` does, answers each read from its sample a page at a time,
 // records every message, and lets a test drop, refuse and hang connections,
 // change its epoch and version, wait on an update, and send what the machine
@@ -41,7 +41,7 @@ export interface Ask {
   word?: 'asked' | 'asking';
 }
 
-/** A session, as AGENTS lists it (remote.md §6c `Agent`). */
+/** A session, as AGENTS lists it (remote.md §6 `Agent`). */
 export interface Session {
   session: string;
   harness: string;
@@ -72,7 +72,7 @@ export interface Needs {
   commit: boolean | null;
 }
 
-/** One project of the tree (remote.md §6c), as weft_core::tree builds it. */
+/** One project of the tree (remote.md §6), as weft_core::tree builds it. */
 export interface Project {
   project: string;
   open: number;
@@ -82,7 +82,7 @@ export interface Project {
   setup?: Needs | null;
   /** Agents started here from now on run in turbo mode. */
   turbo?: boolean;
-  /** When weftd reopened it after ending uncleanly (ADR-0034 D2), until someone acts in it. */
+  /** When weftd reopened it after ending uncleanly, until someone acts in it. */
   reopened?: number | null;
   agents: { running: number; ended: number; rows: Session[]; earlier: number };
   work: { open: { since: number | null; asks: Ask[]; eval: Why | null }; evals: Round[]; sealed: { seals: number; asks: number } };
@@ -95,7 +95,7 @@ export interface Start {
   title: string;
 }
 
-/** The reads' payloads (remote.md §6c), as `read` answers them. */
+/** The reads' payloads (remote.md §6), as `read` answers them. */
 export interface Detail {
   unit: string;
   title: string;
@@ -176,7 +176,7 @@ export interface Reads {
 
 const noReads = (): Reads => ({ details: {}, evals: {}, seals: {}, sessions: {}, sealed: {}, earlier: {}, views: {} });
 
-/** How many rows a page holds (remote.md §6c). */
+/** How many rows a page holds (remote.md §6). */
 export const PAGE = 50;
 
 /** The page after `after` (the first with none), and the `after` of the next page, or null at the end. */
@@ -189,7 +189,7 @@ export function page<T>(rows: T[], after: unknown, id: (r: T) => string): { rows
 
 export class FakeMachine {
   /** The remote protocol's version `weft remote` speaks. */
-  static readonly VERSION = 4;
+  static readonly VERSION = 1;
   readonly server: WebSocketServer;
   private readonly tls: Server;
   readonly heard: Record<string, unknown>[] = [];
@@ -198,7 +198,7 @@ export class FakeMachine {
   version = FakeMachine.VERSION;
   /** Not signed in to Weft's service: a pair is refused `signed_out`. */
   signedOut = false;
-  /** A newer Weft installed and waiting for no agent to run, by its version (ADR-0034 D5). */
+  /** A newer Weft installed and waiting for no agent to run, by its version. */
   update: string | null = null;
   /** Take connections and never open them: a socket that hangs. */
   hang = false;
@@ -272,7 +272,7 @@ export class FakeMachine {
           ws.send(JSON.stringify(this.welcome()));
         }
         if (m.type === 'act' && m.act === 'dismiss') {
-          // A reopened project dismissed: it closes on the machine (ADR-0034 D2).
+          // A reopened project dismissed: it closes on the machine.
           this.tree = (this.tree ?? treeOf(this.agents)).filter((p) => p.project !== m.project);
           ws.send(JSON.stringify({ type: 'ok', req: m.req }));
           this.send({ type: 'tree', tree: this.tree });
@@ -284,8 +284,8 @@ export class FakeMachine {
           ws.send(JSON.stringify(this.onText(m)));
         } else if (m.type === 'resolve' && this.onResolve) {
           for (const o of this.onResolve(m)) ws.send(JSON.stringify(o));
-        } else if (m.type === 'start' && (m.resume === true || 'unit' in m)) {
-          // Version 2's resume and start {unit} are gone.
+        } else if (m.type === 'start' && m.resume === true) {
+          // A resume names a session's id, never "the latest".
           ws.send(JSON.stringify({ type: 'error', req: m.req, code: 'bad_request', message: 'resume names a session' }));
         } else if (m.type === 'start') {
           const out = this.onStart ? this.onStart(m) : [{ type: 'ok', req: m.req, agent: `3f9a1c07b2de-${this.agents.length}` }];

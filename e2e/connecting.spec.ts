@@ -1,4 +1,4 @@
-// Step 34, web-app.md §11 test 3: nothing is sent while reconnecting, and a
+// web-app.md §11 test 3: nothing is sent while reconnecting, and a
 // key says why; a new epoch clears the list. And the first connection pairs.
 import { expect, test } from '@playwright/test';
 import { FakeMachine, agent } from './fake-machine';
@@ -12,9 +12,9 @@ test('a first connection pairs, then says hello with its token', async ({ page, 
   await page.goto('/');
   await expect(page.getByRole('treeitem', { name: 'weft', exact: true }).first()).toBeVisible();
   const [pair] = machine.of('pair');
-  expect(pair).toMatchObject({ v: 4, name: expect.any(String) });
+  expect(pair).toMatchObject({ v: FakeMachine.VERSION, name: expect.any(String) });
   expect(String(pair.assertion)).toMatch(/^[\w-]+\.[\w-]+$/);
-  expect(machine.of('hello')).toEqual([{ type: 'hello', v: 4, device: pair.device, token: 't_good' }]);
+  expect(machine.of('hello')).toEqual([{ type: 'hello', v: FakeMachine.VERSION, device: pair.device, token: 't_good' }]);
   // Next time, straight to hello: the token was kept.
   await page.reload();
   await expect(page.getByRole('treeitem', { name: 'weft', exact: true }).first()).toBeVisible();

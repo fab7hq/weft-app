@@ -85,7 +85,7 @@ describe('machines', () => {
     expect((await call('PUT', '/api/machine/address', { body: address, bearer: laptop.machine_token })).status).toBe(401);
   });
 
-  // ADR-0034 D4: the service keeps when it last heard from each machine, and
+  // The service keeps when it last heard from each machine, and
   // the person's list says so, for the phone to show while it cannot reach it.
   it('every report, the same address or not, is when the service last heard from the machine', async () => {
     fakeGitHub({ a: { id: 91, login: 'octo' }, web: { id: 91, login: 'octo' } });

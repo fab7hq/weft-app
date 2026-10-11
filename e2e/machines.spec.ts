@@ -1,4 +1,4 @@
-// Step 33: signed out, signed in with no machine, one, several.
+// Signed out, signed in with no machine, one, several.
 import { expect, test } from '@playwright/test';
 import { person, signIn } from './seed';
 

@@ -6,7 +6,7 @@ export interface Machine {
   name: string;
   address: string | null;
   address_at: number | null;
-  /** When Weft's service last heard from the machine (ADR-0034 D4). */
+  /** When Weft's service last heard from the machine. */
   seen_at: number | null;
 }
 

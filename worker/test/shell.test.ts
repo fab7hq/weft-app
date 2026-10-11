@@ -1,4 +1,4 @@
-// Step 26: only /api/* and /auth/* run the Worker, and /api/me is 401 to
+// Only /api/* and /auth/* run the Worker, and /api/me is 401 to
 // someone not signed in.
 import { exports } from 'cloudflare:workers';
 import { describe, expect, it } from 'vitest';

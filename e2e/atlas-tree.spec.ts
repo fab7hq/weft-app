@@ -103,14 +103,14 @@ test('M11.1 D11.1: the bar follows the selection; an act that does not apply say
   expect(machine.of('act')[2]).toMatchObject({ act: 'seal', eval: 'evl_3' });
   await page.getByRole('dialog', { name: 'Eval this work?' }).getByRole('button', { name: 'Cancel', exact: true }).click();
 
-  // An ended session: Ask says to resume it (D12.4).
+  // An ended session: Ask says to resume it.
   await row(page, 'claude · readme fix').click();
   if (wide) await page.getByRole('region', { name: /^claude · 3f9c2b71/ }).waitFor();
   await bar(page, 'Ask').click();
   await expect(said(page)).toHaveText('claude has ended: resume this session to Ask it.');
   await noneDisabled(page);
 
-  // A round the machine says cannot be sealed keeps its act, and says why (D12.6).
+  // A round the machine says cannot be sealed keeps its act, and says why.
   const t = sample.tree;
   t[0].work.evals[0].seal = { key: 'why.sealed_already', title: 'Eval 3' };
   machine.send({ type: 'tree', tree: t });
@@ -124,7 +124,7 @@ test('M11.1 D11.1: the bar follows the selection; an act that does not apply say
 
 test('M11.1 D11.1: a session run by another program reads the same; Ask on it says why', async ({ page, context }) => {
   const sample = atlas();
-  // codex no Ask yet runs in a terminal: no pane holds it (D9).
+  // codex no Ask yet runs in a terminal: no pane holds it.
   Object.assign(sample.tree[0].agents.rows[0], { agent: null });
   const machine = await opened(page, context, sample);
   await expect(row(page, 'codex · no Ask yet').locator('.agent-state')).toHaveText('working');

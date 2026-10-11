@@ -1,4 +1,4 @@
-// Step 36, web-app.md §11 tests 1 and 2: the screen, watching and driving,
+// web-app.md §11 tests 1 and 2: the screen, watching and driving,
 // the key bar, the message box, history.
 import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';

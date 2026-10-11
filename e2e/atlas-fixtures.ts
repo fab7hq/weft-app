@@ -1,5 +1,5 @@
 // The Atlas's sample (cards M11.x, D11.x; spec/atlas.md §6), as the machine
-// sends it on remote protocol 3: the project weft's sessions and rounds, and
+// sends it on the remote protocol: the project weft's sessions and rounds, and
 // what each read answers. Shared by the fake machine, the specs and the gallery.
 import type { Ask, Detail, Earlier, EvalDetail, Reads, Round, SealDetail, SealRow, Session, SessionDetail } from './fake-machine';
 

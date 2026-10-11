@@ -1,4 +1,4 @@
-// Remote that survives (Weft Phase 6.9, ADR-0034 D4, cards 13.1–13.6): the page
+// Remote that survives (cards 13.1–13.6): the page
 // comes back by itself, says what it waits for, and says what to do when a
 // refusal needs the person. Each on a phone and a desktop.
 import { expect, test } from '@playwright/test';

@@ -1,7 +1,8 @@
-// A fake machine: speaks the remote protocol, version 3 (remote.md §6c), as
+// A fake machine: speaks the remote protocol, version 4 (remote.md §6e), as
 // `weft remote` does, answers each read from its sample a page at a time,
-// records every message, and lets a test drop and refuse connections, change
-// its epoch and send what the machine would.
+// records every message, and lets a test drop, refuse and hang connections,
+// change its epoch and version, wait on an update, and send what the machine
+// would.
 import { readFileSync } from 'node:fs';
 import { createServer, type Server } from 'node:https';
 import { WebSocketServer, type WebSocket } from 'ws';
@@ -81,6 +82,8 @@ export interface Project {
   setup?: Needs | null;
   /** Agents started here from now on run in turbo mode. */
   turbo?: boolean;
+  /** When weftd reopened it after ending uncleanly (ADR-0034 D2), until someone acts in it. */
+  reopened?: number | null;
   agents: { running: number; ended: number; rows: Session[]; earlier: number };
   work: { open: { since: number | null; asks: Ask[]; eval: Why | null }; evals: Round[]; sealed: { seals: number; asks: number } };
 }
@@ -185,10 +188,24 @@ export function page<T>(rows: T[], after: unknown, id: (r: T) => string): { rows
 }
 
 export class FakeMachine {
+  /** The remote protocol's version `weft remote` speaks. */
+  static readonly VERSION = 4;
   readonly server: WebSocketServer;
   private readonly tls: Server;
   readonly heard: Record<string, unknown>[] = [];
   epoch = 'e1';
+  /** The version this machine speaks: another provokes the page's version refusal. */
+  version = FakeMachine.VERSION;
+  /** Not signed in to Weft's service: a pair is refused `signed_out`. */
+  signedOut = false;
+  /** A newer Weft installed and waiting for no agent to run, by its version (ADR-0034 D5). */
+  update: string | null = null;
+  /** Take connections and never open them: a socket that hangs. */
+  hang = false;
+  /** Upgrades asked for, answered or not. */
+  upgrades = 0;
+  /** The upgrades a hang holds, failed when it is released. */
+  private held: ((ok: boolean) => void)[] = [];
   vapid: string | null = null;
   agents: Agent[] = [];
   /** The tree; none set, each agent's project and harness with nothing asked. */
@@ -215,7 +232,15 @@ export class FakeMachine {
 
   constructor() {
     this.tls = createServer(TLS).listen(0, '127.0.0.1');
-    this.server = new WebSocketServer({ server: this.tls, verifyClient: () => !this.down });
+    this.server = new WebSocketServer({
+      server: this.tls,
+      // A hung machine never answers the upgrade; a down one refuses it.
+      verifyClient: (_info, done) => {
+        this.upgrades++;
+        if (this.hang) this.held.push(done);
+        else done(!this.down);
+      },
+    });
     this.server.on('connection', (ws) => {
       this.sockets.add(ws);
       ws.on('close', () => this.sockets.delete(ws));
@@ -223,14 +248,20 @@ export class FakeMachine {
         const m = JSON.parse(String(data));
         this.heard.push(m);
         if (m.type === 'ping') ws.send(JSON.stringify({ type: 'pong', t: m.t }));
-        if (m.type === 'pair' && this.allowAtOnce && m.v === 3) {
-          ws.send(JSON.stringify({ type: 'asking' }));
-          ws.send(JSON.stringify({ type: 'paired', token: 't_good' }));
-        }
-        if ((m.type === 'hello' || m.type === 'pair') && m.v !== 3) {
-          ws.send(JSON.stringify({ type: 'refused', code: 'version' }));
+        if ((m.type === 'hello' || m.type === 'pair') && m.v !== this.version) {
+          const newer = typeof m.v === 'number' && m.v > this.version ? 'page' : 'machine';
+          ws.send(JSON.stringify({ type: 'refused', code: 'version', newer }));
           ws.close();
           return;
+        }
+        if (m.type === 'pair' && this.signedOut) {
+          ws.send(JSON.stringify({ type: 'refused', code: 'signed_out' }));
+          ws.close();
+          return;
+        }
+        if (m.type === 'pair' && this.allowAtOnce) {
+          ws.send(JSON.stringify({ type: 'asking' }));
+          ws.send(JSON.stringify({ type: 'paired', token: 't_good' }));
         }
         if (m.type === 'hello') {
           if (m.token !== 't_good') {
@@ -240,7 +271,12 @@ export class FakeMachine {
           }
           ws.send(JSON.stringify(this.welcome()));
         }
-        if (m.type === 'act' && this.onAct) {
+        if (m.type === 'act' && m.act === 'dismiss') {
+          // A reopened project dismissed: it closes on the machine (ADR-0034 D2).
+          this.tree = (this.tree ?? treeOf(this.agents)).filter((p) => p.project !== m.project);
+          ws.send(JSON.stringify({ type: 'ok', req: m.req }));
+          this.send({ type: 'tree', tree: this.tree });
+        } else if (m.type === 'act' && this.onAct) {
           for (const out of this.onAct(m)) ws.send(JSON.stringify(out));
         } else if (m.type === 'read') {
           ws.send(JSON.stringify(this.onRead?.(m) ?? this.read(m)));
@@ -325,7 +361,7 @@ export class FakeMachine {
   welcome() {
     return {
       type: 'welcome',
-      v: 3,
+      v: this.version,
       epoch: this.epoch,
       machine: { id: 'm_fake', name: 'studio' },
       vapid: this.vapid,
@@ -333,7 +369,20 @@ export class FakeMachine {
       tree: this.tree ?? treeOf(this.agents),
       harnesses: this.harnesses,
       pendings: this.pendings,
+      update: this.update ? { version: this.update } : null,
     };
+  }
+
+  /** No longer hang: the held upgrades fail, as a dead link's do in the end. */
+  release(): void {
+    this.hang = false;
+    for (const done of this.held.splice(0)) done(false);
+  }
+
+  /** An update installed and waiting, or none any more: every device is told. */
+  setUpdate(version: string | null): void {
+    this.update = version;
+    this.send({ type: 'update', update: version ? { version } : null });
   }
 
   /** Send to every connected device. */

@@ -12,9 +12,9 @@ test('a first connection pairs, then says hello with its token', async ({ page, 
   await page.goto('/');
   await expect(page.getByRole('treeitem', { name: 'weft', exact: true }).first()).toBeVisible();
   const [pair] = machine.of('pair');
-  expect(pair).toMatchObject({ v: 3, name: expect.any(String) });
+  expect(pair).toMatchObject({ v: 4, name: expect.any(String) });
   expect(String(pair.assertion)).toMatch(/^[\w-]+\.[\w-]+$/);
-  expect(machine.of('hello')).toEqual([{ type: 'hello', v: 3, device: pair.device, token: 't_good' }]);
+  expect(machine.of('hello')).toEqual([{ type: 'hello', v: 4, device: pair.device, token: 't_good' }]);
   // Next time, straight to hello: the token was kept.
   await page.reload();
   await expect(page.getByRole('treeitem', { name: 'weft', exact: true }).first()).toBeVisible();

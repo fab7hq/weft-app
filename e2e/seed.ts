@@ -23,13 +23,15 @@ export interface Seeded {
 
 
 /** A signed-in person with these machines. */
-export function person(login: string, machines: { name: string; address?: string }[]): Seeded {
+export function person(login: string, machines: { name: string; address?: string; seenAt?: number }[]): Seeded {
   // Random, so no two people in one local D1 share a GitHub id.
   const githubId = randomInt(1, 2 ** 31);
   const userId = `u_${randomBytes(6).toString('hex')}`;
   const cookie = randomBytes(32).toString('base64url');
   const now = Date.now();
   const rows = machines.map((m, i) => ({ id: `m_${userId}_${i}`, name: m.name, address: m.address ?? null }));
+  // When the service last heard from each: its last report (ADR-0034 D4).
+  const seen = machines.map((m) => m.seenAt ?? (m.address ? now : null));
   const q = (s: string | null) => (s === null ? 'NULL' : `'${s.replaceAll("'", "''")}'`);
   sql(
     [
@@ -37,7 +39,7 @@ export function person(login: string, machines: { name: string; address?: string
       `INSERT INTO sessions (hash, user_id, expires_at) VALUES (${q(sha256(cookie))}, ${q(userId)}, ${now + 86_400_000});`,
       ...rows.map(
         (m, i) =>
-          `INSERT INTO machines (id, user_id, name, token_hash, address, address_at, created_at) VALUES (${q(m.id)}, ${q(userId)}, ${q(m.name)}, ${q(sha256(m.id))}, ${q(m.address)}, ${m.address ? now : 'NULL'}, ${now + i});`,
+          `INSERT INTO machines (id, user_id, name, token_hash, address, address_at, created_at) VALUES (${q(m.id)}, ${q(userId)}, ${q(m.name)}, ${q(sha256(m.id))}, ${q(m.address)}, ${seen[i] ?? 'NULL'}, ${now + i});`,
       ),
     ].join(' '),
   );

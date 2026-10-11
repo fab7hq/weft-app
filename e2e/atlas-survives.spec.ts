@@ -121,7 +121,7 @@ test('M13.5 D13.5: a project reopened after a restart says so, its agents ended;
     machine.reads.sessions[`s-${ended.agent}`] = { session: `s-${ended.agent}`, harness: 'claude-code', state: 'ended', turn: null, started: last - 3_600_000, last, resume: true, asks: [], agent: null };
     await page.getByRole('treeitem', { name: 'claude-code · fix login', exact: true }).click();
     await expect(page.getByText('This session ended at 07:41, when Weft stopped on studio.')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Resume this session', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Resume', exact: true })).toBeVisible();
   }
   await notice.getByRole('button', { name: 'Dismiss', exact: true }).click();
   await expect.poll(() => machine.of('act').filter((m) => m.act === 'dismiss')).toEqual([expect.objectContaining({ act: 'dismiss', project: 'weft' })]);

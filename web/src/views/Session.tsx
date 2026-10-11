@@ -1,14 +1,14 @@
 // A session's Details (M11.5, D11.5) and the earlier sessions (M11.6,
 // D11.6), as weftd holds them (ADR-0029 D1): whichever program runs a
-// session, it reads the same. Resume this session resumes exactly its id,
-// after a confirm (D4); a running one goes to its agent, or, run by another
-// program, says why it cannot (D9).
+// session, it reads the same. Resume resumes exactly its id (D4), at once:
+// the page is that one session (the owner, 2026-10-11). A running one goes to
+// its agent, or, run by another program, says why it cannot (D9).
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Machine } from '../api';
 import { clock, stamp, weekday } from '../bar';
 import * as m from '../machine';
 import { fill, stateWord, w } from '../words';
-import { offerResume, shortId } from './Asked';
+import { resume as again, shortId } from './Asked';
 import { said } from './Bar';
 import { AskLine, Fact, Frame, Grid, Head, moves, useRead } from './Details';
 import { sealName, stateOf } from './Tree';
@@ -26,7 +26,7 @@ interface Held {
   agent: string | null;
 }
 
-/** A session as AGENTS would list it, for the confirm. */
+/** A session as AGENTS would list it, for its state word. */
 const asRow = (d: Held): m.Session => ({
   session: d.session, harness: d.harness, state: d.state, turn: d.turn, title: d.asks[0]?.title ?? null, at: d.last, asks: d.asks.length, agent: d.agent, ask: null,
 });
@@ -44,7 +44,7 @@ export function SessionDetails({ machine, project, session, wide = false }: { ma
   const reopened = d.state === 'ended' && !!m.tree.value.find((p) => p.project === project)?.reopened;
   const s = asRow(d);
   const state = d.state === 'ended' ? `${w('state.ended')} ${clock(d.last)}` : stateOf(s);
-  const resume = () => (d.resume ? offerResume(project, s) : void (said.value = w('resume.nothing')));
+  const resume = () => (d.resume ? void again(project, d.harness, d.session) : void (said.value = w('resume.nothing')));
   // Run by another program, it has no pane to go to (D9).
   const goTo = () => (d.agent ? to.agent(d.agent) : void (said.value = fill('why.elsewhere', { harness: d.harness })));
   const chip = d.state === 'quiet' ? stateOf(s) : w(`state.${d.state}`).toUpperCase();

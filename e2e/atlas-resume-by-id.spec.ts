@@ -8,7 +8,7 @@ import { SESSIONS } from './atlas-fixtures';
 import { row, wideOf } from './open';
 import { person, signIn } from './seed';
 
-test('M11.5 D11.5: of two ended claude sessions, Resume this session on the older starts exactly its id, and its row reads ●', async ({ page, context }) => {
+test('M11.5 D11.5: of two ended claude sessions, Resume on the older starts exactly its id, and its row reads ●', async ({ page, context }) => {
   const sample = atlas();
   const newer = SESSIONS[3];
   const older = SESSIONS[5];
@@ -35,8 +35,7 @@ test('M11.5 D11.5: of two ended claude sessions, Resume this session on the olde
   await expect(row(page, name).locator('.agent-dot')).toHaveText('○');
   if (wideOf(page)) await row(page, name).click();
   else await row(page, name).getByRole('button', { name: `Details of ${name}` }).click();
-  await page.getByRole('button', { name: 'Resume this session', exact: true }).click();
-  await page.getByRole('dialog', { name: 'Resume claude c7d8e9f0…9e0f?' }).getByRole('button', { name: 'Resume', exact: true }).click();
+  await page.getByRole('button', { name: 'Resume', exact: true }).click();
   await expect.poll(() => machine.of('start')).toEqual([{ type: 'start', project: 'weft', harness: 'claude', resume: older.session, req: expect.anything() }]);
   expect(machine.of('start')[0].resume).not.toBe(newer.session);
   // Its agent opens; back on the tree, its row is running.

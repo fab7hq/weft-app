@@ -1,8 +1,7 @@
 // The confirmation bar (M4.5–M4.14, D4.5–D4.14), wherever the person is:
 // what the machine is about to type, Cancel beside Send; Send anyway when its
 // agent has not said it is ready; Resume a session by its id, after an act no
-// agent runs for or from the session's Details (M11.5), or Start an agent when
-// there is none to resume. Answered on the machine first, it says so and
+// agent runs for, or Start an agent when there is none to resume. Answered on the machine first, it says so and
 // closes. On a phone Cancel and the go are halves of the width; on a desktop
 // they sit at the right.
 import { signal } from '@preact/signals';
@@ -16,23 +15,30 @@ import { fill, w } from '../words';
 /** The pending this device asked for and shows. */
 export const shown = signal<string | null>(null);
 
-/** A session to resume by its id (ADR-0029 D4), after a confirm: from its
- * Details, or after an act the machine refused because no agent runs where it
- * goes (`not_running`, which names the session, or none). */
+/** A session to resume by its id (ADR-0029 D4), after a confirm: after an act
+ * the machine refused because no agent runs where it goes (`not_running`,
+ * which names the session, or none). */
 interface Gone {
   project: string;
   harness: string;
   session: m.Session | null;
   /** The machine's own sentence, when it named no session. */
   said?: string;
-  /** The act, sent again once the agent is back; none from a session's Details. */
-  again: Record<string, unknown> | null;
+  /** The act, sent again once the agent is back. */
+  again: Record<string, unknown>;
 }
 const gone = signal<Gone | null>(null);
 
-/** Resume this session (M11.5): confirm first. */
-export function offerResume(project: string, session: m.Session) {
-  gone.value = { project, harness: session.harness, session, again: null };
+/** Start a session again by its id in a new pane, then send `again`, or else
+ * go to its agent: at once from its Details (M11.5), after the confirm here. */
+export async function resume(project: string, harness: string, session: string, again: Record<string, unknown> | null = null) {
+  const machine = m.current.value;
+  const started = await m.request({ type: 'start', project, harness, resume: session });
+  // A pane holds it already: go there.
+  const agent = started?.type === 'ok' ? started.agent : started?.code === 'running' ? started.agent : null;
+  if (started?.type === 'error' && !agent) return void (notice.value = { agent: '', text: String(started.message) });
+  if (again) void act(again);
+  else if (machine && agent) go({ name: 'agent', machine: machine.id, agent: String(agent) });
 }
 
 /** The project a work is in, as the tree shows it. */
@@ -127,15 +133,9 @@ function GoneBar({ gone: g }: { gone: Gone }) {
   const close = () => (gone.value = null);
   const machine = m.current.value;
   const s = g.session;
-  const resume = async () => {
+  const back = () => {
     close();
-    if (!s) return;
-    const started = await m.request({ type: 'start', project: g.project, harness: g.harness, resume: s.session });
-    // A pane holds it already: go there.
-    const agent = started?.type === 'ok' ? started.agent : started?.code === 'running' ? started.agent : null;
-    if (started?.type === 'error' && !agent) return void (notice.value = { agent: '', text: String(started.message) });
-    if (g.again) void act(g.again);
-    else if (machine && agent) go({ name: 'agent', machine: machine.id, agent: String(agent) });
+    if (s) void resume(g.project, g.harness, s.session, g.again);
   };
   const fresh = () => {
     close();
@@ -150,8 +150,8 @@ function GoneBar({ gone: g }: { gone: Gone }) {
       {s ? (
         <>
           <p class="pending-why">{s.state === 'quiet' ? fill('resume.quiet', { time: clock(s.at) }) : fill('resume.how', { harness: g.harness })}</p>
-          {g.again && <p class="pending-why">{w('resume.either_way')}</p>}
-          <Acts cancel={close} go={[w('act.resume'), () => void resume()]} />
+          <p class="pending-why">{w('resume.either_way')}</p>
+          <Acts cancel={close} go={[w('act.resume'), back]} />
         </>
       ) : (
         <>

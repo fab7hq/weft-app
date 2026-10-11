@@ -230,7 +230,7 @@ test('M11.4 D11.4: a Seal\'s Asks come a page at a time, the next as they scroll
   await machine.close();
 });
 
-test('M11.5 D11.5: an ended session\'s Details; Resume this session asks first, then starts exactly its id', async ({ page, context }) => {
+test('M11.5 D11.5: an ended session\'s Details; Resume starts exactly its id at once, with no confirm', async ({ page, context }) => {
   const machine = await opened(page, context);
   machine.onStart = (m) => {
     machine.agents = [...machine.agents, { agent: '3f9a1c07b2de-7', project: 'weft', harness: 'claude', title: 'Claude Code', turn: 'ready', running: true, since: Date.now() }];
@@ -246,23 +246,17 @@ test('M11.5 D11.5: an ended session\'s Details; Resume this session asks first, 
     await expect(view.locator('.summary-head')).toHaveText('○ ended 09:12');
     expect(await grid(page)).toEqual([['Harness', 'claude'], ['Started', '2026-10-08 08:47'], ['ended', '2026-10-08 09:12'], ['Session', '3f9c2b71'], ['Project', 'weft']]);
     expect(await asks(page)).toEqual([['readme fix', 'SEALED · Seal 4']]);
-    await expect(view.getByText('Resume this session starts claude again on session 3f9c2b71 in a new agent. Weft asks you first.')).toBeVisible();
+    await expect(view.getByText('Resume starts claude again on session 3f9c2b71 in a new agent.')).toBeVisible();
   } else {
     await expect(crumbs(page)).toHaveText('○claudeENDED');
     await expect(view.getByText('ended 2026-10-08 09:12 · 1 Ask made in it')).toBeVisible();
     expect(await facts(page)).toEqual([['State', 'ended 09:12'], ['Started', '2026-10-08 08:47'], ['Session', '3f9c2b71…a21e'], ['Project', 'weft']]);
     expect(await asks(page)).toEqual([['readme fix', 'SEALED']]);
   }
-  await act(page, 'Resume this session').click();
-  const confirm = page.getByRole('dialog', { name: 'Resume claude 3f9c2b71…a21e?' });
-  await expect(confirm.getByText('Weft starts claude again on this session, in a new pane.')).toBeVisible();
-  await confirm.getByRole('button', { name: 'Cancel', exact: true }).click();
-  await expect(confirm).toHaveCount(0);
-  expect(machine.of('start')).toHaveLength(0);
-  await act(page, 'Resume this session').click();
-  await confirm.getByRole('button', { name: 'Resume', exact: true }).click();
+  await act(page, 'Resume').click();
   await expect.poll(() => machine.of('start')).toEqual([{ type: 'start', project: 'weft', harness: 'claude', resume: README_SESSION, req: expect.anything() }]);
   await expect.poll(() => machine.of('watch').at(-1)?.agent).toBe('3f9a1c07b2de-7');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
   await machine.close();
 });
 
@@ -285,14 +279,15 @@ test('M11.5 D11.5: a running session goes to its agent; one another program runs
   await machine.close();
 });
 
-test('M11.5: a quiet session: its last active time on the row and in the confirm', async ({ page, context }) => {
+test('M11.5: a quiet session: its last active time on the row and in its Details; Resume starts it at once', async ({ page, context }) => {
   const sample = atlas();
   Object.assign(sample.tree[0].agents.rows[4], { state: 'quiet', ask: { key: 'why.quiet', harness: 'codex' } });
   const machine = await opened(page, context, sample);
   await expect(row(page, 'codex · lint pass').locator('.agent-state')).toHaveText('last active 08:30');
   await details(page, 'codex · lint pass');
-  await act(page, 'Resume this session').click();
-  await expect(page.getByRole('dialog', { name: 'Resume codex 0199c0a8…e6f7?' }).getByText("Weft can't tell whether it still runs: it was last active 08:30.")).toBeVisible();
+  await expect(region(page, /^codex · 0199c0a8/).getByText('last active 08:30').first()).toBeVisible();
+  await act(page, 'Resume').click();
+  await expect.poll(() => machine.of('start')).toEqual([expect.objectContaining({ type: 'start', project: 'weft', harness: 'codex' })]);
   await machine.close();
 });
 

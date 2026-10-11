@@ -15,11 +15,20 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(() => {});
 }
 // The app fits what is visible above the on-screen keyboard, so the key bar
-// and the message row sit on top of it (web-app.md §6).
+// and the message row sit on top of it (web-app.md §6). Safari keeps the page
+// its full height under the keyboard and scrolls what is visible down to the
+// box that took the focus: the app follows what is visible, where it is.
 const fit = () => {
-  if (window.visualViewport) document.documentElement.style.setProperty('--app-height', `${window.visualViewport.height}px`);
+  const view = window.visualViewport;
+  if (!view) return;
+  const root = document.documentElement;
+  root.style.setProperty('--app-height', `${view.height}px`);
+  root.style.setProperty('--app-top', `${view.offsetTop}px`);
+  // The keyboard is up: nothing under the app needs the home bar's room.
+  root.toggleAttribute('data-keyboard', window.innerHeight - view.height > 120);
 };
 window.visualViewport?.addEventListener('resize', fit);
+window.visualViewport?.addEventListener('scroll', fit);
 fit();
 
 // The shared words come first: no screen is drawn without them.

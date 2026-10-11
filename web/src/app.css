@@ -3,8 +3,14 @@ html, body { height: 100%; margin: 0; background: var(--fab7-canvas); }
 /* Text drawn at the weight the cards draw it: no thinner smoothing. */
 body { font-family: var(--font-sans); color: var(--fab7-text); }
 ::selection { background: var(--fab7-selection); color: #fff; }
-#app { height: var(--app-height, 100%); }
+/* Pinned to what is visible: on an iPhone the keyboard does not shrink the
+   page, and what is visible moves down it (main.tsx). The sheets inside are
+   fixed to the app, not to the page. */
+#app { position: fixed; top: 0; left: 0; right: 0; height: var(--app-height, 100%); transform: translateY(var(--app-top, 0px)); }
 .app { height: 100%; display: flex; flex-direction: column; padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px); box-sizing: border-box; }
+/* With the keyboard up, the key bar sits on it: no home bar's room between. */
+[data-keyboard] .app { padding-bottom: 0; }
+[data-keyboard] .sheet-backdrop { padding-bottom: 0; }
 .appbar { display: flex; align-items: center; gap: 10px; height: 52px; padding: 8px 16px; box-sizing: content-box; border-bottom: 1px solid var(--fab7-line); flex: none; }
 .appbar h1 { margin: 0; font-size: 15px; font-weight: 600; white-space: nowrap; }
 @media (min-width: 768px) { .appbar { gap: 12px; padding: 8px 20px; } }

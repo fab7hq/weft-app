@@ -127,7 +127,7 @@ test('M3.8: a harness not set up for RingFrame: ⚠ on its tab, and why under th
 
 const hex = (b64: unknown) => [...Buffer.from(String(b64), 'base64')].map((b) => b.toString(16).padStart(2, '0')).join(' ');
 
-test('M3.4 D3.4 M3.10: while the agent waits, the strip is ↑ ↓ ⏎ Esc and sends their bytes; no digit key anywhere', async ({ page, context }) => {
+test('M3.4 D3.4 M3.10: while the agent waits, the strip is ↑ ↓ ⏎ Esc and sends their bytes; no digit key anywhere', async ({ page, context }, info) => {
   const machine = await FakeMachine.start();
   Object.assign(machine, atlas());
   await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
@@ -141,9 +141,8 @@ test('M3.4 D3.4 M3.10: while the agent waits, the strip is ↑ ↓ ⏎ Esc and s
   for (const digit of ['1', '2', '3']) await expect(page.getByRole('button', { name: digit, exact: true })).toHaveCount(0);
 
   // The key bar too has none.
-  if (await page.getByRole('button', { name: 'The bar', exact: true }).count()) {
-    await page.getByRole('button', { name: 'The bar', exact: true }).click();
-    const bar = page.getByRole('dialog', { name: 'Weft' });
+  if (info.project.name.startsWith('iphone')) {
+    const bar = page.getByRole('toolbar', { name: 'Keys' });
     await expect(bar.getByRole('button', { name: 'Tab', exact: true })).toBeVisible();
     for (const digit of ['1', '2', '3']) await expect(bar.getByRole('button', { name: digit, exact: true })).toHaveCount(0);
   }
@@ -154,18 +153,16 @@ test('M3.4 D3.4 M3.10: while the agent waits, the strip is ↑ ↓ ⏎ Esc and s
   await machine.close();
 });
 
-test('M3.11: ⌃ is the harness, Ask and the keys; Eval, Seal and Eval view are not on it', async ({ page, context }, info) => {
+test('M3.11: Ask at the top and the key bar under the message row; Eval, Seal and Eval view are not on the agent', async ({ page, context }, info) => {
   test.skip(info.project.name !== 'iphone', 'the phone');
   const machine = await opened(page, context);
-  await page.getByRole('button', { name: 'The bar', exact: true }).click();
-  const sheet = page.getByRole('dialog', { name: 'Weft' });
-  await expect(sheet.getByText('CODEX', { exact: true })).toBeVisible();
-  await expect(sheet.getByRole('button', { name: 'Ask', exact: true })).toBeVisible();
-  await expect(sheet.getByText('KEYS', { exact: true })).toBeVisible();
-  for (const key of ['Ctrl', 'Alt', '⇧', 'Esc', 'Tab', 'Left', 'Up', 'Down', 'Right', 'Enter', 'Control-C', 'PgUp', 'PgDn']) {
-    await expect(sheet.getByRole('button', { name: key, exact: true })).toBeVisible();
+  await expect(page.locator('.appbar').getByRole('button', { name: 'Ask', exact: true })).toBeVisible();
+  const keys = page.getByRole('toolbar', { name: 'Keys' });
+  for (const key of ['Ctrl', 'Alt', '⇧', 'Esc', 'Tab', 'Backspace', 'Left', 'Up', 'Down', 'Right', 'Enter', 'Control-C', 'PgUp', 'PgDn']) {
+    await expect(keys.getByRole('button', { name: key, exact: true })).toBeVisible();
   }
-  for (const gone of ['Eval', 'Seal', 'Eval view', '[V] EVAL VIEW']) await expect(sheet.getByRole('button', { name: gone, exact: true })).toHaveCount(0);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  for (const gone of ['Eval', 'Seal', 'Eval view', '[V] EVAL VIEW']) await expect(page.getByRole('button', { name: gone, exact: true })).toHaveCount(0);
   await machine.close();
 });
 

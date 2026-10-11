@@ -69,11 +69,9 @@ test('at its own size, once the machine gives it, the terminal fills the pane bo
   expect(c.height, JSON.stringify(c)).toBeGreaterThan(0.93);
   expect(Math.max(c.width, c.height), JSON.stringify(c)).toBeLessThanOrEqual(1.001);
   // The size sent before a first key is the one `watch` gave. (On a phone the
-  // key comes from ⌃: the message box's focus brings the key bar, and the
-  // pane is smaller while it shows.)
-  if (await page.getByRole('button', { name: 'The bar', exact: true }).count()) {
-    await page.getByRole('button', { name: 'The bar', exact: true }).click();
-    await page.getByRole('dialog', { name: 'Weft' }).getByRole('button', { name: 'Tab', exact: true }).click();
+  // key comes from the key bar under the message row.)
+  if (await page.getByRole('toolbar', { name: 'Keys' }).count()) {
+    await page.getByRole('toolbar', { name: 'Keys' }).getByRole('button', { name: 'Tab', exact: true }).click();
   } else {
     await page.getByLabel('Message').fill('hello');
     await page.getByRole('button', { name: 'Send' }).click();

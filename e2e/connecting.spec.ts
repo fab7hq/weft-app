@@ -29,8 +29,7 @@ test('nothing is sent while reconnecting and a key says why; a new epoch clears 
   await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
   await page.goto('/');
   await openAgent(page, 'claude-code · no Ask yet');
-  await page.getByRole('button', { name: 'The bar', exact: true }).click();
-  const esc = page.getByRole('dialog', { name: 'Weft' }).getByRole('button', { name: 'Esc' });
+  const esc = page.getByRole('toolbar', { name: 'Keys' }).getByRole('button', { name: 'Esc' });
   await expect(esc).toBeVisible();
 
   machine.down = true;

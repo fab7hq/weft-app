@@ -1,5 +1,5 @@
 // web-app.md §4, §6, §7: the controls, as the TUI. Under the
-// pane one row, [⌃] Message… [▶]; the TUI's bar is a sheet behind ⌃.
+// pane one row, Message… [▶], and the key bar under it; Ask at the top.
 import { expect, test, type Page } from '@playwright/test';
 import { FakeMachine, agent } from './fake-machine';
 import { openAgent } from './open';
@@ -11,31 +11,28 @@ async function opened(page: Page, machine: FakeMachine) {
   await expect.poll(() => machine.of('watch').length).toBeGreaterThan(0);
 }
 
-test('step 45: one row under the pane; the bar is a sheet behind ⌃', async ({ page, context }, info) => {
+test('M3.11: one row under the pane, the key bar under it, Ask at the top', async ({ page, context }, info) => {
   test.skip(info.project.name !== 'iphone', 'the phone layout');
   const machine = await FakeMachine.start();
   machine.agents = [agent(0, 'weft', 'claude-code', 'ready')];
   await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
   await opened(page, machine);
 
-  // Nothing but the row: no acts, no key bar, until the bar is opened.
-  await expect(page.getByRole('button', { name: 'Ask', exact: true })).toHaveCount(0);
-  await expect(page.getByRole('toolbar', { name: 'Keys' })).toHaveCount(0);
+  // The row, the key bar under it, and no sheet to open.
+  await expect(page.locator('.appbar').getByRole('button', { name: 'Ask', exact: true })).toBeVisible();
   await expect(page.getByLabel('Message')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Send', exact: true })).toBeVisible();
-  // The pane has the height the row gave back.
+  const keys = page.getByRole('toolbar', { name: 'Keys' });
+  await expect(keys).toBeVisible();
+  expect((await keys.boundingBox())!.y).toBeGreaterThan((await page.getByLabel('Message').boundingBox())!.y);
+  await expect(page.getByRole('button', { name: 'The bar', exact: true })).toHaveCount(0);
+  // The pane keeps most of the screen, in sight above them.
   const pane = await page.getByLabel("The agent's screen").boundingBox();
   const viewport = page.viewportSize()!;
-  expect(pane!.height / viewport.height).toBeGreaterThan(0.6);
+  expect(pane!.height / viewport.height).toBeGreaterThan(0.5);
 
-  await page.getByRole('button', { name: 'The bar', exact: true }).click();
-  const bar = page.getByRole('dialog', { name: 'Weft' });
-  await expect(bar).toBeVisible();
-  await expect(bar.getByRole('button', { name: 'Ask', exact: true })).toHaveText('Ask');
-  await expect(bar.getByRole('toolbar', { name: 'Keys' })).toBeVisible();
-
-  // No [L]IST [H]ISTORY [W]EFT row: the sheet is the acts and the keys.
-  for (const name of ['List', 'History', 'Weft']) await expect(bar.getByRole('button', { name, exact: true })).toHaveCount(0);
+  // No [L]IST [H]ISTORY [W]EFT row.
+  for (const name of ['List', 'History', 'Weft']) await expect(page.getByRole('button', { name, exact: true })).toHaveCount(0);
   await machine.close();
 });
 
@@ -50,12 +47,10 @@ test('step 46: sticky modifiers: Ctrl then r sends ^R, a double tap locks, ⇧ t
   const keysSent = () => machine.of('keys').map((k) => hex(k.bytes));
 
   // Ctrl lit once, then a letter typed: one key, nothing in the message box, Ctrl off.
-  await page.getByRole('button', { name: 'The bar', exact: true }).click();
-  const bar = page.getByRole('dialog', { name: 'Weft' });
+  const bar = page.getByRole('toolbar', { name: 'Keys' });
   const ctrl = bar.getByRole('button', { name: 'Ctrl', exact: true });
   await ctrl.click();
   await expect(ctrl).toHaveAttribute('aria-pressed', 'true');
-  await page.keyboard.press('Escape');
   await page.getByLabel('Message').pressSequentially('r');
   await expect.poll(keysSent).toEqual(['12']);
   await expect(page.getByLabel('Message')).toHaveValue('');
@@ -64,14 +59,11 @@ test('step 46: sticky modifiers: Ctrl then r sends ^R, a double tap locks, ⇧ t
   await page.getByLabel('Message').fill('');
 
   // Two taps lock it: every letter is a key until it is tapped off.
-  await page.getByRole('button', { name: 'The bar', exact: true }).click();
   await ctrl.click();
   await ctrl.click();
   await expect(ctrl).toHaveAttribute('data-lit', 'locked');
-  await page.keyboard.press('Escape');
   await page.getByLabel('Message').pressSequentially('ox');
   await expect.poll(keysSent).toEqual(['12', '0f', '18']);
-  await page.getByRole('button', { name: 'The bar', exact: true }).click();
   await ctrl.click();
   await expect(ctrl).toHaveAttribute('aria-pressed', 'false');
 
@@ -83,14 +75,14 @@ test('step 46: sticky modifiers: Ctrl then r sends ^R, a double tap locks, ⇧ t
   await machine.close();
 });
 
-test('step 47: the key bar rides on the keyboard while the message box has focus', async ({ page, context }, info) => {
+test('M3.10: the key bar stays under the message row while the message box has focus, and its keys go to the agent', async ({ page, context }, info) => {
   test.skip(info.project.name !== 'iphone', 'the phone layout');
   const machine = await FakeMachine.start();
   machine.agents = [agent(0, 'weft', 'claude-code', 'ready')];
   await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
   await opened(page, machine);
   const keys = page.getByRole('toolbar', { name: 'Keys' });
-  await expect(keys).toHaveCount(0);
+  await expect(keys).toBeVisible();
 
   await page.getByLabel('Message').focus();
   await expect(keys).toBeVisible();
@@ -102,9 +94,20 @@ test('step 47: the key bar rides on the keyboard while the message box has focus
   await keys.getByRole('button', { name: 'Up', exact: true }).click();
   await expect.poll(() => machine.of('keys').map((k) => hex(k.bytes))).toEqual(['1b 5b 41']);
   await expect(page.getByLabel('Message')).toBeFocused();
+  // ⇧ then Tab from the same bar: one ⇧Tab.
+  await keys.getByRole('button', { name: '⇧', exact: true }).click();
+  await keys.getByRole('button', { name: 'Tab', exact: true }).click();
+  await expect.poll(() => machine.of('keys').map((k) => hex(k.bytes))).toEqual(['1b 5b 41', '1b 5b 5a']);
+  await expect(page.getByLabel('Message')).toBeFocused();
+
+  // ⌫ deletes in the agent, not in the message box.
+  await page.getByLabel('Message').fill('yes');
+  await keys.getByRole('button', { name: 'Backspace', exact: true }).click();
+  await expect.poll(() => machine.of('keys').map((k) => hex(k.bytes))).toEqual(['1b 5b 41', '1b 5b 5a', '7f']);
+  await expect(page.getByLabel('Message')).toHaveValue('yes');
 
   await page.getByLabel('Message').blur();
-  await expect(keys).toHaveCount(0);
+  await expect(keys).toBeVisible();
   await machine.close();
 });
 

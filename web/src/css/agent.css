@@ -1,5 +1,8 @@
 /* agent: the agent's screen (M3.x, D3.x, M10.2, D10.2), drawn to the cards. */
 
+/* Ask into this agent, at the header's right (M3.11). */
+.appbar-ask { flex: none; padding: 7px 16px; }
+
 /* The tabs: amber while their agent needs you, blue-framed when open (M3.4). */
 .tabs { display: flex; gap: 8px; padding: 8px 16px; border-bottom: 1px solid var(--fab7-line); overflow-x: auto; flex: none; scrollbar-width: none; }
 .tab { flex: none; padding: 6px 12px; border: 1px solid var(--fab7-line); border-radius: 16px; background: var(--fab7-surface); color: var(--fab7-text); font: 400 13px var(--font-sans); white-space: nowrap; cursor: pointer; }
@@ -23,7 +26,7 @@
 .ended-said { margin: 0; align-self: stretch; font-size: 15px; color: var(--fab7-amber-text); }
 .ended .tree-act { flex: none; padding: 11px 16px; border: 1px solid var(--fab7-line); }
 
-/* A key, as the cards draw every key: the strip's, ⌃, the key bar's. */
+/* A key, as the cards draw every key: the strip's and the key bar's. */
 .agent-key { flex: none; display: inline-flex; align-items: center; justify-content: center; padding: 7px 12px; border: 1px solid var(--fab7-line); border-radius: 7px; background: var(--fab7-surface); color: var(--fab7-text); font: 400 12px/18px var(--font-mono); white-space: nowrap; cursor: pointer; }
 .agent-key:active { background: #16233a; }
 .key-lit { background: #16233a; border-color: var(--fab7-accent); color: var(--fab7-accent); }
@@ -34,10 +37,12 @@
 .agent--wide .answer-strip { padding: 8px 14px; }
 .answer-label { margin-right: auto; font: 600 11px var(--font-sans); letter-spacing: 0.08em; color: var(--fab7-amber-text); white-space: nowrap; }
 
-/* The message row: ⌃ on a phone, the pill, a round ▶ (M3.1, D3.1); a send
-   that did not go says why above it (M10.2, D10.2). */
+/* The message row: the pill and a round ▶ (M3.1, D3.1); a send that did
+   not go says why above it (M10.2, D10.2). The key bar under it, when there
+   is one, takes the room at the bottom. */
 .message-foot { flex: none; display: flex; flex-direction: column; gap: 8px; padding: 8px 12px 30px; background: var(--fab7-panel); border-top: 1px solid var(--fab7-line); }
 .message-foot--said { padding: 10px 16px 30px; }
+.message-foot.message-foot--keys { padding-bottom: 8px; }
 .message-foot .message-said { margin: 0; padding: 0; border: 0; font-size: 13px; color: var(--fab7-amber-text); }
 .message-row { display: flex; gap: 8px; align-items: center; }
 .message-input { flex: 1; min-width: 0; box-sizing: border-box; margin: 0; padding: 10px 14px; border: 1px solid var(--fab7-line); border-radius: 20px; background: var(--fab7-surface); color: var(--fab7-text); font: 400 13px/18px var(--font-sans); outline: none; }
@@ -54,18 +59,14 @@
 .agent--wide .message-foot--said .message-row { border-top: 1px solid var(--fab7-line); }
 .agent--wide .message-input { padding: 9px 14px; }
 
-/* The key bar above the on-screen keyboard (M3.10): one line that scrolls. */
+/* The key bar (M3.10, M3.11): one line that scrolls, under the message row;
+   on the on-screen keyboard while typing, else over the home bar's room. */
 .keys-on-keyboard { flex: none; background: var(--fab7-panel); border-top: 1px solid var(--fab7-line); }
+.keys-at-rest .agent-keys { padding-bottom: 30px; }
 .agent-keys { display: flex; flex-direction: column; }
 .keys-on-keyboard .agent-keys { flex-direction: row; gap: 5px; padding: 6px 8px; overflow-x: auto; scrollbar-width: none; }
 .keys-on-keyboard .key-row { display: contents; }
 
-/* ⌃ (M3.11): the harness, Ask, and the keys in three rows. */
-.sheet-backdrop.bar-backdrop { background: rgba(0, 0, 0, 0.55); }
-.fab7-sheet.bar-sheet { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; padding: 18px 16px 34px; border: 0; border-radius: 16px 16px 0 0; background: var(--fab7-panel); box-shadow: none; }
-.sheet-label { font: 600 11px var(--font-sans); letter-spacing: 0.08em; color: var(--fab7-muted); }
-.bar-sheet .tree-act { flex: none; align-self: stretch; width: auto; padding: 11px 16px; border: 1px solid var(--fab7-line); }
-.bar-sheet .agent-keys { align-self: stretch; gap: 14px; }
 .key-row { display: flex; gap: 6px; align-items: center; }
 
 /* Keys on the desktop's bar (D3.11): a popover at the top right, two rows. */

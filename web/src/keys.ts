@@ -32,16 +32,21 @@ export interface Mods {
 }
 export const NONE: Mods = { ctrl: 'off', alt: 'off', shift: 'off' };
 
-/** The key bar, in order: what each shows and its name. */
-export const BAR: { label: string; name: string }[] = [
+/** The key bar, in order, the most used first: what each shows, its name,
+ * and for Ctrl, Alt and ⇧ the modifier it lights. */
+export const BAR: { label: string; name: string; mod?: keyof Mods }[] = [
   { label: 'Esc', name: 'Esc' },
-  { label: 'Tab', name: 'Tab' },
-  { label: '←', name: 'Left' },
   { label: '↑', name: 'Up' },
   { label: '↓', name: 'Down' },
-  { label: '→', name: 'Right' },
   { label: '⏎', name: 'Enter' },
+  { label: '⇧', name: '⇧', mod: 'shift' },
+  { label: 'Tab', name: 'Tab' },
+  { label: '⌫', name: 'Backspace' },
   { label: '^C', name: 'Control-C' },
+  { label: '←', name: 'Left' },
+  { label: '→', name: 'Right' },
+  { label: 'Ctrl', name: 'Ctrl', mod: 'ctrl' },
+  { label: 'Alt', name: 'Alt', mod: 'alt' },
   { label: 'PgUp', name: 'PgUp' },
   { label: 'PgDn', name: 'PgDn' },
 ];
@@ -60,7 +65,7 @@ export function chord(name: string, m: Mods): number[] {
   if (ARROWS[name]) return p === 1 ? [...CSI, ...ascii(ARROWS[name])] : [...CSI, ...ascii(`1;${p}${ARROWS[name]}`)];
   if (PAGES[name]) return [...CSI, ...ascii(p === 1 ? `${PAGES[name]}~` : `${PAGES[name]};${p}~`)];
   if (name === 'Tab' && on(m.shift)) return [...CSI, 0x5a];
-  const plain: Record<string, number[]> = { Esc: [0x1b], Tab: [0x09], Enter: [0x0d], 'Control-C': [0x03] };
+  const plain: Record<string, number[]> = { Esc: [0x1b], Tab: [0x09], Backspace: [0x7f], Enter: [0x0d], 'Control-C': [0x03] };
   const bytes = plain[name] ?? ascii(name);
   return on(m.alt) ? [0x1b, ...bytes] : bytes;
 }

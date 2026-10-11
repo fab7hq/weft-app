@@ -155,14 +155,11 @@ async function behind(at: At) {
   await agentOpen(at, 'claude');
 }
 
-/** Ask, over claude's view: ⌃'s Ask on a phone, the bar's on a desktop. */
+/** Ask, over claude's view: the header's Ask on a phone, the bar's on a desktop. */
 async function askOpen(at: At) {
   await behind(at);
   if (at.wide) await at.page.locator('.tree-acts').getByRole('button', { name: 'Ask', exact: true }).click();
-  else {
-    await button(at, 'The bar').click();
-    await at.page.getByRole('dialog', { name: 'Weft' }).getByRole('button', { name: 'Ask', exact: true }).click();
-  }
+  else await at.page.locator('.appbar').getByRole('button', { name: 'Ask', exact: true }).click();
   await expect(sheet(at)).toBeVisible();
 }
 
@@ -370,11 +367,11 @@ const SCREENS: Screen[] = [
   { ids: ['M3.10'], sample: calm, run: async (at) => {
     await onClaude(at);
     await at.page.getByPlaceholder('Message claude…').fill('yes, run the migration first');
-    await at.page.getByRole('button', { name: 'Ctrl', exact: true }).click();
+    await at.page.getByRole('button', { name: '⇧', exact: true }).click();
   } },
   { ids: ['M3.11'], sample: calm, run: async (at) => {
     await onClaude(at);
-    await button(at, 'The bar').click();
+    await button(at, '⇧').click();
   } },
   { ids: ['D3.11'], sample: calm, run: async (at) => {
     await onClaude(at);

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Machine } from '../api';
 import * as m from '../machine';
 import { back, swap } from '../nav';
-import { BarSheet, openKeys, type BarActs } from './Bar';
+import { openKeys } from './Bar';
 import { asking } from './Ask';
 import { KeyBar, mods, press } from './Keys';
 import { notSetUp, Tabs } from './Tabs';
@@ -30,9 +30,7 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
   const [top, setTop] = useState(false);
   // The key the agent's harness reads its own history with, as the machine names it.
   const [transcript, setTranscript] = useState<string | null>(null);
-  const [bar, setBar] = useState(false);
   const [typing, setTyping] = useState(false);
-  const input = useRef<HTMLInputElement>(null);
 
   const takeKeys = () => {
     if (sized.has(agent) || !box.current) return;
@@ -73,7 +71,6 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
     setHistory(String(answer.text ?? ''));
   };
 
-  const acts: BarActs = { harness: a?.harness ?? '', onAsk: () => (asking.value = { agent, project: a?.project }) };
   // On a desktop the bar's Keys send here.
   useEffect(() => {
     if (!embedded) return;
@@ -84,6 +81,7 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
   });
 
   const wide = embedded;
+  const keys = typing || (!wide && Boolean(a?.running));
   const unset = a?.running && notSetUp(a);
   return (
     <div class={wide ? 'app agent agent--wide' : 'app agent'} style={embedded ? { height: '100%' } : undefined}>
@@ -92,6 +90,10 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
           <button class="back" type="button" onClick={back}>{`‹ ${a?.project ?? machine.name}`}</button>
           <span class="spacer" />
           <HeaderPills machine={machine} />
+          {/* Ask into this agent (M3.11). */}
+          <button class="tree-act appbar-ask" type="button" onClick={() => (asking.value = { agent, project: a?.project })}>
+            {w('act.ask')}
+          </button>
         </div>
       )}
       <Tabs machine={machine.id} open={agent} />
@@ -130,21 +132,13 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
         </div>
       )}
       {(a?.running || !wide || said) && (
-        <div class={said ? 'message-foot message-foot--said' : 'message-foot'}>
+        <div class={`message-foot${said ? ' message-foot--said' : ''}${keys ? ' message-foot--keys' : ''}`}>
           {said && <p class="tree-said message-said" role="status">{said}</p>}
           {(a?.running || !wide) && (
             <form class="message-row" onSubmit={sendText}>
-              {/* The key bar below the row leaves with the focus: a press here
-                  keeps it until the press is done, so the row does not move under it. */}
-              {!wide && (
-                <button class="agent-key" type="button" aria-label="The bar" onMouseDown={(e) => e.preventDefault()} onClick={() => (input.current?.blur(), setBar(true))}>
-                  ⌃
-                </button>
-              )}
               <label for="message" style={{ position: 'absolute', left: '-9999px' }}>{w('web.agent.message_box')}</label>
               <input
                 id="message"
-                ref={input}
                 class="message-input"
                 value={message}
                 onInput={(e) => (setMessage((e.target as HTMLInputElement).value), setSaid(null))}
@@ -166,19 +160,13 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
           )}
         </div>
       )}
-      {typing && (
-        // On top of the on-screen keyboard while the message box has focus (§6).
+      {keys && (
+        // On a phone, always under the message row (M3.11); on a tablet, on
+        // top of the on-screen keyboard while the message box has focus (§6).
         // A tap on it must not take the focus, or the keyboard would close.
-        <div class="keys-on-keyboard" onPointerDown={(e) => e.preventDefault()} onMouseDown={(e) => e.preventDefault()}>
+        <div class={typing ? 'keys-on-keyboard' : 'keys-on-keyboard keys-at-rest'} onPointerDown={(e) => e.preventDefault()} onMouseDown={(e) => e.preventDefault()}>
           <KeyBar send={key} />
         </div>
-      )}
-      {bar && (
-        <BarSheet
-          onClose={() => setBar(false)}
-          acts={acts}
-          keys={<KeyBar send={key} />}
-        />
       )}
     </div>
   );

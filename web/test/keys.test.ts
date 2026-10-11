@@ -7,14 +7,15 @@ const hex = (bytes: number[] | null) => bytes && bytes.map((b) => b.toString(16)
 const lit = (over: Partial<typeof NONE>) => ({ ...NONE, ...over });
 
 describe('the key bar', () => {
-  it('holds the generic keys, in order, and nothing of any harness', () => {
-    expect(BAR.map((k) => k.label)).toEqual(['Esc', 'Tab', '←', '↑', '↓', '→', '⏎', '^C', 'PgUp', 'PgDn']);
+  it('holds the generic keys, the most used first, and nothing of any harness', () => {
+    expect(BAR.map((k) => k.label)).toEqual(['Esc', '↑', '↓', '⏎', '⇧', 'Tab', '⌫', '^C', '←', '→', 'Ctrl', 'Alt', 'PgUp', 'PgDn']);
   });
 
   it('sends each key as the terminal encodes it', () => {
     const plain = (name: string) => hex(chord(name, NONE));
     expect(plain('Esc')).toBe('1b');
     expect(plain('Tab')).toBe('09');
+    expect(plain('Backspace')).toBe('7f');
     expect(plain('Left')).toBe('1b 5b 44');
     expect(plain('Up')).toBe('1b 5b 41');
     expect(plain('Down')).toBe('1b 5b 42');

@@ -1,10 +1,8 @@
-// The bars: the tree's (Ask, Eval and Seal, following the selection: Ask on
-// an agent, Eval on the Open round, Seal on an Eval's) and, on a phone, the
-// agent's sheet behind ⌃ (Ask and the keys). An act that does not apply says
-// why in one line; none is ever drawn disabled.
-import type { ComponentChildren } from 'preact';
+// The tree's bar: Ask, Eval and Seal, following the selection (Ask on an
+// agent, Eval on the Open round, Seal on an Eval's). An act that does not
+// apply says why in one line; none is ever drawn disabled.
 import { effect, signal } from '@preact/signals';
-import { useEffect, useState } from 'preact/hooks';
+import { useState } from 'preact/hooks';
 import type { Machine } from '../api';
 import * as m from '../machine';
 import { here } from '../nav';
@@ -14,36 +12,6 @@ import { act } from './Asked';
 import { KeyBar } from './Keys';
 import { chosen, evalName, sealName, stateOf, unready, type Chosen } from './Tree';
 import { fill, w } from '../words';
-
-export interface BarActs {
-  /** The agent's harness, which the sheet is about. */
-  harness: string;
-  onAsk: () => void;
-}
-
-/** ⌃ (M3.11): Ask into this agent, and the keys. Eval and Seal are the tree's. */
-export function BarSheet({ acts, keys, onClose }: { acts: BarActs; keys: ComponentChildren; onClose: () => void }) {
-  // Escape closes it, as it closes the TUI's own views.
-  useEffect(() => {
-    const esc = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
-    addEventListener('keydown', esc);
-    return () => removeEventListener('keydown', esc);
-  }, [onClose]);
-  const then = (f: () => void) => () => {
-    onClose();
-    f();
-  };
-  return (
-    <div class="sheet-backdrop bar-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div class="fab7-sheet bar-sheet" role="dialog" aria-label="Weft">
-        <span class="sheet-label">{acts.harness.toUpperCase()}</span>
-        <button class="tree-act" type="button" onClick={then(acts.onAsk)}>{w('act.ask')}</button>
-        <span class="sheet-label">{w('web.act.keys').toUpperCase()}</span>
-        {keys}
-      </div>
-    </div>
-  );
-}
 
 /** The pane is active: it has the keys, and a wheel or a finger scrolls its history. */
 export const paneActive = signal(false);

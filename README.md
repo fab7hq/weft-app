@@ -1,12 +1,8 @@
 # weft-app
 
 Weft on the web, at [weft.getfab7.com](https://weft.getfab7.com): the same
-tree, agents and words as Weft in your terminal. Answer an agent, Ask, Eval and
-Seal, start or resume an agent, and get a push when you are away, from a phone,
-a tablet or a browser.
-
-Turn it on in Weft (`W`, then `R`), then sign in with GitHub. Setup is in
-[Weft on your phone](https://docs.getfab7.com/weft/phone).
+tree, agents and words as Weft in your terminal, from a phone, a tablet or a
+browser. It has no model and no agent of its own.
 
 ## What is here
 
@@ -14,6 +10,19 @@ Turn it on in Weft (`W`, then `R`), then sign in with GitHub. Setup is in
   Weft with `npm run words`.
 - `worker/`: a small Cloudflare Worker for GitHub sign-in and your machines'
   addresses. No screen, keystroke or push passes through it.
+
+Works with the agents Weft runs: Claude Code, Codex and Antigravity.
+
+## Use
+
+In Weft, press `W`, then `R` to turn on Remote. Then open
+[weft.getfab7.com](https://weft.getfab7.com) and sign in with GitHub. Answer an
+agent, Ask, Eval and Seal, start or resume an agent, and get a push when you are
+away.
+
+## Docs
+
+Setup and notifications: [Weft on your phone](https://docs.getfab7.com/weft/phone).
 
 ## Development
 
@@ -26,7 +35,8 @@ npm run e2e        # Playwright
 
 ## Releases
 
-Ships together with the `weft` that speaks its protocol; this one is Weft 0.2.0.
+Tagged `vX.Y.Z` and shipped with the `weft` that speaks its protocol: this one
+is Weft 0.2.0. [Releases](https://github.com/fab7hq/weft/releases).
 
 ## License
 

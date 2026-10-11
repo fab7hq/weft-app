@@ -2,7 +2,7 @@
 // weftd holds, and WORK by Eval round; the bar's acts follow the selection;
 // Sealed unfolds a page at a time. On the phone and the desktop.
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
-import { FakeMachine, atlas, project, type Project, type Session } from './fake-machine';
+import { FakeMachine, agent, atlas, project, sessionOf, type Project, type Session } from './fake-machine';
 import { CLAUDE, README_SESSION, large } from './atlas-fixtures';
 import { row, wideOf } from './open';
 import { person, signIn } from './seed';
@@ -308,5 +308,24 @@ test('M7.1 D7.1: a harness not set up is marked ⚠ on its sessions; Ask on one 
   await expect(row(page, 'claude · no Ask yet')).toHaveAttribute('aria-selected', 'true');
   await bar(page, 'Ask').click();
   await expect(said(page)).toHaveText('claude is not set up for RingFrame. Set it up in Weft on studio: U.');
+  await machine.close();
+});
+
+test('an agent whose harness has named no session yet is under AGENTS, and Ask goes to it', async ({ page, context }) => {
+  const fresh = (n: number, harness: string) => ({ ...agent(n, 'weft', harness, 'working'), turn: null as never });
+  const agents = [fresh(0, 'antigravity'), fresh(1, 'codex')];
+  const rows: Session[] = agents.map((a) => ({ ...sessionOf(a), session: '', turn: null }));
+  const machine = await opened(page, context, { agents, tree: [project('weft', rows)] });
+  const wide = wideOf(page);
+  await expect(page.locator('.tree-section').first()).toHaveText('AGENTS2 running · 0 ended');
+  const codex = row(page, 'codex · no Ask yet');
+  await expect(codex).toContainText('running');
+  await codex.click();
+  await expect(codex).toHaveAttribute('aria-selected', 'true');
+  await expect(row(page, 'antigravity · no Ask yet')).toHaveAttribute('aria-selected', 'false');
+  if (wide) await expect(page.getByLabel("The agent's screen")).toBeVisible();
+  await bar(page, 'Ask').click();
+  const sheet = page.getByRole('dialog', { name: 'What do you want done?' });
+  await expect(sheet.getByRole('button', { name: /^SEND TO/ })).toHaveAccessibleName('SEND TO codex');
   await machine.close();
 });

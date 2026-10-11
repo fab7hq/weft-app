@@ -34,6 +34,7 @@ export interface Ask {
 
 /** One session weftd holds, as AGENTS lists it (remote.md §6c), whichever program runs it. */
 export interface Session {
+  /** Empty for a running agent whose harness has named no session yet. */
   session: string;
   harness: string;
   /** `quiet`: neither running nor ended can be known; it reads "last active 11:25". */

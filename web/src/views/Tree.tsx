@@ -56,7 +56,7 @@ export function chosen(): Chosen | null {
   if (!s || !p) return null;
   switch (s.kind) {
     case 'agent': {
-      const row = p.agents.rows.find((r) => r.session === s.session);
+      const row = p.agents.rows.find((r) => rowKey(r) === s.session);
       return row ? { kind: 'agent', p, row } : null;
     }
     case 'eval': {
@@ -221,6 +221,10 @@ export function stateOf(s: m.Session): string {
 }
 
 /** A session's row as it is named: its harness and its latest Ask. */
+/** A session row's key: its id, or, for a running agent whose harness has
+ * named no session yet, its agent (sessions.md). */
+export const rowKey = (s: m.Session) => s.session || s.agent || '';
+
 export const sessionName = (s: m.Session) => `${s.harness} · ${s.title ?? w('tree.no_ask')}`;
 
 /** A round's name: `Eval 3`. */
@@ -287,7 +291,7 @@ function ProjectRows({ p, moves }: { p: m.Project; moves: Moves }) {
             <span class="tree-section-name">{w('tree.agents')}</span>
             <span class="tree-section-aside">{fill('tree.counts', { n: String(p.agents.running), m: String(p.agents.ended) })}</span>
           </div>
-          {p.agents.rows.map((s) => <AgentRow key={s.session} p={p} s={s} moves={moves} />)}
+          {p.agents.rows.map((s) => <AgentRow key={rowKey(s)} p={p} s={s} moves={moves} />)}
           {p.agents.earlier > 0 && (
             <div
               class="tree-row tree-row--earlier"
@@ -317,11 +321,12 @@ const isSelected = (s: Selected) => JSON.stringify(selected.value) === JSON.stri
 /** One session (M11.1: two lines; D11.1: one row, its title under its harness, the time at the end). */
 function AgentRow({ p, s, moves }: { p: m.Project; s: m.Session; moves: Moves }) {
   const { machine, wide, onAgent } = moves;
-  const me: Selected = { kind: 'agent', project: p.project, session: s.session };
+  const me: Selected = { kind: 'agent', project: p.project, session: rowKey(s) };
   const on = isSelected(me);
   const waiting = s.state === 'running' && s.turn === 'waiting';
   const running = s.state === 'running';
-  const session = () => go({ name: 'session', machine: machine.id, project: p.project, session: s.session });
+  // One with no session yet has no Details: it opens its agent.
+  const session = () => (s.session ? go({ name: 'session', machine: machine.id, project: p.project, session: s.session }) : s.agent && onAgent(s.agent));
   // A tap selects it. On a desktop its agent opens beside the tree, or, with
   // none to open, its session; › (a phone) or a double click opens the session.
   const tap = () => {

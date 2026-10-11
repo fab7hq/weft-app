@@ -104,7 +104,7 @@ test('M13.4 D13.4: a machine signed out of Weft says to sign it in again there',
   await machine.close();
 });
 
-test('M13.5 D13.5: a project reopened after a restart says so, its agents ended; Dismiss closes it', async ({ page, context }) => {
+test('M13.5 D13.5: a project reopened after a restart says so, its agents ended; Dismiss closes it', async ({ page, context }, info) => {
   const machine = await FakeMachine.start();
   const ended = { ...agent(0, 'weft', 'claude-code', 'ended'), running: false };
   const reopened = Date.UTC(2026, 9, 11, 7, 58);
@@ -115,6 +115,14 @@ test('M13.5 D13.5: a project reopened after a restart says so, its agents ended;
   const notice = page.getByRole('note');
   await expect(notice).toContainText('Weft started again on studio at 07:58, and these agents ended. Resume one, or dismiss this project.');
   await expect(page.getByRole('treeitem', { name: 'claude-code · fix login', exact: true })).toContainText('ended');
+  if (info.project.name.startsWith('desktop')) {
+    // D13.5: the ended session says it ended when Weft stopped, and offers Resume.
+    const last = Date.UTC(2026, 9, 11, 7, 41);
+    machine.reads.sessions[`s-${ended.agent}`] = { session: `s-${ended.agent}`, harness: 'claude-code', state: 'ended', turn: null, started: last - 3_600_000, last, resume: true, asks: [], agent: null };
+    await page.getByRole('treeitem', { name: 'claude-code · fix login', exact: true }).click();
+    await expect(page.getByText('This session ended at 07:41, when Weft stopped on studio.')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Resume this session', exact: true })).toBeVisible();
+  }
   await notice.getByRole('button', { name: 'Dismiss', exact: true }).click();
   await expect.poll(() => machine.of('act').filter((m) => m.act === 'dismiss')).toEqual([expect.objectContaining({ act: 'dismiss', project: 'weft' })]);
   await expect(page.getByRole('treeitem', { name: 'weft', exact: true })).toHaveCount(0);

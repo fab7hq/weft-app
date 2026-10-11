@@ -40,6 +40,8 @@ export function SessionDetails({ machine, project, session, wide = false }: { ma
   const to = moves(machine, project);
   if (!d) return <Frame machine={machine} project={project} label="" crumbs={[]} wide={wide} />;
   const live = d.state === 'running';
+  // Ended when Weft on the machine stopped uncleanly, and reopened since (D13.5).
+  const reopened = d.state === 'ended' && !!m.tree.value.find((p) => p.project === project)?.reopened;
   const s = asRow(d);
   const state = d.state === 'ended' ? `${w('state.ended')} ${clock(d.last)}` : stateOf(s);
   const resume = () => (d.resume ? offerResume(project, s) : void (said.value = w('resume.nothing')));
@@ -77,7 +79,7 @@ export function SessionDetails({ machine, project, session, wide = false }: { ma
         <>
           <p class="summary-head">
             <span class={live && d.turn === 'waiting' ? 'needs' : live ? 'good' : 'dim'}>{live ? '● ' : '○ '}</span>
-            {state}
+            {reopened ? fill('web.reopened.ended', { time: clock(d.last), machine: machine.name }) : state}
           </p>
           <div class="detail-block">
             <Grid rows={[

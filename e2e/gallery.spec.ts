@@ -8,7 +8,7 @@ import { FakeMachine, atlas, project, type Agent, type Detail, type Project } fr
 import { pull, swipeLeft } from './touch';
 import { openAgent } from './open';
 import { person, signIn } from './seed';
-import { CLAUDE, CODEX, DETAILS, S7, SESSIONS, VIEW, row } from './atlas-fixtures';
+import { CLAUDE, CODEX, CODEX_NEW, DETAILS, S7, SESSIONS, VIEW, at, row } from './atlas-fixtures';
 
 const OUT = 'gallery';
 mkdirSync(OUT, { recursive: true });
@@ -196,6 +196,35 @@ const calm = () => withTree((t, a) => {
   t[0].needs = 0;
   t[0].agents.rows[1].turn = 'working';
 });
+
+/** The 13 cards' machine: weft alone, claude and codex running in it. */
+const weftOnly = () => {
+  const s = atlas();
+  const tree = s.tree.filter((p) => p.project === 'weft');
+  // codex at work with no Ask yet is not on these cards.
+  tree[0].agents.rows = tree[0].agents.rows.filter((r) => r.agent !== CODEX_NEW);
+  tree[0].agents.running = 2;
+  return { ...s, agents: s.agents.filter((a) => a.agent !== CODEX_NEW && a.project === 'weft'), tree };
+};
+
+/** M13.5's: weft reopened at 07:58 after Weft ended uncleanly, every agent ended. */
+const reopened = () => {
+  const s = weftOnly();
+  // In the machine's time, as the tree shows its times.
+  s.tree[0].reopened = at(7, 58);
+  s.tree[0].needs = 0;
+  for (const a of s.agents) Object.assign(a, { running: false, turn: 'ended' });
+  s.tree[0].agents.running = 0;
+  s.tree[0].agents.ended += s.tree[0].agents.rows.filter((r) => r.state === 'running').length;
+  s.tree[0].agents.rows = s.tree[0].agents.rows.map((r) => (r.state === 'running' ? { ...r, state: 'ended', turn: null, agent: null, at: at(7, 41), ask: { key: 'why.ended', harness: r.harness } } : r));
+  // What each read says of those sessions: ended at 07:41, resumable.
+  s.reads = { ...s.reads, sessions: { ...s.reads.sessions } };
+  for (const r of s.tree[0].agents.rows) {
+    const d = s.reads.sessions[r.session];
+    if (d && d.state === 'running') s.reads.sessions[r.session] = { ...d, state: 'ended', turn: null, agent: null, resume: true, last: at(7, 41) };
+  }
+  return s;
+};
 
 /** What the cards draw in claude's pane: the desktop's lines, and the phone's as its narrower screen wraps them. */
 const WORKING = {
@@ -656,6 +685,64 @@ const SCREENS: Screen[] = [
     at.machine.send({ type: 'tree', tree: s.tree });
     await expect(at.page.getByText('claude has ended. Its work is still on the list.')).toBeVisible();
   } },
+  // 13 · Remote that survives (ADR-0034): weft alone, as the cards draw it.
+  ...(['M13.1', 'D13.1'] as const).map((id): Screen => ({
+    ids: [id],
+    sample: weftOnly,
+    run: async (at) => {
+      // Last heard today at 14:02; the machine stops answering.
+      const heard = new Date();
+      heard.setHours(14, 2, 0, 0);
+      await signIn(at.context, person('octo', [{ name: 'studio', address: at.machine.address, seenAt: heard.getTime() }]));
+      await at.page.goto('/');
+      await expect(at.page.getByRole('tree', { name: 'Work' })).toBeVisible();
+      // claude open beside the tree, as the card has it (not `onClaude`, which signs in afresh).
+      if (at.wide) {
+        await openAgent(at.page, 'claude · fix login');
+        await expect.poll(() => at.machine.of('watch').some((m) => m.agent === CLAUDE)).toBe(true);
+        const bytes = Buffer.from(WORKING.wide.join('\r\n')).toString('base64');
+        at.machine.send({ type: 'screen', agent: CLAUDE, seq: 1, full: true, rows: 30, cols: 117, bytes });
+      }
+      at.machine.down = true;
+      at.machine.drop();
+      await expect(at.page.getByRole('status', { name: 'Waiting for the machine' })).toBeVisible({ timeout: 15_000 });
+    },
+  })),
+  ...([['M13.2', 'D13.2', -1], ['M13.3', 'D13.3', 1]] as const).flatMap(([m, d, by]) => [m, d].map((id): Screen => ({
+    ids: [id],
+    run: async (at) => {
+      at.machine.version = FakeMachine.VERSION + by;
+      await open(at);
+      await expect(at.page.getByRole('heading', { name: by < 0 ? 'Update Weft on studio' : 'Reload this page' })).toBeVisible();
+    },
+  }))),
+  ...(['M13.4', 'D13.4'] as const).map((id): Screen => ({
+    ids: [id],
+    run: async (at) => {
+      at.machine.signedOut = true;
+      await open(at);
+      await expect(at.page.getByRole('heading', { name: 'Sign in again on studio' })).toBeVisible();
+    },
+  })),
+  ...(['M13.5', 'D13.5'] as const).map((id): Screen => ({
+    ids: [id],
+    sample: reopened,
+    run: async (at) => {
+      await tree(at);
+      if (at.wide) await item(at, 'claude · fix login').click();
+      await expect(at.page.getByRole('note')).toBeVisible();
+    },
+  })),
+  ...(['M13.6', 'D13.6'] as const).map((id): Screen => ({
+    ids: [id],
+    sample: weftOnly,
+    run: async (at) => {
+      at.machine.update = '0.2.1';
+      await tree(at);
+      await expect(at.page.getByRole('status', { name: 'An update waiting' })).toBeVisible();
+    },
+  })),
+
   { ids: ['M10.4'], note: 'A push notification, drawn by the phone itself; e2e/desktop-push.spec.ts checks that it shows and opens the agent.' },
   { ids: ['D10.3'], note: 'A browser notification, drawn by the system; e2e/desktop-push.spec.ts checks that it shows and opens the agent.' },
 ];

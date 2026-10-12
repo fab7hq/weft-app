@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Machine } from '../api';
 import * as m from '../machine';
 import { back, swap } from '../nav';
-import { openKeys } from './Bar';
+import { openKeys, said as actSaid } from './Bar';
 import { asking } from './Ask';
 import { KeyBar, mods, press } from './Keys';
 import { notSetUp, Tabs } from './Tabs';
@@ -40,7 +40,9 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
     if (m.send({ type: 'size', agent, rows, cols })) sized.add(agent);
   };
   // Why nothing went, as the TUI says it (M10.2); the next press clears it.
-  const [said, setSaid] = useState<string | null>(null);
+  const [mine, setSaid] = useState<string | null>(null);
+  // An act's why, on a phone, where no tree bar is drawn to say it.
+  const said = mine ?? (embedded ? null : actSaid.value);
   const why = () => (a && !a.running ? fill('agent.ended', { harness: a.harness }) : w('web.why.not_connected'));
   const refused = (answer: Record<string, unknown> | undefined) => {
     if (answer?.type !== 'error') return;

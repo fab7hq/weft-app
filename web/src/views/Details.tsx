@@ -11,7 +11,7 @@ import * as m from '../machine';
 import { back, go } from '../nav';
 import { fill, stateWord, w } from '../words';
 import { asking } from './Ask';
-import { act } from './Asked';
+import { act, acting } from './Asked';
 import { said, sealRound } from './Bar';
 import { Verdict, evalName, sealName, sealedCount, stateOf } from './Tree';
 
@@ -236,6 +236,10 @@ export function Details({ machine, project, unit, wide = false }: { machine: Mac
       crumbs.push({ text: sealName(s.n), go: () => to.seal(s.seal) });
     } else crumbs.push({ text: w('tree.not_sealed'), tone: wide ? 'needs' : 'dim' });
   }
+  const proceed = async () => {
+    const refused = await act({ act: 'proceed', unit });
+    if (refused) said.value = String(refused.message);
+  };
   const followUp = () => (asking.value = { project, agent: d.session?.agent ?? undefined, follow: { unit, title: d.title, follows: d.follows } });
   const s = d.session;
   // Its session: its agent while a pane holds it, else its Details.
@@ -255,7 +259,7 @@ export function Details({ machine, project, unit, wide = false }: { machine: Mac
       wide={wide}
       acts={
         <>
-          {d.proceed && <button class="tree-act tree-act--go" type="button" onClick={() => void act({ act: 'proceed', unit })}>{w('act.proceed')}</button>}
+          {d.proceed && <button class="tree-act tree-act--go" type="button" aria-busy={acting.value === 'proceed' || undefined} onClick={() => void proceed()}>{w('act.proceed')}</button>}
           <button class="tree-act" type="button" onClick={followUp}>{w('act.follow_up')}</button>
         </>
       }
@@ -324,7 +328,7 @@ export function RoundDetails({ machine, project, eval: id, wide = false }: { mac
       wide={wide}
       acts={
         <>
-          <button class="tree-act tree-act--go" type="button" onClick={() => void sealRound(project, d.eval, d.seal)}>{w('act.seal')}</button>
+          <button class="tree-act tree-act--go" type="button" aria-busy={acting.value === 'seal' || undefined} onClick={() => void sealRound(project, d.eval, d.seal)}>{w('act.seal')}</button>
           <button class="tree-act" type="button" onClick={() => to.view(d.eval)}>{w('act.eval_view')}</button>
         </>
       }

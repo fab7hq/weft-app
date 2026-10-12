@@ -38,6 +38,10 @@
 .tree-said { margin: 0; padding: 10px 16px; font-size: 13px; color: var(--fab7-amber-text); border-bottom: 1px solid var(--fab7-line); }
 .tree-acts { display: flex; align-items: center; gap: 10px; padding: 10px 16px 30px; }
 .tree-act { flex: 1; min-width: 0; padding: 11px 16px; border: 1px solid var(--fab7-line); border-radius: 10px; background: var(--fab7-surface); color: var(--fab7-text); font: 600 14px var(--font-sans); cursor: pointer; }
+/* Sent, and the machine has not answered yet: the act works, a light passing across it; a second press does nothing. */
+.tree-act[aria-busy="true"] { position: relative; overflow: hidden; pointer-events: none; }
+.tree-act[aria-busy="true"]::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.22), transparent); transform: translateX(-100%); animation: working 1s ease-in-out infinite; }
+@keyframes working { to { transform: translateX(100%); } }
 .tree-bar--wide .tree-acts { padding: 10px 20px; }
 .tree-bar--wide .tree-act { flex: none; padding: 9px 18px; border: 1px solid var(--fab7-line); }
 /* The why above the acts: one panel with them on a phone (M10.1), a line between them on a desktop (D10.1). */

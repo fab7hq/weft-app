@@ -7,13 +7,31 @@
 import { signal } from '@preact/signals';
 import { useEffect, useState } from 'preact/hooks';
 import * as m from '../machine';
-import { go } from '../nav';
+import { go, here, swap, type View } from '../nav';
 import { clock, why } from '../bar';
-import { notice } from './Bar';
+import { notice, said as whyNot } from './Bar';
 import { fill, w } from '../words';
 
 /** The pending this device asked for and shows. */
 export const shown = signal<string | null>(null);
+
+/** The act this device has sent and the machine has not answered yet: its
+ * button shows it is working, and a second press does nothing. */
+export const acting = signal<string | null>(null);
+
+/** The views a Send closes, as the TUI closes its detail view. */
+const CLOSED_BY_SEND: View['name'][] = ['detail', 'round', 'seal', 'session', 'eval'];
+
+/** Once Weft types into an agent, the person goes where the keys went, as on
+ * the TUI: into that agent, in place of a Details view. */
+function into(agent: string): void {
+  const machine = m.current.value;
+  const view = here();
+  if (!machine || !agent || (view?.name === 'agent' && view.agent === agent)) return;
+  const to: View = { name: 'agent', machine: machine.id, agent };
+  if (view && CLOSED_BY_SEND.includes(view.name)) swap(to);
+  else go(to);
+}
 
 /** A session to resume by its id, after a confirm: after an act
  * the machine refused because no agent runs where it goes (`not_running`,
@@ -47,14 +65,19 @@ const projectOf = (unit: unknown) =>
 
 /** An act; the pending it staged is shown when the machine answers. Its error, if any. */
 export async function act(message: Record<string, unknown>): Promise<Record<string, unknown> | null> {
+  if (acting.value) return null;
+  acting.value = String(message.act);
   const answer = await m.request({ type: 'act', ...message });
-  if (answer?.type === 'ok' && answer.pending) shown.value = String(answer.pending);
-  if (answer?.type === 'error' && answer.code === 'not_running') {
+  acting.value = null;
+  // Not sent at all: say so, rather than nothing.
+  if (!answer) return { type: 'error', code: 'not_connected', message: w('web.why.not_connected') };
+  if (answer.type === 'ok' && answer.pending) shown.value = String(answer.pending);
+  if (answer.type === 'error' && answer.code === 'not_running') {
     const project = typeof message.project === 'string' ? message.project : projectOf(message.unit);
     gone.value = { project, harness: String(answer.harness), session: (answer.session as m.Session | null) ?? null, said: String(answer.message), again: message };
     return null;
   }
-  return answer?.type === 'error' ? answer : null;
+  return answer.type === 'error' ? answer : null;
 }
 
 /** A session id as the cards shorten it: `3f9c2b71…a21e`. */
@@ -70,11 +93,14 @@ function SendBar() {
   const [kept, setKept] = useState<m.Pending | null>(null);
   const [answered, setAnswered] = useState(false);
   const [unready, setUnready] = useState<string | null>(null);
+  // This device's own answer, sent and not yet answered: the machine says it
+  // was resolved before it answers, and that is not "answered on the machine".
+  const [sending, setSending] = useState(false);
   if (pending && pending !== kept) setKept(pending);
   // Answered on the machine first: say so, then go. The timer hangs on
   // `answered` alone, so a later message cannot cancel it.
   const r = m.resolved.value;
-  if (r && r.id === id && !answered) setAnswered(true);
+  if (r && r.id === id && !answered && !sending) setAnswered(true);
   useEffect(() => {
     if (!answered) return;
     const t = setTimeout(() => {
@@ -86,11 +112,17 @@ function SendBar() {
   const showing = pending ?? (kept?.id === id ? kept : null);
   if (!id || !showing) return null;
   const answer = async (yes: boolean, force = false) => {
+    if (sending) return;
+    setSending(true);
     const said = await m.request({ type: 'resolve', pending: id, yes, ...(force ? { force } : {}) });
+    setSending(false);
     // Weft types on its own only into an agent that has said it is ready.
     if (said?.type === 'error' && said.code === 'not_ready') return setUnready(String(said.message));
     setUnready(null);
     shown.value = null;
+    if (!yes) return;
+    if (said?.type === 'error') whyNot.value = String(said.message);
+    else if (said) into(showing.agent);
   };
   if (unready && !answered) {
     return (
@@ -100,7 +132,7 @@ function SendBar() {
         </div>
         <p class="pending-why">{unready}</p>
         <p class="pending-why">{w('not_ready.why')}</p>
-        <Acts cancel={() => void answer(false)} go={[w('act.send_anyway'), () => void answer(true, true)]} />
+        <Acts cancel={() => void answer(false)} go={[w('act.send_anyway'), () => void answer(true, true)]} busy={sending} />
       </div>
     );
   }
@@ -123,7 +155,7 @@ function SendBar() {
         <p key={s} class="pending-why">{s}</p>
       ))}
       <pre class="pending-text">{showing.text}</pre>
-      <Acts cancel={() => void answer(false)} go={[w('act.send'), () => void answer(true)]} />
+      <Acts cancel={() => void answer(false)} go={[w('act.send'), () => void answer(true)]} busy={sending} />
     </div>
   );
 }
@@ -163,12 +195,12 @@ function GoneBar({ gone: g }: { gone: Gone }) {
   );
 }
 
-function Acts({ cancel, go: [label, onGo] }: { cancel: () => void; go: [string, () => void] }) {
+function Acts({ cancel, go: [label, onGo], busy = false }: { cancel: () => void; go: [string, () => void]; busy?: boolean }) {
   return (
     <div class="pending-acts">
       <span class="spacer" />
       <button class="tree-act" type="button" onClick={cancel}>{w('act.cancel')}</button>
-      <button class="tree-act tree-act--go" type="button" onClick={onGo}>{label}</button>
+      <button class="tree-act tree-act--go" type="button" onClick={onGo} aria-busy={busy || undefined}>{label}</button>
     </div>
   );
 }

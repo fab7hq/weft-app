@@ -71,6 +71,39 @@ test('M11.2 D11.2: a work\'s Details hold its Ask only, under where it stands; P
   await machine.close();
 });
 
+test('M11.2: Proceed works until the machine answers, its bar takes the place of the acts, and Send goes into the agent', async ({ page, context }) => {
+  const machine = await opened(page, context);
+  await details(page, 'fix login');
+  await expect(region(page, 'fix login')).toBeVisible();
+  // The machine answers when the test says so: until then Proceed shows it is working.
+  let answer: () => void = () => {};
+  machine.onAct = (m) => {
+    answer = () => {
+      machine.send({ type: 'pending', id: 'pnd_1', agent: CLAUDE, what: 'Ready to send to claude', why: '', text: '/goal fix login' });
+      machine.send({ type: 'ok', req: m.req, pending: 'pnd_1' });
+    };
+    return [];
+  };
+  await act(page, 'Proceed').click();
+  await expect(act(page, 'Proceed')).toHaveAttribute('aria-busy', 'true');
+  await act(page, 'Proceed').click({ force: true });
+  answer();
+  const bar = page.getByRole('dialog', { name: 'Ready to send to claude' });
+  await expect(bar).toBeVisible();
+  expect(machine.of('act')).toHaveLength(1);
+  // Nothing under the bar can be pressed: it is in their place.
+  await expect(act(page, 'Proceed')).toBeHidden();
+  await expect(act(page, 'Follow up')).toBeHidden();
+  machine.onResolve = (m) => [{ type: 'resolved', id: m.pending, yes: true }, { type: 'ok', req: m.req }];
+  await bar.getByRole('button', { name: 'Send', exact: true }).click();
+  await expect(bar).toHaveCount(0);
+  await expect(page.getByText('Answered on the machine')).toHaveCount(0);
+  // As on the TUI: Details close, and the person is where the keys went.
+  await expect(region(page, 'fix login')).toHaveCount(0);
+  await expect(page.locator('.agent')).toBeVisible();
+  await machine.close();
+});
+
 test('M11.2: still being composed, ASKING, and nothing to proceed with', async ({ page, context }) => {
   const machine = await opened(page, context);
   await details(page, 'telemetry');

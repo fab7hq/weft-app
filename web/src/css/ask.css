@@ -35,7 +35,8 @@ main:has(> .ask-panel--docked) > :not(.ask-panel) { flex: 1; min-height: 0; heig
 /* The bar: in the place of the message row or the tree's bar, the view above it shrinking to make room (M4.5, D4.5). */
 #app:has(> .pending-bar) { display: flex; flex-direction: column; }
 #app:has(> .pending-bar) > .app { flex: 1; min-height: 0; height: auto; padding-bottom: 0; }
-#app:has(> .pending-bar) .message-foot, #app:has(> .pending-bar) .tree-bar, #app:has(> .pending-bar) .answer-strip { display: none; }
+#app:has(> .pending-bar) .message-foot, #app:has(> .pending-bar) .tree-bar, #app:has(> .pending-bar) .answer-strip,
+#app:has(> .pending-bar) .detail-foot, #app:has(> .pending-bar) .detail-acts { display: none; }
 .pending-bar { flex: none; display: flex; flex-direction: column; gap: 10px; padding: 14px 16px calc(30px + env(safe-area-inset-bottom, 0px)); background: var(--fab7-panel); border-top: 2px solid var(--fab7-accent); }
 .pending-head { display: flex; gap: 8px; align-items: center; }
 .pending-what { font-size: 15px; font-weight: 600; }

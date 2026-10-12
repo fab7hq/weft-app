@@ -4,7 +4,8 @@
 import { signal } from '@preact/signals';
 import { useLayoutEffect, useRef, useState } from 'preact/hooks';
 import * as m from '../machine';
-import { act } from './Asked';
+import { act, acting } from './Asked';
+import { said } from './Bar';
 import { w } from '../words';
 
 export interface Asking {
@@ -52,12 +53,15 @@ function AskForm({ asked, docked }: { asked: Asking; docked: boolean }) {
     if (docked) box.current?.focus();
   }, [docked]);
   const close = () => (asking.value = null);
-  const send = (e: Event) => {
+  // Open until the machine answers, Ask showing it is working; then the bar
+  // takes its place, or the why above the acts says what went wrong.
+  const send = async (e: Event) => {
     e.preventDefault();
-    if (!text.trim() || !to) return;
-    close();
+    if (!text.trim() || !to || acting.value) return;
     const f = asked.follow;
-    void act(f ? { act: 'follow_up', agent: to, unit: f.unit, text } : { act: 'ask', agent: to, text });
+    const refused = await act(f ? { act: 'follow_up', agent: to, unit: f.unit, text } : { act: 'ask', agent: to, text });
+    close();
+    if (refused) said.value = String(refused.message);
   };
   const f = asked.follow;
   return (
@@ -77,7 +81,7 @@ function AskForm({ asked, docked }: { asked: Asking; docked: boolean }) {
           <SendTo agents={agents} to={to} onPick={setTo} />
           <span class="spacer" />
           <button class="tree-act" type="button" onClick={close}>{w('act.cancel')}</button>
-          <button class="tree-act tree-act--go" type="submit">{w('act.ask')}</button>
+          <button class="tree-act tree-act--go" type="submit" aria-busy={acting.value ? true : undefined}>{w('act.ask')}</button>
         </div>
       ) : (
         <>
@@ -85,7 +89,7 @@ function AskForm({ asked, docked }: { asked: Asking; docked: boolean }) {
           <SendTo agents={agents} to={to} onPick={setTo} />
           <div class="ask-acts">
             <button class="tree-act" type="button" onClick={close}>{w('act.cancel')}</button>
-            <button class="tree-act tree-act--go" type="submit">{w('act.ask')}</button>
+            <button class="tree-act tree-act--go" type="submit" aria-busy={acting.value ? true : undefined}>{w('act.ask')}</button>
           </div>
         </>
       )}

@@ -8,7 +8,7 @@ import * as m from '../machine';
 import { here } from '../nav';
 import { clock } from '../bar';
 import { asking } from './Ask';
-import { act } from './Asked';
+import { act, acting } from './Asked';
 import { KeyBar } from './Keys';
 import { chosen, evalName, sealName, stateOf, unready, type Chosen } from './Tree';
 import { fill, w } from '../words';
@@ -135,8 +135,8 @@ export function TreeBar({ machine, wide }: { machine: Machine; wide: boolean }) 
           <button class="tree-act" type="button" aria-pressed={keys} onClick={() => setKeys(!keys)}>{w('web.act.keys')}</button>
         ) : (
           <>
-            <button class="tree-act" type="button" onClick={() => void evalOn()}>{w('act.eval')}</button>
-            <button class="tree-act" type="button" onClick={() => void sealOn()}>{w('act.seal')}</button>
+            <button class="tree-act" type="button" aria-busy={acting.value === 'eval' || undefined} onClick={() => void evalOn()}>{w('act.eval')}</button>
+            <button class="tree-act" type="button" aria-busy={acting.value === 'seal' || undefined} onClick={() => void sealOn()}>{w('act.seal')}</button>
           </>
         )}
         {s && (

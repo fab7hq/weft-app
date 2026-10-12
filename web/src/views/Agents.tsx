@@ -47,7 +47,7 @@ export function AgentName({ agent, onOpen }: { agent: m.Agent | undefined; onOpe
   );
 }
 
-/** A dot for each running agent, in the tree's order: blue the one shown, amber one waiting for you. */
+/** A dot for each running agent, in this device's tab order: blue the one shown, amber one waiting for you. */
 export function Dots({ open }: { open: string }) {
   return (
     <div class="agent-dots" aria-hidden="true">

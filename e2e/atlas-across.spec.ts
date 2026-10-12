@@ -1,7 +1,7 @@
 // Agents across projects: every open project's running agents as tabs; on a
 // phone, the header's name, the dots and the list.
 import { expect, test, type Page } from '@playwright/test';
-import { CODEX, CODEX_NEW, DOCS } from './atlas-fixtures';
+import { CODEX, CODEX_NEW, DOCS, WEFT } from './atlas-fixtures';
 import { FakeMachine, atlas } from './fake-machine';
 import { openAgent } from './open';
 import { person, signIn } from './seed';
@@ -82,6 +82,23 @@ test.describe('phone', () => {
     await page.waitForTimeout(200);
     expect(reads()).toBe(before);
     expect(machine.of('keys')).toHaveLength(0);
+    await machine.close();
+  });
+
+  test('the dots and the swipes follow this device\'s tab order: an agent started later comes last, after docs', async ({ page, context }) => {
+    const machine = await opened(page, context);
+    const later = `${WEFT}-3`;
+    machine.agents = [...machine.agents, { agent: later, project: 'weft', harness: 'codex', title: 'Codex', turn: 'ready', running: true, since: Date.now() }];
+    machine.send({ type: 'agents', agents: machine.agents });
+    await expect(dots(page)).toHaveCount(5);
+    await swipeLeft(top(page));
+    await expect.poll(() => machine.of('watch').at(-1)?.agent).toBe(CODEX_NEW);
+    await swipeLeft(top(page));
+    await expect.poll(() => machine.of('watch').at(-1)?.agent).toBe(DOCS_CLAUDE);
+    await swipeLeft(top(page));
+    await expect.poll(() => machine.of('watch').at(-1)?.agent).toBe(later);
+    await expect(dots(page).nth(4)).toHaveClass(/agent-dot--shown/);
+    await expect(page.getByRole('button', { name: 'Layout', exact: true })).toHaveCount(0);
     await machine.close();
   });
 

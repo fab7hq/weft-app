@@ -204,6 +204,8 @@ export class FakeMachine {
   update: string | null = null;
   /** It shows a device two agents side by side (`watch` with `also`); an older machine does not. */
   split = true;
+  /** The most agents it shows a device at once; a machine that shows two at most leaves it out. */
+  panes: number | undefined = 4;
   /** Take connections and never open them: a socket that hangs. */
   hang = false;
   /** Upgrades asked for, answered or not. */
@@ -375,6 +377,7 @@ export class FakeMachine {
       pendings: this.pendings,
       update: this.update ? { version: this.update } : null,
       split: this.split,
+      ...(this.panes === undefined ? {} : { panes: this.panes }),
     };
   }
 

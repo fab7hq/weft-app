@@ -122,7 +122,7 @@ test.describe('desktop', () => {
     await expect(page.locator('.split-side')).toHaveCount(2);
     await machine.close();
 
-    machine = await opened(page, context, (m) => (m.split = false));
+    machine = await opened(page, context, (m) => { m.split = false; m.panes = undefined; });
     await expect(tabs(page).getByRole('button')).toHaveCount(4);
     await expect(page.getByRole('button', { name: 'Split', exact: true })).toHaveCount(0);
     await machine.close();

@@ -94,7 +94,7 @@ function Crumbs({ parts }: { parts: Part[] }) {
 }
 
 /**
- * One Details view: on a phone a page under `‹ weft` with its acts under
+ * One Details view: on a phone a page under the back to the tree, with its acts under
  * it, the why of an act that does not apply above them; on a desktop the
  * agent's place, its breadcrumb on top and Close among its acts.
  */
@@ -134,7 +134,7 @@ export function Frame({ machine, project, label, crumbs, right, mono = false, as
   return (
     <div class="app">
       <div class="appbar">
-        <button class="back" type="button" onClick={back}>{`‹ ${w('web.back.tree')}`}</button>
+        <button class="back" type="button" onClick={back}>{w('web.back.tree')}</button>
         <span class="spacer" />
         {rightSaid}
       </div>

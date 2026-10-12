@@ -808,6 +808,7 @@ const SCREENS: Screen[] = [
     await button(at, 'Split').click();
     await drawn(at, GL_CODEX);
     await drawn(at, OPENBOX_CLAUDE);
+    await at.page.locator('.split-side--current').getByLabel('The agent', { exact: true }).click();
   } },
   { ids: ['M14.1'], sample: across, run: async (at) => {
     await tree(at);

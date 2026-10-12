@@ -20,11 +20,12 @@ export const b64 = (bytes: number[]) => btoa(String.fromCharCode(...bytes));
 const sized = new Set<string>();
 
 /**
- * One agent. On a desktop, `embedded` beside the tree; of two side by side,
+ * One agent. On a desktop, `embedded` beside the tree; of two side by side (`side`),
  * `current` is the side with the keys, a press in the other calls `onPick`,
- * and `head` names it in place of the tabs.
+ * `head` names it in place of the tabs, and no answer strip is drawn: its
+ * screen and the bar's Keys answer it.
  */
-export function Agent({ machine, agent, embedded = false, current = true, onPick, head }: { machine: Machine; agent: string; embedded?: boolean; current?: boolean; onPick?: (e: PointerEvent) => void; head?: ComponentChildren }) {
+export function Agent({ machine, agent, embedded = false, current = true, onPick, head, side = false }: { machine: Machine; agent: string; embedded?: boolean; current?: boolean; onPick?: (e: PointerEvent) => void; head?: ComponentChildren; side?: boolean }) {
   const a = m.agents.value.find((x) => x.agent === agent);
   // Nothing goes to an agent that has ended.
   const live = m.link.value === 'connected' && Boolean(a?.running);
@@ -154,7 +155,7 @@ export function Agent({ machine, agent, embedded = false, current = true, onPick
           {!wide && <button class="tree-act" type="button" onClick={() => swap({ name: 'tree', machine: machine.id })}>{w('web.agent.back')}</button>}
         </div>
       )}
-      {a?.turn === 'waiting' && a.running && m.link.value === 'connected' && (
+      {!side && a?.turn === 'waiting' && a.running && m.link.value === 'connected' && (
         // While the agent waits for its person (its hooks say so; the screen is never read),
         // as the machine says now: not while it is being reached again (M1.8, D1.8).
         <div class="answer-strip" role="toolbar" aria-label="Answer">

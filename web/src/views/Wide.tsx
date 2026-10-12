@@ -64,7 +64,7 @@ function Agents({ machine, agent }: { machine: Machine; agent: string }) {
         // A press in the other side makes it the side with the keys; One pane keeps the side it is.
         return (
           <section key={id} class={now ? 'split-side split-side--current' : 'split-side'} aria-label={a ? `${a.project} · ${a.harness}` : id}>
-            <Agent machine={machine} agent={id} embedded current={now} onPick={(e) => !(e.target as Element).closest('.tab-act') && show(machine.id, id)} head={head} />
+            <Agent machine={machine} agent={id} embedded side current={now} onPick={(e) => !(e.target as Element).closest('.tab-act') && show(machine.id, id)} head={head} />
           </section>
         );
       })}

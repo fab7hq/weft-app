@@ -102,6 +102,8 @@ test.describe('desktop', () => {
     await row(page, 'claude · fix login').click();
     await page.getByRole('button', { name: 'Split', exact: true }).click();
     await expect(side(page, 'weft · claude')).toHaveClass(/split-side--current/);
+    // A side whose agent waits for you has no answer strip: its screen and the bar's Keys answer it.
+    await expect(page.getByRole('toolbar', { name: 'Answer' })).toHaveCount(0);
     await row(page, 'codex · health endpoint').click();
     await expect(side(page, 'weft · codex')).toHaveClass(/split-side--current/);
     await expect(side(page, 'weft · claude')).not.toHaveClass(/split-side--current/);

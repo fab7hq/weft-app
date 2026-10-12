@@ -2,7 +2,7 @@
 // pane one row, Message… [▶], and the key bar under it; Ask at the top.
 import { expect, test, type Page } from '@playwright/test';
 import { FakeMachine, agent } from './fake-machine';
-import { openAgent } from './open';
+import { openAgent, wideOf } from './open';
 import { person, signIn } from './seed';
 
 async function opened(page: Page, machine: FakeMachine) {
@@ -111,12 +111,29 @@ test('M3.10: the key bar stays under the message row while the message box has f
   await machine.close();
 });
 
-test('step 50: the open agents as tabs; the one that needs you is amber; a tap opens it', async ({ page, context }, info) => {
+test('step 50: the open agents as tabs, or dots and a list on a phone; the one that needs you is amber; a tap opens it', async ({ page, context }, info) => {
   test.skip(info.project.name === 'desktop-push', 'covered by desktop');
   const machine = await FakeMachine.start();
   machine.agents = [agent(0, 'weft', 'claude-code', 'working'), agent(1, 'docs', 'codex', 'waiting')];
   await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
   await opened(page, machine);
+  if (!wideOf(page)) {
+    const dots = page.locator('.agent-dot');
+    await expect(dots).toHaveCount(2);
+    await expect(dots.nth(0)).toHaveClass(/agent-dot--shown/);
+    await expect(dots.nth(1)).toHaveClass(/agent-dot--needs-you/);
+    await page.locator('.agent-name').click();
+    await page.getByRole('dialog', { name: 'Agents' }).getByRole('region', { name: 'NEEDS YOU' }).getByRole('button').click();
+    await expect.poll(() => machine.of('watch').at(-1)?.agent).toBe('3f9a1c07b2de-1');
+    await expect(page.locator('.agent-name')).toHaveAccessibleName('docs · codex');
+    if (info.project.name === 'iphone') {
+      // The list replaces the open agent: back goes to the tree.
+      await page.goBack();
+      await expect(page.getByLabel('Message')).toHaveCount(0);
+    }
+    await machine.close();
+    return;
+  }
   const tabs = page.getByRole('navigation', { name: 'Tabs' });
   await expect(tabs.getByRole('button')).toHaveText(['weft · claude-code', 'docs · codex ●']);
   const first = tabs.getByRole('button', { name: /^weft / });

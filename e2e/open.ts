@@ -3,6 +3,10 @@ import { expect, type Page } from '@playwright/test';
 
 export const wideOf = (page: Page) => page.viewportSize()!.width >= 768;
 
+/** What names the open agent: its tab on a desktop, the header's name on a phone. */
+export const shown = (page: Page) =>
+  wideOf(page) ? page.getByRole('navigation', { name: 'Tabs' }).locator('[aria-current="page"]') : page.locator('.agent-name');
+
 /** A row of the tree, by its name. */
 export const row = (page: Page, name: string | RegExp) => page.getByRole('treeitem', { name, exact: typeof name === 'string' }).first();
 

@@ -3,7 +3,7 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import { FakeMachine, atlas } from './fake-machine';
 import { pull as finger } from './touch';
-import { openAgent } from './open';
+import { openAgent, wideOf } from './open';
 import { person, signIn } from './seed';
 
 async function opened(page: Page, context: BrowserContext) {
@@ -118,8 +118,10 @@ test('M3.8: a harness not set up for RingFrame: ⚠ on its tab, and why under th
   await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
   await page.goto('/');
   await openAgent(page, 'codex · health endpoint');
-  const tabs = page.getByRole('navigation', { name: 'Tabs' });
-  await expect(tabs.getByRole('button')).toHaveText(['weft · claude ●', 'weft · codex ⚠', 'weft · codex ⚠', 'docs · claude']);
+  if (wideOf(page)) {
+    const tabs = page.getByRole('navigation', { name: 'Tabs' });
+    await expect(tabs.getByRole('button')).toHaveText(['weft · claude ●', 'weft · codex ⚠', 'weft · codex ⚠', 'docs · claude']);
+  } else await expect(page.locator('.agent-name')).toHaveAccessibleName('weft · codex ⚠');
   await expect(page.getByText('codex is not set up for RingFrame. Set it up in Weft on studio: U.')).toBeVisible();
   await machine.close();
 });
@@ -195,8 +197,9 @@ test('M3.7 D3.7: an ended agent says the TUI\'s sentence, from words.json', asyn
   await expect(page.getByText(said)).toBeVisible();
   expect(said).toBe('codex has ended. Its work is still on the list.');
   await expect(page.getByLabel("The agent's screen")).toHaveCount(0);
-  // Its tab goes; the other codex's stays.
-  await expect(page.getByRole('navigation', { name: 'Tabs' }).getByRole('button', { name: /codex/ })).toHaveCount(1);
+  // Its tab, or its dot on a phone, goes; the other codex's stays.
+  if (info.project.name === 'desktop') await expect(page.getByRole('navigation', { name: 'Tabs' }).getByRole('button', { name: /codex/ })).toHaveCount(1);
+  else await expect(page.locator('.agent-dot')).toHaveCount(3);
   // A phone goes back to the tree; a desktop has it beside the sentence (D3.7).
   if (info.project.name === 'desktop') await expect(page.getByRole('button', { name: 'Back to the tree' })).toHaveCount(0);
   else await page.getByRole('button', { name: 'Back to the tree' }).click();

@@ -31,3 +31,10 @@ export async function swipeLeft(target: Locator) {
   const y = r.y + 20;
   await finger(target, [{ type: 'touchstart', x: r.x + r.width - 20, y }, { type: 'touchend', x: r.x + r.width - 160, y }]);
 }
+
+/** A finger swiping the element right from its left edge. */
+export async function swipeRight(target: Locator) {
+  const r = (await target.boundingBox())!;
+  const y = r.y + 20;
+  await finger(target, [{ type: 'touchstart', x: r.x + 20, y }, { type: 'touchend', x: r.x + 160, y }]);
+}

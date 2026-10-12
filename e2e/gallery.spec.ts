@@ -809,6 +809,18 @@ const SCREENS: Screen[] = [
     await drawn(at, GL_CODEX);
     await drawn(at, OPENBOX_CLAUDE);
   } },
+  { ids: ['M14.1'], sample: across, run: async (at) => {
+    await tree(at);
+    await openAgent(at.page, 'codex · health endpoint');
+    await drawn(at, GL_CODEX);
+  } },
+  { ids: ['M14.2'], sample: across, run: async (at) => {
+    await tree(at);
+    await openAgent(at.page, 'codex · health endpoint');
+    await drawn(at, GL_CODEX);
+    await at.page.locator('.agent-name').click();
+    await expect(at.page.getByRole('dialog', { name: 'Agents' })).toBeVisible();
+  } },
 
   { ids: ['M10.4'], note: 'A push notification, drawn by the phone itself; e2e/desktop-push.spec.ts checks that it shows and opens the agent.' },
   { ids: ['D10.3'], note: 'A browser notification, drawn by the system; e2e/desktop-push.spec.ts checks that it shows and opens the agent.' },

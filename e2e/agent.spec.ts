@@ -5,7 +5,7 @@ import path from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
 import { FakeMachine, agent } from './fake-machine';
 import { pull } from './touch';
-import { openAgent } from './open';
+import { openAgent, shown } from './open';
 import { person, signIn } from './seed';
 
 const fixtures = path.join(import.meta.dirname, '../../weft/crates/weftd/tests/fixtures/screens');
@@ -95,7 +95,7 @@ test('test 2: a notification\'s agent opens from what it left in IndexedDB', asy
   );
   await page.reload();
   await expect.poll(() => machine.of('watch').at(-1)?.agent).toBe('3f9a1c07b2de-1');
-  await expect(page.getByRole('navigation', { name: 'Tabs' }).getByRole('button', { name: 'docs · codex' })).toHaveAttribute('aria-current', 'page');
+  await expect(shown(page)).toHaveAccessibleName('docs · codex');
   const left = await page.evaluate(
     () =>
       new Promise((done) => {

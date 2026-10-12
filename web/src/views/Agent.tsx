@@ -7,6 +7,7 @@ import { openKeys, said as actSaid } from './Bar';
 import { asking } from './Ask';
 import { KeyBar, mods, press } from './Keys';
 import { notSetUp, Tabs } from './Tabs';
+import { AgentList, AgentName, Dots, useSwipe } from './Agents';
 import { ANSWER, sent, typed } from '../keys';
 import { Screen, fit } from './Screen';
 import { HeaderPills } from './Status';
@@ -38,6 +39,9 @@ export function Agent({ machine, agent, embedded = false, current = true, onPick
   // The key the agent's harness reads its own history with, as the machine names it.
   const [transcript, setTranscript] = useState<string | null>(null);
   const [typing, setTyping] = useState(false);
+  // On a phone, the list of agents over the view.
+  const [list, setList] = useState(false);
+  const swipe = useSwipe(machine.id, agent);
 
   const takeKeys = () => {
     if (sized.has(agent) || !box.current) return;
@@ -110,17 +114,24 @@ export function Agent({ machine, agent, embedded = false, current = true, onPick
   return (
     <div class={wide ? 'app agent agent--wide' : 'app agent'} style={embedded ? { height: '100%' } : undefined} onPointerDownCapture={current ? undefined : onPick}>
       {!embedded && (
-        <div class="appbar">
-          <button class="back" type="button" onClick={back}>{`‹ ${a?.project ?? machine.name}`}</button>
-          <span class="spacer" />
-          <HeaderPills machine={machine} />
-          {/* Ask into this agent (M3.11). */}
-          <button class="tree-act appbar-ask" type="button" onClick={() => (asking.value = { agent, project: a?.project })}>
-            {w('act.ask')}
-          </button>
+        // The header and the dots: a swipe on them moves to the next agent or the previous one.
+        <div class="agent-head" {...swipe}>
+          <div class="appbar">
+            <button class="back" type="button" onClick={back}>{`‹ ${a?.project ?? machine.name}`}</button>
+            <span class="agent-name-at">
+              <AgentName agent={a} onOpen={() => setList(true)} />
+            </span>
+            {m.link.value !== 'connected' && <HeaderPills machine={machine} />}
+            {/* Ask into this agent (M3.11). */}
+            <button class="tree-act appbar-ask" type="button" onClick={() => (asking.value = { agent, project: a?.project })}>
+              {w('act.ask')}
+            </button>
+          </div>
+          <Dots open={agent} />
         </div>
       )}
-      {head ?? <Tabs machine={machine.id} open={agent} />}
+      {!embedded && list && <AgentList machine={machine.id} open={agent} onClose={() => setList(false)} />}
+      {embedded && (head ?? <Tabs machine={machine.id} open={agent} />)}
       {a?.running ? (
         <div class="pane-wrap">
           <Screen agent={agent} driving={driving} current={current} history={history} onHistory={() => void showHistory()} onTop={() => setTop(true)} onLive={() => (setHistory(null), setTop(false))} onKey={key} box={box} />

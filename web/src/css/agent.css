@@ -3,21 +3,42 @@
 /* Ask into this agent, at the header's right (M3.11). */
 .appbar-ask { flex: none; padding: 7px 16px; }
 
-/* The tabs: amber while their agent needs you, blue-framed when open (M3.4). */
-.tabs { display: flex; gap: 8px; padding: 8px 16px; border-bottom: 1px solid var(--fab7-line); overflow-x: auto; flex: none; scrollbar-width: none; }
-.tab { flex: none; padding: 6px 12px; border: 1px solid var(--fab7-line); border-radius: 16px; background: var(--fab7-surface); color: var(--fab7-text); font: 400 13px var(--font-sans); white-space: nowrap; cursor: pointer; }
+/* A pane's tabs: the one shown in the pane you are in framed blue,
+   one shown in another pane framed, the rest plain; amber ● while their
+   agent needs you; one held by the mouse faded. */
+.tabs { display: flex; gap: 6px; padding: 8px 12px; border-bottom: 1px solid var(--fab7-line); overflow-x: auto; flex: none; scrollbar-width: none; }
+.tab { flex: none; padding: 6px 12px; border: 1px solid transparent; border-radius: 16px; background: transparent; color: var(--fab7-muted); font: 400 13px var(--font-sans); white-space: nowrap; cursor: pointer; }
+.tab[data-shown="true"] { color: var(--fab7-text); border-color: #3a4a66; background: var(--fab7-surface); }
 .tab[aria-current="page"] { color: var(--fab7-accent); border-color: var(--fab7-accent); background: #16233a; }
-.tab-row { display: flex; align-items: center; padding-right: 16px; border-bottom: 1px solid var(--fab7-line); flex: none; }
+.tab[data-held="true"] { opacity: 0.4; }
+.tab-row { display: flex; align-items: center; padding-right: 12px; border-bottom: 1px solid var(--fab7-line); flex: none; }
 .tab-row .tabs { flex: 1; min-width: 0; border-bottom: none; }
+.tab-row--drop { background: #16233a; }
 .tab-needs { color: var(--fab7-amber-text); }
-.tab-act { flex: none; margin-left: auto; padding: 6px 12px; border: 1px solid var(--fab7-line); border-radius: 8px; background: var(--fab7-surface); color: var(--fab7-text); font: 600 13px var(--font-sans); white-space: nowrap; cursor: pointer; }
-.tab-act[aria-pressed="true"] { color: var(--fab7-accent); border-color: var(--fab7-accent); background: #16233a; }
-/* Two agents side by side: the side with the keys framed blue. */
-.split { flex: 1; min-height: 0; display: flex; }
-.split-side { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; }
-.split-side + .split-side { border-left: 1px solid var(--fab7-line); }
-.split .pane { padding: 11px; border-width: 2px; }
-.split-side--current .pane { border-color: var(--fab7-accent); }
+/* The layout button, a four-pane icon with ▾, and its menu. */
+.layout-at { position: relative; flex: none; margin-left: auto; }
+.layout-button { display: flex; gap: 6px; align-items: center; padding: 5px 10px; border: 1px solid var(--fab7-line); border-radius: 8px; background: var(--fab7-surface); color: var(--fab7-text); cursor: pointer; }
+.layout-caret { font-size: 11px; color: var(--fab7-muted); }
+.layout-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 20; min-width: 240px; display: flex; flex-direction: column; padding: 4px; background: var(--fab7-surface); border: 1px solid var(--fab7-line); border-radius: 8px; box-shadow: var(--fab7-shadow-float); }
+.layout-menu button { padding: 8px 12px; border: 0; border-radius: 6px; background: transparent; color: var(--fab7-text); font: 400 15px var(--font-sans); text-align: left; cursor: pointer; }
+.layout-menu button:hover, .layout-menu button:focus-visible { background: #16233a; outline: none; }
+/* Panes: a tree of them sharing the space equally; the pane you are in framed blue. */
+.panes { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.panes-right, .panes-down { flex: 1 1 0; min-width: 0; min-height: 0; display: flex; }
+.panes-down { flex-direction: column; }
+.pane-box { position: relative; flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.panes-right > * + * { border-left: 1px solid var(--fab7-line); }
+.panes-down > * + * { border-top: 1px solid var(--fab7-line); }
+.panes--many .pane { padding: 11px; border-width: 2px; }
+.pane-box--current .pane { border-color: var(--fab7-accent); }
+/* Where a held tab would land: the half a split gives it, or the whole pane, dashed blue. */
+.drop-zone { position: absolute; z-index: 10; display: flex; align-items: center; justify-content: center; border: 2px dashed var(--fab7-accent); border-radius: 10px; background: #16233ae6; pointer-events: none; }
+.drop-zone--middle { inset: 52px 12px 58px; }
+.drop-zone--down { inset: 50% 12px 58px; }
+.drop-zone--up { inset: 52px 12px 50%; }
+.drop-zone--left { inset: 52px 50% 58px 12px; }
+.drop-zone--right { inset: 52px 12px 58px 50%; }
+.drop-tab { color: var(--fab7-accent); border-color: var(--fab7-accent); background: #16233a; }
 
 /* The pane, and what is said under it (M3.6, M3.8). */
 .pane-wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; }

@@ -5,8 +5,9 @@
 import type { Machine } from '../api';
 import * as m from '../machine';
 import { type View } from '../nav';
-import { besideOf, offered, onePane, show, split } from '../split';
-import { w } from '../words';
+import { useEffect, useRef } from 'preact/hooks';
+import * as L from '../layout';
+import { focusPane, held, layout, most, over, room, show } from '../panes';
 import { Agent } from './Agent';
 import { AskDock } from './Ask';
 import { Details, RoundDetails, SealDetails } from './Details';
@@ -17,7 +18,7 @@ import { StartPanel } from './Start';
 import { HeaderPills, Strips } from './Status';
 import { TreeBar } from './Bar';
 import { MenuButton } from './Settings';
-import { TabName, Tabs } from './Tabs';
+import { TabName, Tabs, dropped } from './Tabs';
 
 /** The empty right pane (D2.1): the woven mark, and the way to start an agent. */
 function Woven({ machine }: { machine: Machine }) {
@@ -34,40 +35,70 @@ function Woven({ machine }: { machine: Machine }) {
   );
 }
 
-/** The open agent under every project's tabs, or, split, beside the agent shown with it. */
-function Agents({ machine, agent }: { machine: Machine; agent: string }) {
-  const b = besideOf(agent);
-  if (!b) {
-    const end = offered.value && (
-      <button class="tab-act" type="button" onClick={() => split(agent)}>
-        <span aria-hidden="true">{'⫿ '}</span>{w('act.split')}
-      </button>
-    );
-    return <Agent key={agent} machine={machine} agent={agent} embedded head={<div class="tab-row"><Tabs machine={machine.id} open={agent} />{end}</div>} />;
-  }
-  const sides = b.left ? [b.agent, agent] : [agent, b.agent];
+/** One pane: its tab bar, its agent, and where a held tab would land in it. */
+function PaneBox({ machine, pane, many, open }: { machine: Machine; pane: L.Pane; many: boolean; open: string }) {
+  const current = pane.id === L.active(layout.value).id;
+  // The open agent, ended, is in no pane: the pane you are in says so in its place.
+  const agent = current && L.paneOf(layout.value, open) === undefined ? open : L.showing(pane);
+  const a = m.agents.value.find((x) => x.agent === agent);
+  const to = over.value;
+  const here = to && (('edge' in to && to.edge === pane.id) || ('middle' in to && to.middle === pane.id)) ? to : null;
+  const name = m.agents.value.find((x) => x.agent === held.value);
+  // A held tab over this pane: its outer fifth splits it that way, its middle takes it in.
+  const onDragOver = (e: DragEvent) => {
+    if (!held.value) return;
+    e.preventDefault();
+    const r = (e.currentTarget as Element).getBoundingClientRect();
+    over.value = L.zone(pane.id, (e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height);
+  };
+  const head = <Tabs machine={machine.id} pane={pane} current={current || !many} />;
   return (
-    <div class="split">
-      {sides.map((id, i) => {
-        const a = m.agents.value.find((x) => x.agent === id);
-        const now = id === agent;
-        const head = (
-          <div class="tabs">
-            <span class="tab" aria-current={now ? 'page' : undefined}>{a && <TabName a={a} />}</span>
-            {i === 1 && (
-              <button class="tab-act" type="button" aria-pressed="true" onClick={onePane}>
-                <span aria-hidden="true">{'⫿ '}</span>{w('act.one_pane')}
-              </button>
-            )}
-          </div>
-        );
-        // A press in the other side makes it the side with the keys; One pane keeps the side it is.
-        return (
-          <section key={id} class={now ? 'split-side split-side--current' : 'split-side'} aria-label={a ? `${a.project} · ${a.harness}` : id}>
-            <Agent machine={machine} agent={id} embedded side current={now} onPick={(e) => !(e.target as Element).closest('.tab-act') && show(machine.id, id)} head={head} />
-          </section>
-        );
+    <section
+      class={current && many ? 'pane-box pane-box--current' : 'pane-box'}
+      aria-label={a ? `${a.project} · ${a.harness}` : undefined}
+      onDragOver={onDragOver}
+      onDrop={(e) => dropped(machine.id, e)}
+    >
+      {agent ? (
+        <Agent key={agent} machine={machine} agent={agent} embedded side={many} current={current || !many} onPick={() => focusPane(machine.id, pane.id)} head={head} />
+      ) : head}
+      {here && (
+        <div class={`drop-zone drop-zone--${'edge' in here ? here.side : 'middle'}`} aria-hidden="true">
+          {name && <span class="tab drop-tab"><TabName a={name} /></span>}
+        </div>
+      )}
+    </section>
+  );
+}
+
+/** A level of the tree of panes: a pane, or panes side by side or one below another, sharing the space equally. */
+function Level({ machine, node, open }: { machine: Machine; node: L.Node; open: string }) {
+  if ('pane' in node) return <PaneBox machine={machine} pane={node.pane} many open={open} />;
+  return (
+    <div class={`panes-${node.axis}`}>
+      {node.kids.map((kid) => {
+        const first = 'pane' in kid ? kid.pane.id : L.panes({ root: kid, active: 0, next: 0 })[0].id;
+        return <Level key={first} machine={machine} node={kid} open={open} />;
       })}
+    </div>
+  );
+}
+
+/** The panes, each with its own tabs; a window too small for the layout shows the pane you are in alone, the layout kept. */
+function Agents({ machine, open }: { machine: Machine; open: string }) {
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const seen = new ResizeObserver(() => (room.value = { width: el.clientWidth, height: el.clientHeight }));
+    seen.observe(el);
+    return () => seen.disconnect();
+  }, []);
+  const l = layout.value;
+  const many = L.count(l) > 1 && L.count(l) <= most.value && L.fits(l, room.value);
+  return (
+    <div class={many ? 'panes panes--many' : 'panes'} ref={box} onDragLeave={(e) => !box.current?.contains(e.relatedTarget as Node | null) && (over.value = null)}>
+      {many ? <Level machine={machine} node={l.root} open={open} /> : <PaneBox machine={machine} pane={L.active(l)} many={false} open={open} />}
     </div>
   );
 }
@@ -93,7 +124,7 @@ export function Wide({ login, machine, agent, starting = null, view }: { login: 
           : view.name === 'round' ? <RoundDetails key={view.eval} machine={machine} project={view.project} eval={view.eval} wide />
           : view.name === 'seal' ? <SealDetails key={view.seal} machine={machine} project={view.project} seal={view.seal} wide />
           : view.name === 'session' ? <SessionDetails key={view.session} machine={machine} project={view.project} session={view.session} wide />
-          : starting !== null ? <StartPanel machine={machine} harness={starting} project={view.name === 'start' ? view.project : undefined} /> : agent ? <Agents machine={machine} agent={agent} /> : <Woven machine={machine} />}
+          : starting !== null ? <StartPanel machine={machine} harness={starting} project={view.name === 'start' ? view.project : undefined} /> : agent ? <Agents machine={machine} open={agent} /> : <Woven machine={machine} />}
           <AskDock />
         </main>
       </div>

@@ -261,9 +261,39 @@ const ACROSS: Record<string, string[]> = {
   [GL_CODEX]: ['● Running cargo test…', '  test health::answers_200 ... ok', '  test health::reports_version ... ok', '', '✻ Working… (esc to interrupt)', '', '›'],
   [OPENBOX_CLAUDE]: ['● Write(src/billing.rs)', '  Do you want to make this edit to billing.rs?', BLUE('  ❯ 1. Yes'), "    2. Yes, and don't ask again this session", '    3. No, and tell Claude what to do differently'],
 };
+/** The across sample with docs' codex and claude running too. */
+function withDocs(): ReturnType<typeof atlas> {
+  const a = across();
+  const since = Date.now() - 120_000;
+  a.agents.push(
+    { agent: 'c0c1d2e3f4a5-0', project: 'docs', harness: 'codex', title: 'Codex', turn: 'ready', running: true, since },
+    { agent: 'c0c1d2e3f4a5-1', project: 'docs', harness: 'claude', title: 'Claude Code', turn: 'ready', running: true, since },
+  );
+  return a;
+}
+const tab = (at: At, name: string) => at.page.getByRole('navigation', { name: 'Tabs' }).getByRole('button', { name: new RegExp(`^${name}`) });
+/** Pick an item of the layout menu of the pane holding that tab. */
+async function layout(at: At, item: string, holding: string) {
+  await at.page.locator('.pane-box').filter({ has: tab(at, holding) }).getByRole('button', { name: 'Layout', exact: true }).click();
+  await at.page.getByRole('menuitem', { name: item, exact: true }).click();
+}
+/** The pane you are in, active, as the cards draw it: the bar reads Ask · Keys. */
+const inPane = (at: At) => at.page.locator('.pane-box--current, .panes:not(.panes--many) .pane-box').first().getByLabel('The agent', { exact: true }).click();
+/** As the two-pane card lays them out: gl's two on the left, gl · codex shown; openbox · claude on the right, the pane you are in. */
+async function twoPanes(at: At) {
+  await tree(at);
+  await item(at, 'claude · billing export').click();
+  await layout(at, 'Split right', 'openbox · claude');
+  await tab(at, 'gl · codex').click();
+  await tab(at, 'openbox · claude').click();
+  await drawn(at, GL_CODEX);
+  await drawn(at, OPENBOX_CLAUDE);
+  await inPane(at);
+}
 /** Draw the cards' lines on an agent's screen, once it is watched. */
 async function drawn(at: At, agent: string) {
-  const watched = (m?: Record<string, unknown>) => m?.agent === agent || (m?.also as { agent?: string } | undefined)?.agent === agent;
+  const beside = (m?: Record<string, unknown>) => [m?.also ?? []].flat() as { agent?: string }[];
+  const watched = (m?: Record<string, unknown>) => m?.agent === agent || beside(m).some((a) => a.agent === agent);
   await expect.poll(() => watched(at.machine.of('watch').at(-1))).toBe(true);
   at.machine.send({ type: 'screen', agent, seq: 1, full: true, rows: 30, cols: 60, bytes: Buffer.from(ACROSS[agent].join('\r\n')).toString('base64') });
 }
@@ -801,14 +831,56 @@ const SCREENS: Screen[] = [
     await drawn(at, GL_CODEX);
     await activate(at);
   } },
-  { ids: ['D14.2'], sample: across, run: async (at) => {
+  // 15 · Panes and tabs like an editor
+  { ids: ['D15.1'], sample: across, run: async (at) => {
+    await twoPanes(at);
+  } },
+  { ids: ['D15.2'], sample: across, run: async (at) => {
     await tree(at);
     await openAgent(at.page, 'codex · health endpoint');
+    await drawn(at, GL_CODEX);
+    await inPane(at);
+    await button(at, 'Layout').click();
+    await expect(at.page.getByRole('menu', { name: 'Layout' })).toBeVisible();
+  } },
+  { ids: ['D15.3'], sample: withDocs, run: async (at) => {
+    await tree(at);
     await item(at, 'claude · billing export').click();
-    await button(at, 'Split').click();
+    await layout(at, 'Split right', 'openbox · claude');
+    // gl · claude below gl · codex; docs' two to the right, docs · codex below openbox · claude.
+    const moves: [string, string][] = [
+      ['gl · claude', 'Split down'],
+      ['docs · codex', 'Move tab to the next pane'],
+      ['docs · claude', 'Move tab to the next pane'],
+      ['docs · codex', 'Split down'],
+      ['docs · claude', 'Move tab to the next pane'],
+      ['docs · claude', 'Move tab to the next pane'],
+    ];
+    for (const [name, item] of moves) {
+      await tab(at, name).click();
+      await layout(at, item, name);
+    }
+    await expect(at.page.locator('.pane-box')).toHaveCount(4);
+    await tab(at, 'docs · codex').click();
     await drawn(at, GL_CODEX);
     await drawn(at, OPENBOX_CLAUDE);
-    await at.page.locator('.split-side--current').getByLabel('The agent', { exact: true }).click();
+    await inPane(at);
+    await layout(at, 'Split right', 'docs · codex');
+    await expect(at.page.getByText('Four panes at most.', { exact: false })).toBeVisible();
+  } },
+  { ids: ['D15.4'], sample: across, run: async (at) => {
+    await twoPanes(at);
+    await tab(at, 'gl · codex').click();
+    await inPane(at);
+    // gl · claude held over the right pane's lower fifth, not yet let go.
+    const from = (await tab(at, 'gl · claude').boundingBox())!;
+    const to = (await at.page.locator('.pane-box').nth(1).boundingBox())!;
+    await at.page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+    await at.page.mouse.down();
+    await at.page.mouse.move(from.x + from.width / 2 + 12, from.y + from.height / 2 + 6);
+    await at.page.mouse.move(to.x + to.width / 2, to.y + to.height * 0.85, { steps: 8 });
+    await at.page.mouse.move(to.x + to.width / 2, to.y + to.height * 0.86);
+    await expect(at.page.locator('.drop-zone--down')).toBeVisible();
   } },
   { ids: ['M14.1'], sample: across, run: async (at) => {
     await tree(at);

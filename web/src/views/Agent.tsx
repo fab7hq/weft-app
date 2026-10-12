@@ -6,7 +6,7 @@ import { back, swap } from '../nav';
 import { openKeys, said as actSaid } from './Bar';
 import { asking } from './Ask';
 import { KeyBar, mods, press } from './Keys';
-import { notSetUp, Tabs } from './Tabs';
+import { notSetUp } from './Tabs';
 import { AgentList, AgentName, Dots, useSwipe } from './Agents';
 import { ANSWER, sent, typed } from '../keys';
 import { Screen, fit } from './Screen';
@@ -20,9 +20,9 @@ export const b64 = (bytes: number[]) => btoa(String.fromCharCode(...bytes));
 const sized = new Set<string>();
 
 /**
- * One agent. On a desktop, `embedded` beside the tree; of two side by side (`side`),
- * `current` is the side with the keys, a press in the other calls `onPick`,
- * `head` names it in place of the tabs, and no answer strip is drawn: its
+ * One agent. On a desktop, `embedded` beside the tree under `head`, its
+ * pane's tab bar; of several panes (`side`), `current` is the pane you are
+ * in, a press in another calls `onPick`, and no answer strip is drawn: its
  * screen and the bar's Keys answer it.
  */
 export function Agent({ machine, agent, embedded = false, current = true, onPick, head, side = false }: { machine: Machine; agent: string; embedded?: boolean; current?: boolean; onPick?: (e: PointerEvent) => void; head?: ComponentChildren; side?: boolean }) {
@@ -132,7 +132,7 @@ export function Agent({ machine, agent, embedded = false, current = true, onPick
         </div>
       )}
       {!embedded && list && <AgentList machine={machine.id} open={agent} onClose={() => setList(false)} />}
-      {embedded && (head ?? <Tabs machine={machine.id} open={agent} />)}
+      {embedded && head}
       {a?.running ? (
         <div class="pane-wrap">
           <Screen agent={agent} driving={driving} current={current} history={history} onHistory={() => void showHistory()} onTop={() => setTop(true)} onLive={() => (setHistory(null), setTop(false))} onKey={key} box={box} />

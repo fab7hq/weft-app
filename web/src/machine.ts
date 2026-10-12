@@ -136,12 +136,13 @@ export const vapid = signal<string | null>(null);
 export const control = signal<Record<string, 'you' | 'mac'>>({});
 /** Answers to requests, by req. */
 const waiting = new Map<number, (m: Record<string, unknown>) => void>();
-/** The agents whose screens this device watches, at most two, each with the
- * size this device would draw it at (the machine gives it when nobody is at
- * the Mac, remote.md §9) and who hears its frames. */
+/** The agents whose screens this device watches, one to each of its panes,
+ * each with the size this device would draw it at (the machine gives it when
+ * nobody is at the Mac, remote.md §9) and who hears its frames. */
 const watching = new Map<string, { size: { rows: number; cols: number } | null; frames: (f: Frame) => void }>();
-/** The machine shows a device two agents side by side (`welcome`'s `split`). */
-export const canSplit = signal(false);
+/** The most agents the machine shows a device at once: `welcome`'s `panes`;
+ * a machine that says only `split` shows two, one that says neither, one. */
+export const panes = signal(1);
 /** Pendings answered elsewhere, for a sheet that was showing one. */
 export const resolved = signal<{ id: string; yes: boolean } | null>(null);
 
@@ -204,7 +205,7 @@ export function close(): void {
   welcomed.value = false;
   unreachable.value = false;
   update.value = null;
-  canSplit.value = false;
+  panes.value = 1;
 }
 
 /** Not reached yet: after a while the page says it is waiting (M13.1). */
@@ -285,7 +286,7 @@ function heard(s: WebSocket, m: api.Machine, msg: Record<string, unknown>): void
       pendings.value = (msg.pendings as Pending[]) ?? [];
       vapid.value = (msg.vapid as string | null) ?? null;
       update.value = (msg.update as { version?: string } | null)?.version ?? null;
-      canSplit.value = msg.split === true;
+      panes.value = typeof msg.panes === 'number' ? msg.panes : msg.split === true ? 2 : 1;
       link.value = 'connected';
       welcomed.value = true;
       refusal.value = null;
@@ -432,7 +433,7 @@ export function request(message: Record<string, unknown>): Promise<Record<string
   return new Promise((done) => waiting.set(req, done));
 }
 
-/** Watch an agent's screen, beside the one already watched if any (a split). */
+/** Watch an agent's screen, beside those already watched in the other panes. */
 export function watch(agent: string, frames: (f: Frame) => void, size: { rows: number; cols: number } | null = null): void {
   watching.set(agent, { size, frames });
   sendWatch();
@@ -444,7 +445,9 @@ export function unwatch(agent: string): void {
 }
 
 function sendWatch(): void {
-  const [first, also] = [...watching].map(([agent, w]) => ({ agent, ...w.size }));
+  const [first, ...rest] = [...watching].map(([agent, w]) => ({ agent, ...w.size }));
+  // One beside it is sent as one, as a machine that shows two reads it.
+  const also = rest.length === 1 ? rest[0] : rest.length ? rest : null;
   send({ type: 'watch', ...(first ?? { agent: null }), ...(also && { also }) });
   sendSeen();
 }

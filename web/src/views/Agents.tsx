@@ -5,7 +5,7 @@
 import { useRef } from 'preact/hooks';
 import * as m from '../machine';
 import { swap } from '../nav';
-import { tabbed } from '../split';
+import { tabbed } from '../panes';
 import { turnWord, w } from '../words';
 import { notSetUp } from './Tabs';
 

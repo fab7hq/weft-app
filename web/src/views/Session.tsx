@@ -43,7 +43,8 @@ export function SessionDetails({ machine, project, session, wide = false }: { ma
   // Ended when Weft on the machine stopped uncleanly, and reopened since (D13.5).
   const reopened = d.state === 'ended' && !!m.tree.value.find((p) => p.project === project)?.reopened;
   const s = asRow(d);
-  const state = d.state === 'ended' ? `${w('state.ended')} ${clock(d.last)}` : stateOf(s);
+  // Running: its turn and when it was last heard, as the cards draw it (M11.9, D11.9).
+  const state = d.state === 'ended' ? `${w('state.ended')} ${clock(d.last)}` : live ? `${stateOf(s)} ${clock(d.last)}` : stateOf(s);
   const resume = () => (d.resume ? void again(project, d.harness, d.session) : void (said.value = w('resume.nothing')));
   // Run by another program, it has no pane to go to.
   const goTo = () => (d.agent ? to.agent(d.agent) : void (said.value = fill('why.elsewhere', { harness: d.harness })));
@@ -64,7 +65,7 @@ export function SessionDetails({ machine, project, session, wide = false }: { ma
       }]}
       right={d.session.slice(0, 8)}
       mono
-      aside={wide ? undefined : [d.state === 'ended' ? `${w('state.ended')} ${stamp(d.last)}` : stateOf(s), madeIn(d.asks.length)].join(' · ')}
+      aside={wide ? undefined : [d.state === 'ended' ? `${w('state.ended')} ${stamp(d.last)}` : state, madeIn(d.asks.length)].join(' · ')}
       wide={wide}
       acts={
         live && !d.joins ? (

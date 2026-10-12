@@ -324,6 +324,9 @@ test('M11.9 D11.9: a running session no agent of Weft\'s holds, whose resume joi
   await expect(view).toBeVisible();
   await expect(page.getByText(wideOf(page) ? `Resume joins codex on session ${r.session.slice(0, 8)} in a new agent.` : 'Resume joins codex on this session in a new agent.')).toBeVisible();
   await expect(act(page, 'Go to its agent')).toHaveCount(0);
+  // As the cards: its state with the time it was last heard.
+  if (wideOf(page)) await expect(view.locator('.summary-head')).toHaveText(/^● working \d\d:\d\d$/);
+  else expect((await facts(page))[0]).toEqual(['State', expect.stringMatching(/^working \d\d:\d\d$/)]);
   await act(page, 'Resume').click();
   await expect.poll(() => machine.of('start')).toEqual([expect.objectContaining({ type: 'start', project: 'weft', harness: 'codex', resume: r.session })]);
   await machine.close();

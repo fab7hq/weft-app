@@ -202,6 +202,8 @@ export class FakeMachine {
   signedOut = false;
   /** A newer Weft installed and waiting for no agent to run, by its version. */
   update: string | null = null;
+  /** It shows a device two agents side by side (`watch` with `also`); an older machine does not. */
+  split = true;
   /** Take connections and never open them: a socket that hangs. */
   hang = false;
   /** Upgrades asked for, answered or not. */
@@ -372,6 +374,7 @@ export class FakeMachine {
       harnesses: this.harnesses,
       pendings: this.pendings,
       update: this.update ? { version: this.update } : null,
+      split: this.split,
     };
   }
 

@@ -870,7 +870,8 @@ const SCREENS: Screen[] = [
   } },
   { ids: ['D15.4'], sample: across, run: async (at) => {
     await twoPanes(at);
-    await tab(at, 'gl · codex').click();
+    // gl · codex shown from its row, selected in the tree as the card draws it.
+    await item(at, 'codex · health endpoint').click();
     await inPane(at);
     // gl · claude held over the right pane's lower fifth, not yet let go.
     const from = (await tab(at, 'gl · claude').boundingBox())!;

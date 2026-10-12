@@ -674,7 +674,8 @@ const SCREENS: Screen[] = [
     await onClaude(at);
     const box = at.page.getByPlaceholder('Message claude…');
     await box.fill('try again');
-    await box.press('Enter');
+    // ▶: on a touch screen Enter adds a line (M3.13).
+    await at.page.getByRole('button', { name: 'Send', exact: true }).click();
     await expect(at.page.getByText('Weft did not type it: it is still typing the last one.')).toBeVisible();
     // The card's moment: the keyboard put away.
     await box.blur();

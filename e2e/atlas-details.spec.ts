@@ -312,6 +312,23 @@ test('M11.5 D11.5: a running session goes to its agent; one another program runs
   await machine.close();
 });
 
+test('M11.9 D11.9: a running session no agent of Weft\'s holds, whose resume joins it: Resume joins it at once', async ({ page, context }) => {
+  const sample = atlas();
+  const r = sample.tree[0].agents.rows[0];
+  r.agent = null;
+  sample.reads.sessions[r.session] = { session: r.session, harness: 'codex', state: 'running', turn: 'working', started: r.at, last: r.at, resume: true, joins: true, asks: [], agent: null };
+  const machine = await opened(page, context, sample);
+  if (wideOf(page)) await row(page, 'codex · no Ask yet').click();
+  else await details(page, 'codex · no Ask yet');
+  const view = region(page, new RegExp(`^codex · ${r.session.slice(0, 8)}`));
+  await expect(view).toBeVisible();
+  await expect(page.getByText(wideOf(page) ? `Resume joins codex on session ${r.session.slice(0, 8)} in a new agent.` : 'Resume joins codex on this session in a new agent.')).toBeVisible();
+  await expect(act(page, 'Go to its agent')).toHaveCount(0);
+  await act(page, 'Resume').click();
+  await expect.poll(() => machine.of('start')).toEqual([expect.objectContaining({ type: 'start', project: 'weft', harness: 'codex', resume: r.session })]);
+  await machine.close();
+});
+
 test('M11.5: a quiet session: its last active time on the row and in its Details; Resume starts it at once', async ({ page, context }) => {
   const sample = atlas();
   Object.assign(sample.tree[0].agents.rows[4], { state: 'quiet', ask: { key: 'why.quiet', harness: 'codex' } });

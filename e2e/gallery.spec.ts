@@ -643,6 +643,24 @@ const SCREENS: Screen[] = [
       await expect(at.page.getByRole('region', { name: 'claude · 3f9c2b71…a21e' })).toBeVisible();
     },
   })),
+  // A running codex session no agent of Weft's holds, whose resume joins it.
+  ...(['M11.9', 'D11.9'] as const).map((id): Screen => ({
+    ids: [id],
+    sample: () => withTree((t) => {
+      const r = t[0].agents.rows[2];
+      Object.assign(r, { agent: null, turn: 'working' });
+    }),
+    run: async (at) => {
+      const r = at.machine.tree![0].agents.rows[2];
+      at.machine.reads.sessions[r.session] = { session: r.session, harness: 'codex', state: 'running', turn: 'working', started: r.at - 18 * 60_000, last: r.at, resume: true, joins: true,
+        asks: [{ unit: 'ask_h', title: 'health endpoint', harness: 'codex', word: 'asked', eval: null, seal: null }], agent: null };
+      await folded(at, ['docs', 'weft/evl_3']);
+      await tree(at);
+      if (at.wide) await item(at, 'codex · health endpoint').click();
+      else await item(at, 'codex · health endpoint').getByRole('button', { name: /^Details of/ }).click();
+      await expect(at.page.getByText(/^Resume joins codex/)).toBeVisible();
+    },
+  })),
   ...(['M11.7', 'D11.7'] as const).map((id): Screen => ({
     ids: [id],
     run: async (at) => {

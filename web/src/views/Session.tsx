@@ -20,6 +20,8 @@ interface Held {
   started: number;
   last: number;
   resume: boolean;
+  /** It runs with no agent of Weft's, and Resume joins it there. */
+  joins: boolean;
   asks: { unit: string; title: string; harness: string; word: 'asking' | 'asked' | 'evaled' | 'sealed' | 'cancelled'; eval: number | null; seal: number | null }[];
   agent: string | null;
 }
@@ -65,7 +67,7 @@ export function SessionDetails({ machine, project, session, wide = false }: { ma
       aside={wide ? undefined : [d.state === 'ended' ? `${w('state.ended')} ${stamp(d.last)}` : stateOf(s), madeIn(d.asks.length)].join(' · ')}
       wide={wide}
       acts={
-        live ? (
+        live && !d.joins ? (
           <button class="tree-act tree-act--go" type="button" onClick={goTo}>{w('web.session.go')}</button>
         ) : (
           <button class="tree-act tree-act--go" type="button" onClick={resume}>{w('web.session.resume')}</button>
@@ -109,6 +111,12 @@ export function SessionDetails({ machine, project, session, wide = false }: { ma
         })}
       </div>
       {wide && !live && <p class="detail-line dim detail-after">{fill('web.session.resume_how', { harness: d.harness, session: d.session.slice(0, 8) })}</p>}
+      {/* M11.9, D11.9: running with no agent of Weft's, Resume joins it. */}
+      {d.joins && (
+        <p class="detail-line dim detail-after">
+          {wide ? fill('web.session.resume_joins', { harness: d.harness, session: d.session.slice(0, 8) }) : fill('web.session.resume_joins_here', { harness: d.harness })}
+        </p>
+      )}
     </Frame>
   );
 }

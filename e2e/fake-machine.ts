@@ -140,6 +140,8 @@ export interface SessionDetail {
   started: number;
   last: number;
   resume: boolean;
+  /** It runs with no agent of Weft's, and Resume joins it there. */
+  joins: boolean;
   asks: { unit: string; title: string; harness: string; word: 'asking' | 'asked' | 'evaled' | 'sealed' | 'cancelled'; eval: number | null; seal: number | null }[];
   agent: string | null;
 }
@@ -355,7 +357,7 @@ export class FakeMachine {
     const row = tree.find((p) => p.project === project)?.agents.rows.find((s) => s.session === session) ??
       (earlier && { ...earlier, state: 'ended' as const, turn: null, agent: null });
     if (!row) return null;
-    return { session, harness: row.harness, state: row.state, turn: row.turn, started: row.at, last: row.at, resume: row.state !== 'running', asks: [], agent: row.agent };
+    return { session, harness: row.harness, state: row.state, turn: row.turn, started: row.at, last: row.at, resume: row.state !== 'running', joins: false, asks: [], agent: row.agent };
   }
 
   welcome() {

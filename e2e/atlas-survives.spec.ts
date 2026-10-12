@@ -19,7 +19,8 @@ async function opened(page: import('@playwright/test').Page, context: import('@p
 test('M13.1 D13.1: a machine that does not answer is waited for, with when it was last heard; back online, it reconnects with no tap', async ({ page, context }) => {
   const machine = await FakeMachine.start();
   machine.agents = [agent(0, 'weft', 'claude-code', 'working')];
-  const seen = Date.now() - 60 * 60_000;
+  // An hour ago, or since midnight when that was yesterday: the page shows a time from today as HH:MM.
+  const seen = Math.max(Date.now() - 60 * 60_000, new Date().setHours(0, 0, 0, 0));
   await opened(page, context, machine, seen);
   await expect(page.getByRole('treeitem', { name: 'weft', exact: true }).first()).toBeVisible();
 

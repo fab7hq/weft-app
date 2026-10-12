@@ -169,6 +169,8 @@ test.describe('phone', () => {
     await swipeLeft(page.locator('.agent-dots'));
     await expect.poll(() => machine.of('watch').at(-1)?.agent).toBe(DOCS_CLAUDE);
     await expect(name(page)).toHaveAccessibleName('docs · claude');
+    // Back goes to Weft's tree, whatever the agent's project.
+    await expect(page.getByRole('button', { name: '‹ weft', exact: true })).toBeVisible();
     // The last one: nothing further.
     await swipeLeft(top(page));
     await page.waitForTimeout(200);

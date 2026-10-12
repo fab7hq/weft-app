@@ -118,7 +118,7 @@ export function Agent({ machine, agent, embedded = false, current = true, onPick
         // The header and the dots: a swipe on them moves to the next agent or the previous one.
         <div class="agent-head" {...swipe}>
           <div class="appbar">
-            <button class="back" type="button" onClick={back}>{`‹ ${a?.project ?? machine.name}`}</button>
+            <button class="back" type="button" onClick={back}>{`‹ ${w('web.back.tree')}`}</button>
             <span class="agent-name-at">
               <AgentName agent={a} onOpen={() => setList(true)} />
             </span>

@@ -7,7 +7,17 @@
 .tabs { display: flex; gap: 8px; padding: 8px 16px; border-bottom: 1px solid var(--fab7-line); overflow-x: auto; flex: none; scrollbar-width: none; }
 .tab { flex: none; padding: 6px 12px; border: 1px solid var(--fab7-line); border-radius: 16px; background: var(--fab7-surface); color: var(--fab7-text); font: 400 13px var(--font-sans); white-space: nowrap; cursor: pointer; }
 .tab[aria-current="page"] { color: var(--fab7-accent); border-color: var(--fab7-accent); background: #16233a; }
-.tab.tab--needs-you { color: var(--fab7-amber-text); }
+.tab-row { display: flex; align-items: center; padding-right: 16px; border-bottom: 1px solid var(--fab7-line); flex: none; }
+.tab-row .tabs { flex: 1; min-width: 0; border-bottom: none; }
+.tab-needs { color: var(--fab7-amber-text); }
+.tab-act { flex: none; margin-left: auto; padding: 6px 12px; border: 1px solid var(--fab7-line); border-radius: 8px; background: var(--fab7-surface); color: var(--fab7-text); font: 600 13px var(--font-sans); white-space: nowrap; cursor: pointer; }
+.tab-act[aria-pressed="true"] { color: var(--fab7-accent); border-color: var(--fab7-accent); background: #16233a; }
+/* Two agents side by side: the side with the keys framed blue. */
+.split { flex: 1; min-height: 0; display: flex; }
+.split-side { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; }
+.split-side + .split-side { border-left: 1px solid var(--fab7-line); }
+.split .pane { padding: 11px; border-width: 2px; }
+.split-side--current .pane { border-color: var(--fab7-accent); }
 
 /* The pane, and what is said under it (M3.6, M3.8). */
 .pane-wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; }

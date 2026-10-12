@@ -4,7 +4,7 @@
 // notification the system shows) is written as gallery/<ID>.txt, saying why.
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
-import { FakeMachine, atlas, project, type Agent, type Detail, type Project } from './fake-machine';
+import { FakeMachine, atlas, project, sessionOf, type Agent, type Detail, type Project } from './fake-machine';
 import { pull, swipeLeft } from './touch';
 import { openAgent } from './open';
 import { person, signIn } from './seed';
@@ -242,6 +242,31 @@ async function onClaude(at: At, lines: { wide: string[]; phone: string[] } = WOR
   at.machine.send({ type: 'screen', agent: CLAUDE, seq: 1, full: true, rows: 30, cols: at.wide ? 117 : 47, bytes });
 }
 
+/** The sample of the cards of agents across projects: gl with codex at work and
+ * claude ready, openbox with claude waiting for you. */
+const GL_CODEX = 'a0c1d2e3f4a5-0';
+const OPENBOX_CLAUDE = 'b0c1d2e3f4a5-0';
+function across(): ReturnType<typeof atlas> {
+  const since = Date.now() - 120_000;
+  const agents: Agent[] = [
+    { agent: GL_CODEX, project: 'gl', harness: 'codex', title: 'Codex', turn: 'working', running: true, since },
+    { agent: 'a0c1d2e3f4a5-1', project: 'gl', harness: 'claude', title: 'Claude Code', turn: 'ready', running: true, since },
+    { agent: OPENBOX_CLAUDE, project: 'openbox', harness: 'claude', title: 'Claude Code', turn: 'waiting', running: true, since },
+  ];
+  const rows = [{ ...sessionOf(agents[0], 'health endpoint'), at: at(11, 31) }, { ...sessionOf(agents[1]), at: at(11, 2) }, { ...sessionOf(agents[2], 'billing export'), at: at(11, 29) }];
+  const tree = [project('gl', rows.slice(0, 2), {}, { open: 1 }), project('openbox', rows.slice(2), {}, { open: 2 })];
+  return { ...atlas(), agents, tree, harnesses: [] };
+}
+const ACROSS: Record<string, string[]> = {
+  [GL_CODEX]: ['● Running cargo test…', '  test health::answers_200 ... ok', '  test health::reports_version ... ok', '', '✻ Working… (esc to interrupt)', '', '›'],
+  [OPENBOX_CLAUDE]: ['● Write(src/billing.rs)', '  Do you want to make this edit to billing.rs?', BLUE('  ❯ 1. Yes'), "    2. Yes, and don't ask again this session", '    3. No, and tell Claude what to do differently'],
+};
+/** Draw the cards' lines on an agent's screen, once it is watched. */
+async function drawn(at: At, agent: string) {
+  const watched = (m?: Record<string, unknown>) => m?.agent === agent || (m?.also as { agent?: string } | undefined)?.agent === agent;
+  await expect.poll(() => watched(at.machine.of('watch').at(-1))).toBe(true);
+  at.machine.send({ type: 'screen', agent, seq: 1, full: true, rows: 30, cols: 60, bytes: Buffer.from(ACROSS[agent].join('\r\n')).toString('base64') });
+}
 
 interface Screen {
   ids: string[];
@@ -768,6 +793,22 @@ const SCREENS: Screen[] = [
       await expect(at.page.getByRole('status', { name: 'An update waiting' })).toBeVisible();
     },
   })),
+
+  // 14 · Agents across projects
+  { ids: ['D14.1'], sample: across, run: async (at) => {
+    await tree(at);
+    await openAgent(at.page, 'codex · health endpoint');
+    await drawn(at, GL_CODEX);
+    await activate(at);
+  } },
+  { ids: ['D14.2'], sample: across, run: async (at) => {
+    await tree(at);
+    await openAgent(at.page, 'codex · health endpoint');
+    await item(at, 'claude · billing export').click();
+    await button(at, 'Split').click();
+    await drawn(at, GL_CODEX);
+    await drawn(at, OPENBOX_CLAUDE);
+  } },
 
   { ids: ['M10.4'], note: 'A push notification, drawn by the phone itself; e2e/desktop-push.spec.ts checks that it shows and opens the agent.' },
   { ids: ['D10.3'], note: 'A browser notification, drawn by the system; e2e/desktop-push.spec.ts checks that it shows and opens the agent.' },

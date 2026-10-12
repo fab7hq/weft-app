@@ -136,11 +136,12 @@ export const vapid = signal<string | null>(null);
 export const control = signal<Record<string, 'you' | 'mac'>>({});
 /** Answers to requests, by req. */
 const waiting = new Map<number, (m: Record<string, unknown>) => void>();
-/** The agent whose screen this device watches, and who hears its frames. */
-let watching: string | null = null;
-/** The size this device would draw the open agent at: the machine gives it when nobody is at the Mac (remote.md §9). */
-let watchingSize: { rows: number; cols: number } | null = null;
-let onFrame: ((f: Frame) => void) | null = null;
+/** The agents whose screens this device watches, at most two, each with the
+ * size this device would draw it at (the machine gives it when nobody is at
+ * the Mac, remote.md §9) and who hears its frames. */
+const watching = new Map<string, { size: { rows: number; cols: number } | null; frames: (f: Frame) => void }>();
+/** The machine shows a device two agents side by side (`welcome`'s `split`). */
+export const canSplit = signal(false);
 /** Pendings answered elsewhere, for a sheet that was showing one. */
 export const resolved = signal<{ id: string; yes: boolean } | null>(null);
 
@@ -203,6 +204,7 @@ export function close(): void {
   welcomed.value = false;
   unreachable.value = false;
   update.value = null;
+  canSplit.value = false;
 }
 
 /** Not reached yet: after a while the page says it is waiting (M13.1). */
@@ -283,6 +285,7 @@ function heard(s: WebSocket, m: api.Machine, msg: Record<string, unknown>): void
       pendings.value = (msg.pendings as Pending[]) ?? [];
       vapid.value = (msg.vapid as string | null) ?? null;
       update.value = (msg.update as { version?: string } | null)?.version ?? null;
+      canSplit.value = msg.split === true;
       link.value = 'connected';
       welcomed.value = true;
       refusal.value = null;
@@ -293,7 +296,7 @@ function heard(s: WebSocket, m: api.Machine, msg: Record<string, unknown>): void
       clearInterval(pinger);
       pinger = window.setInterval(() => ping(s), 20_000);
       void store.get<store.Kept>('macs', m.id).then((k) => store.set('macs', m.id, { ...k, address: reached ?? undefined }));
-      if (watching) send({ type: 'watch', agent: watching, ...watchingSize });
+      if (watching.size) sendWatch();
       sendSeen();
       break;
     }
@@ -345,7 +348,7 @@ function heard(s: WebSocket, m: api.Machine, msg: Record<string, unknown>): void
       control.value = { ...control.value, [String(msg.agent)]: msg.by as 'you' | 'mac' };
       break;
     case 'screen':
-      if (msg.agent === watching) onFrame?.(msg as unknown as Frame);
+      watching.get(String(msg.agent))?.frames(msg as unknown as Frame);
       break;
     case 'pong':
       clearTimeout(pongDue);
@@ -429,17 +432,25 @@ export function request(message: Record<string, unknown>): Promise<Record<string
   return new Promise((done) => waiting.set(req, done));
 }
 
-/** Watch one agent's screen, or none. */
-export function watch(agent: string | null, frames: ((f: Frame) => void) | null, size: { rows: number; cols: number } | null = null): void {
-  watching = agent;
-  watchingSize = size;
-  onFrame = frames;
-  send({ type: 'watch', agent, ...size });
+/** Watch an agent's screen, beside the one already watched if any (a split). */
+export function watch(agent: string, frames: (f: Frame) => void, size: { rows: number; cols: number } | null = null): void {
+  watching.set(agent, { size, frames });
+  sendWatch();
+}
+
+/** Watch this agent's screen no more. */
+export function unwatch(agent: string): void {
+  if (watching.delete(agent)) sendWatch();
+}
+
+function sendWatch(): void {
+  const [first, also] = [...watching].map(([agent, w]) => ({ agent, ...w.size }));
+  send({ type: 'watch', ...(first ?? { agent: null }), ...(also && { also }) });
   sendSeen();
 }
 
 function sendSeen(): void {
-  send({ type: 'seen', foreground: document.visibilityState === 'visible', agent: watching });
+  send({ type: 'seen', foreground: document.visibilityState === 'visible', agent: watching.keys().next().value ?? null });
 }
 
 // Hidden: say so, and close after 30 seconds; shown: reconnect, or look at

@@ -95,7 +95,7 @@ test('test 2: a notification\'s agent opens from what it left in IndexedDB', asy
   );
   await page.reload();
   await expect.poll(() => machine.of('watch').at(-1)?.agent).toBe('3f9a1c07b2de-1');
-  await expect(page.getByRole('navigation', { name: 'Tabs' }).getByRole('button', { name: '2 codex' })).toHaveAttribute('aria-current', 'page');
+  await expect(page.getByRole('navigation', { name: 'Tabs' }).getByRole('button', { name: 'docs · codex' })).toHaveAttribute('aria-current', 'page');
   const left = await page.evaluate(
     () =>
       new Promise((done) => {

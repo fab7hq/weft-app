@@ -118,9 +118,9 @@ test('step 50: the open agents as tabs; the one that needs you is amber; a tap o
   await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
   await opened(page, machine);
   const tabs = page.getByRole('navigation', { name: 'Tabs' });
-  await expect(tabs.getByRole('button')).toHaveText(['1 claude-code', '2 codex ●']);
-  const first = tabs.getByRole('button', { name: /^1 / });
-  const second = tabs.getByRole('button', { name: /^2 / });
+  await expect(tabs.getByRole('button')).toHaveText(['weft · claude-code', 'docs · codex ●']);
+  const first = tabs.getByRole('button', { name: /^weft / });
+  const second = tabs.getByRole('button', { name: /^docs / });
   await expect(first).toHaveAttribute('aria-current', 'page');
   await expect(second).toHaveAttribute('data-needs-you', 'true');
   await expect(first).not.toHaveAttribute('data-needs-you', 'true');

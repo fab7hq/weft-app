@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
+import type { ComponentChildren } from 'preact';
 import type { Machine } from '../api';
 import * as m from '../machine';
 import { back, swap } from '../nav';
@@ -17,7 +18,12 @@ export const b64 = (bytes: number[]) => btoa(String.fromCharCode(...bytes));
 /** Before a device's first key for an agent: its size (remote.md §9). */
 const sized = new Set<string>();
 
-export function Agent({ machine, agent, embedded = false }: { machine: Machine; agent: string; embedded?: boolean }) {
+/**
+ * One agent. On a desktop, `embedded` beside the tree; of two side by side,
+ * `current` is the side with the keys, a press in the other calls `onPick`,
+ * and `head` names it in place of the tabs.
+ */
+export function Agent({ machine, agent, embedded = false, current = true, onPick, head }: { machine: Machine; agent: string; embedded?: boolean; current?: boolean; onPick?: (e: PointerEvent) => void; head?: ComponentChildren }) {
   const a = m.agents.value.find((x) => x.agent === agent);
   // Nothing goes to an agent that has ended.
   const live = m.link.value === 'connected' && Boolean(a?.running);
@@ -90,10 +96,11 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
 
   // On a desktop the bar's Keys send here.
   useEffect(() => {
-    if (!embedded) return;
+    if (!embedded || !current) return;
     openKeys.value = key;
     return () => {
-      openKeys.value = null;
+      // Of two side by side, the other may have taken them already.
+      if (openKeys.value === key) openKeys.value = null;
     };
   });
 
@@ -101,7 +108,7 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
   const keys = typing || (!wide && Boolean(a?.running));
   const unset = a?.running && notSetUp(a);
   return (
-    <div class={wide ? 'app agent agent--wide' : 'app agent'} style={embedded ? { height: '100%' } : undefined}>
+    <div class={wide ? 'app agent agent--wide' : 'app agent'} style={embedded ? { height: '100%' } : undefined} onPointerDownCapture={current ? undefined : onPick}>
       {!embedded && (
         <div class="appbar">
           <button class="back" type="button" onClick={back}>{`‹ ${a?.project ?? machine.name}`}</button>
@@ -113,10 +120,10 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
           </button>
         </div>
       )}
-      <Tabs machine={machine.id} open={agent} />
+      {head ?? <Tabs machine={machine.id} open={agent} />}
       {a?.running ? (
         <div class="pane-wrap">
-          <Screen agent={agent} driving={driving} history={history} onHistory={() => void showHistory()} onTop={() => setTop(true)} onLive={() => (setHistory(null), setTop(false))} onKey={key} box={box} />
+          <Screen agent={agent} driving={driving} current={current} history={history} onHistory={() => void showHistory()} onTop={() => setTop(true)} onLive={() => (setHistory(null), setTop(false))} onKey={key} box={box} />
           {history !== null && top && (
             // The top of what Weft holds: whose history it is, as the TUI says it (M3.6).
             <p class="pane-said" role="status">
@@ -153,9 +160,9 @@ export function Agent({ machine, agent, embedded = false }: { machine: Machine; 
           {said && <p class="tree-said message-said" role="status">{said}</p>}
           {(a?.running || !wide) && (
             <form class="message-row" onSubmit={sendText}>
-              <label for="message" style={{ position: 'absolute', left: '-9999px' }}>{w('web.agent.message_box')}</label>
+              <label for={`message-${agent}`} style={{ position: 'absolute', left: '-9999px' }}>{w('web.agent.message_box')}</label>
               <textarea
-                id="message"
+                id={`message-${agent}`}
                 ref={field}
                 rows={1}
                 class="message-input"

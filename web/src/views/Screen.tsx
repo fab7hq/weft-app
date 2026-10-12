@@ -30,10 +30,14 @@ export function fit(el: HTMLElement): { rows: number; cols: number } {
   };
 }
 
-export function Screen({ agent, driving, history, onHistory, onTop, onLive, onKey, box }: { agent: string; driving: boolean; history: string | null; onHistory: () => void; onTop: () => void; onLive: () => void; onKey: (bytes: number[]) => void; box: { current: HTMLDivElement | null } }) {
+export function Screen({ agent, driving, current = true, history, onHistory, onTop, onLive, onKey, box }: { agent: string; driving: boolean; /** The side with the keys, of two side by side. */ current?: boolean; history: string | null; onHistory: () => void; onTop: () => void; onLive: () => void; onKey: (bytes: number[]) => void; box: { current: HTMLDivElement | null } }) {
   const host = useRef<HTMLDivElement>(null);
   const shown = useRef<HTMLPreElement>(null);
   const tapped = useRef(-Infinity);
+  // Only the side with the keys takes them, scrolls, or is framed active.
+  const isCurrent = useRef(current);
+  isCurrent.current = current;
+  const active = () => paneActive.value && isCurrent.current;
   // The history, inside the pane, starts at its newest line; one that fits
   // whole is already at the top of what Weft holds.
   useEffect(() => {
@@ -144,7 +148,7 @@ export function Screen({ agent, driving, history, onHistory, onTop, onLive, onKe
     // Only an active pane scrolls: until then, the app is for its buttons.
     let wheeled = 0;
     const wheel = (e: WheelEvent) => {
-      if (!paneActive.value) return;
+      if (!active()) return;
       if (term.modes.mouseTrackingMode !== 'none') {
         // A report for each notch's worth, so a trackpad does not flood it.
         wheeled += e.deltaY;
@@ -165,14 +169,14 @@ export function Screen({ agent, driving, history, onHistory, onTop, onLive, onKe
       const t = e.touches[0];
       const y = t?.clientY;
       // An agent that scrolls itself: a report for every 30 px the finger moves.
-      if (paneActive.value && from !== null && y !== undefined && term.modes.mouseTrackingMode !== 'none') {
+      if (active() && from !== null && y !== undefined && term.modes.mouseTrackingMode !== 'none') {
         while (Math.abs(y - from) >= 30) {
           wheelTo(y > from, t.clientX, y);
           from += Math.sign(y - from) * 30;
         }
         return;
       }
-      if (paneActive.value && from !== null && y !== undefined && y - from > 40) {
+      if (active() && from !== null && y !== undefined && y - from > 40) {
         from = null;
         onHistory();
       }
@@ -184,7 +188,7 @@ export function Screen({ agent, driving, history, onHistory, onTop, onLive, onKe
       el.removeEventListener('touchstart', start);
       el.removeEventListener('touchmove', move);
       gone = true;
-      m.watch(null, null);
+      m.unwatch(agent);
       cancelAnimationFrame(settling);
       term.dispose();
     };
@@ -208,7 +212,7 @@ export function Screen({ agent, driving, history, onHistory, onTop, onLive, onKe
       tabIndex={-1}
       aria-label="The agent"
       class="pane"
-      data-active={paneActive.value ? 'true' : 'false'}
+      data-active={active() ? 'true' : 'false'}
       onPointerUp={activate}
       // Anywhere else, and the pane is inactive again, at its newest line.
       onFocusOut={(e) => {
@@ -217,7 +221,7 @@ export function Screen({ agent, driving, history, onHistory, onTop, onLive, onKe
         onLive();
       }}
       onKeyDownCapture={(e) => {
-        if (!paneActive.value) return;
+        if (!active()) return;
         const bytes = encode(e);
         if (!bytes) return;
         e.preventDefault();

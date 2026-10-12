@@ -36,7 +36,7 @@ npm run e2e        # Playwright
 ## Releases
 
 Tagged `vX.Y.Z` and shipped with the `weft` that speaks its protocol: this one
-is Weft 0.3.0. [Releases](https://github.com/fab7hq/weft/releases).
+is Weft 0.4.0. [Releases](https://github.com/fab7hq/weft/releases).
 
 ## License
 

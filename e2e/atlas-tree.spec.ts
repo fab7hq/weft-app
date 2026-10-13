@@ -72,7 +72,7 @@ test('M11.1 D11.1: the bar follows the selection; an act that does not apply say
   await expect(said(page)).toHaveText('Select an Eval to Seal it.');
   await bar(page, 'Ask').click();
   const sheet = page.getByRole('dialog', { name: 'What do you want done?' });
-  await expect(sheet.getByRole('button', { name: /^SEND TO/ })).toHaveAccessibleName('SEND TO claude');
+  await expect(sheet.getByRole('button', { name: /^SEND TO/ })).toHaveAccessibleName('SEND TO weft · claude');
   await sheet.getByRole('button', { name: 'Cancel', exact: true }).click();
   if (!wide) await expect(page.getByRole('tree')).toBeVisible();
 
@@ -143,7 +143,7 @@ test('D11.1: the bar names the selection, and Ask, Eval and Seal sit on their ro
   // Ask on the selected agent only.
   await expect(page.locator('.tree-row--agent .row-act')).toHaveCount(1);
   await row(page, 'claude · fix login').getByRole('button', { name: 'Ask claude · fix login', exact: true }).click();
-  await expect(page.getByRole('dialog', { name: 'What do you want done?' }).getByRole('button', { name: /^SEND TO/ })).toHaveAccessibleName('SEND TO claude');
+  await expect(page.getByRole('dialog', { name: 'What do you want done?' }).getByRole('button', { name: /^SEND TO/ })).toHaveAccessibleName('SEND TO weft · claude');
   await page.getByRole('dialog', { name: 'What do you want done?' }).getByRole('button', { name: 'Cancel', exact: true }).click();
   await row(page, 'Open').getByRole('button', { name: 'Eval Open', exact: true }).click();
   await expect.poll(() => machine.of('act')).toEqual([expect.objectContaining({ act: 'eval', project: 'weft' })]);
@@ -323,6 +323,6 @@ test('an agent whose harness has named no session yet is under AGENTS, and Ask g
   if (wide) await expect(page.getByLabel("The agent's screen")).toBeVisible();
   await bar(page, 'Ask').click();
   const sheet = page.getByRole('dialog', { name: 'What do you want done?' });
-  await expect(sheet.getByRole('button', { name: /^SEND TO/ })).toHaveAccessibleName('SEND TO codex');
+  await expect(sheet.getByRole('button', { name: /^SEND TO/ })).toHaveAccessibleName('SEND TO weft · codex');
   await machine.close();
 });

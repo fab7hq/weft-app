@@ -12,9 +12,15 @@ const NAMED: Record<string, number[]> = {
   ArrowLeft: [0x1b, 0x5b, 0x44],
 };
 
+// The keys that carry Shift, Alt and Ctrl as xterm's modifier parameter, as
+// the key bar's do: Shift+Left is ESC [1;2D, never a plain Left.
+const MODIFIED: Record<string, string> = { ArrowUp: 'Up', ArrowDown: 'Down', ArrowRight: 'Right', ArrowLeft: 'Left', PageUp: 'PgUp', PageDown: 'PgDn', Tab: 'Tab' };
+
 /** The bytes a key sends, or nothing for a key that is the browser's. */
 export function encode(e: KeyboardEvent): number[] | null {
   if (e.metaKey || e.isComposing) return null;
+  const lit = (on: boolean): Lit => (on ? 'once' : 'off');
+  if (MODIFIED[e.key] && (e.shiftKey || e.altKey || e.ctrlKey)) return chord(MODIFIED[e.key], { shift: lit(e.shiftKey), alt: lit(e.altKey), ctrl: lit(e.ctrlKey) });
   if (NAMED[e.key]) return NAMED[e.key];
   if (e.ctrlKey && !e.altKey && /^[a-z]$/i.test(e.key)) return [e.key.toUpperCase().charCodeAt(0) - 64];
   if (e.key.length >= 1 && [...e.key].length === 1 && !e.ctrlKey) return [...new TextEncoder().encode(e.key)];

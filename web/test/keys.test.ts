@@ -1,7 +1,7 @@
 // web-app.md §6: generic keys and sticky modifiers. Weft names no harness's
 // shortcuts; these are the terminal's own encodings.
 import { describe, expect, it } from 'vitest';
-import { BAR, chord, NONE, sent, tap, typed } from '../src/keys';
+import { BAR, chord, encode, NONE, sent, tap, typed } from '../src/keys';
 
 const hex = (bytes: number[] | null) => bytes && bytes.map((b) => b.toString(16).padStart(2, '0')).join(' ');
 const lit = (over: Partial<typeof NONE>) => ({ ...NONE, ...over });
@@ -34,6 +34,20 @@ describe('the key bar', () => {
     expect(hex(chord('PgDn', lit({ alt: 'once' })))).toBe('1b 5b 36 3b 33 7e');
     expect(hex(chord('Esc', lit({ alt: 'once' })))).toBe('1b 1b');
     expect(hex(chord('1', lit({ alt: 'once' })))).toBe('1b 31');
+  });
+});
+
+describe('a hardware keyboard', () => {
+  const key = (key: string, mods: Partial<KeyboardEventInit> = {}) => encode({ key, metaKey: false, isComposing: false, shiftKey: false, altKey: false, ctrlKey: false, ...mods } as KeyboardEvent);
+
+  it('keeps Shift, Alt and Ctrl on an arrow, as the key bar does', () => {
+    expect(hex(key('ArrowLeft'))).toBe('1b 5b 44');
+    expect(hex(key('ArrowLeft', { shiftKey: true }))).toBe(hex(chord('Left', lit({ shift: 'once' }))));
+    expect(hex(key('ArrowLeft', { shiftKey: true }))).toBe('1b 5b 31 3b 32 44');
+    expect(hex(key('ArrowUp', { ctrlKey: true }))).toBe('1b 5b 31 3b 35 41');
+    expect(hex(key('ArrowRight', { altKey: true }))).toBe('1b 5b 31 3b 33 43');
+    expect(hex(key('PageUp', { shiftKey: true }))).toBe('1b 5b 35 3b 32 7e');
+    expect(hex(key('Tab', { shiftKey: true }))).toBe('1b 5b 5a');
   });
 });
 

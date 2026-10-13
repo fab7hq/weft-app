@@ -28,6 +28,10 @@ main:has(> .ask-panel--docked) > :not(.ask-panel) { flex: 1; min-height: 0; heig
 .ask-to-option { display: flex; align-items: center; gap: 8px; padding: 10px 12px; cursor: pointer; }
 .ask-to-option--active { background: #16233a; color: var(--fab7-accent); }
 .ask-to-option[aria-selected="true"]::after { content: '✓'; content: '✓' / ''; margin-left: auto; font-size: 13px; color: var(--fab7-accent); }
+/* START AN AGENT, between the agents and the new ones; "wrote it" beside the agent that wrote it. */
+.ask-to-heading { padding: 10px 12px 4px; border-top: 1px solid var(--fab7-line); font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: var(--fab7-muted); }
+.ask-to-wrote { font-size: 13px; color: var(--fab7-muted); }
+.ask-to-option .ask-to-name { flex: 1; }
 .ask-row .ask-to { width: 220px; box-sizing: content-box; flex: none; gap: 10px; padding: 9px 12px; }
 .ask-row .ask-to--open { gap: 0; padding: 4px 0; }
 .ask-row .ask-to-option { padding: 9px 12px; }
@@ -49,7 +53,14 @@ main:has(> .ask-panel--docked) > :not(.ask-panel) { flex: 1; min-height: 0; heig
 .pending-acts .tree-act { flex: 1; }
 .pending-bar--answered { gap: 6px; padding: 18px 16px calc(34px + env(safe-area-inset-bottom, 0px)); }
 .pending-answered { margin: 0; font-size: 15px; color: var(--fab7-teal); }
+/* A send's SEND TO: label, list, then the acts; on a desktop one row, the list 240 wide (M4.6, D4.6). */
+.pending-to { display: flex; flex-direction: column; gap: 10px; }
 @media (min-width: 768px) {
+  .pending-to { flex-direction: row; align-items: flex-start; }
+  .pending-to .ask-to { width: 240px; box-sizing: content-box; flex: none; gap: 8px; padding: 9px 12px; }
+  .pending-to .ask-to--open { padding: 4px 0; }
+  .pending-to .ask-to-option { padding: 9px 12px; }
+  .pending-to .pending-acts { flex: 1; }
   .pending-bar { gap: 8px; padding: 14px 20px; }
   .pending-bar--answered { gap: 4px; padding: 14px 20px; }
   .pending-head .pending-what { flex: none; }

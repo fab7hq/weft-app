@@ -10,6 +10,7 @@ import * as m from '../machine';
 import { go, here, swap, type View } from '../nav';
 import { clock, why } from '../bar';
 import { notice, said as whyNot } from './Bar';
+import { destinations, keyOf, SendTo, type Dest } from './SendTo';
 import { fill, w } from '../words';
 
 /** The pending this device asked for and shows. */
@@ -93,6 +94,8 @@ function SendBar() {
   const [kept, setKept] = useState<m.Pending | null>(null);
   const [answered, setAnswered] = useState(false);
   const [unready, setUnready] = useState<string | null>(null);
+  // SEND TO, for a send: the agent that wrote it until the person picks another.
+  const [to, setTo] = useState<Dest | null>(null);
   // This device's own answer, sent and not yet answered: the machine says it
   // was resolved before it answers, and that is not "answered on the machine".
   const [sending, setSending] = useState(false);
@@ -114,7 +117,9 @@ function SendBar() {
   const answer = async (yes: boolean, force = false) => {
     if (sending) return;
     setSending(true);
-    const said = await m.request({ type: 'resolve', pending: id, yes, ...(force ? { force } : {}) });
+    // Another agent here, or a new one the machine starts for it.
+    const where = !yes || !to ? {} : 'agent' in to ? (to.agent === showing.agent ? {} : { to: to.agent }) : { start: to.start };
+    const said = await m.request({ type: 'resolve', pending: id, yes, ...(force ? { force } : {}), ...where });
     setSending(false);
     // Weft types on its own only into an agent that has said it is ready.
     if (said?.type === 'error' && said.code === 'not_ready') return setUnready(String(said.message));
@@ -122,7 +127,7 @@ function SendBar() {
     shown.value = null;
     if (!yes) return;
     if (said?.type === 'error') whyNot.value = String(said.message);
-    else if (said) into(showing.agent);
+    else if (said && (!to || 'agent' in to)) into(to?.agent ?? showing.agent);
   };
   if (unready && !answered) {
     return (
@@ -136,7 +141,8 @@ function SendBar() {
       </div>
     );
   }
-  const harness = m.agents.value.find((a) => a.agent === showing.agent)?.harness ?? '';
+  const of = m.agents.value.find((a) => a.agent === showing.agent);
+  const harness = of?.harness ?? '';
   if (answered) {
     return (
       <div class="pending-bar pending-bar--answered" role="dialog" aria-label={showing.what}>
@@ -149,13 +155,30 @@ function SendBar() {
     <div class="pending-bar" role="dialog" aria-label={showing.what}>
       <div class="pending-head">
         <span class="pending-what">{showing.what}</span>
-        <span class="pending-into">{fill('web.bar.into', { harness })}</span>
+        {!showing.sends && <span class="pending-into">{fill('web.bar.into', { harness })}</span>}
       </div>
       {why(showing.why).map((s) => (
         <p key={s} class="pending-why">{s}</p>
       ))}
       <pre class="pending-text">{showing.text}</pre>
-      <Acts cancel={() => void answer(false)} go={[w('act.send'), () => void answer(true)]} busy={sending} />
+      {showing.sends ? (
+        <SendBarTo rows={destinations(of?.project, showing.agent)} to={keyOf(to ?? { agent: showing.agent })} onPick={setTo}>
+          <Acts cancel={() => void answer(false)} go={[w('act.send'), () => void answer(true)]} busy={sending} />
+        </SendBarTo>
+      ) : (
+        <Acts cancel={() => void answer(false)} go={[w('act.send'), () => void answer(true)]} busy={sending} />
+      )}
+    </div>
+  );
+}
+
+/** A send's SEND TO, above its acts on a phone and beside them on a desktop (M4.6, D4.6). */
+function SendBarTo({ rows, to, onPick, children }: { rows: ReturnType<typeof destinations>; to: string; onPick: (d: Dest) => void; children: preact.ComponentChildren }) {
+  return (
+    <div class="pending-to">
+      <span class="ask-eyebrow" id="ask-to-label">{w('ask.send_to')}</span>
+      <SendTo rows={rows} to={to} onPick={onPick} />
+      {children}
     </div>
   );
 }

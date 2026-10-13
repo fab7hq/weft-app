@@ -104,6 +104,8 @@ export interface Pending {
   what: string;
   why: string;
   text: string;
+  /** The work whose prompt this sends: it can go to another agent, or a new one. */
+  sends?: string | null;
 }
 
 export interface Frame {

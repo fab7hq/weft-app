@@ -111,8 +111,8 @@ async function scrollBack(at: At, by: number) {
 const history = (lines: number) => (m: Record<string, unknown>) => (m.what === 'history' ? { type: 'ok', req: m.req, text: Array.from({ length: lines }, (_, i) => `line ${i + 1}`).join('\n') } : null);
 
 /** A pending the machine stages for an act, as the bar shows it. */
-const staging = (agent: string, what: string, why: string, text: string) => (m: Record<string, unknown>) => [
-  { type: 'pending', id: 'pnd_1', agent, what, why, text },
+const staging = (agent: string, what: string, why: string, text: string, sends: string | null = null) => (m: Record<string, unknown>) => [
+  { type: 'pending', id: 'pnd_1', agent, what, why, text, sends },
   { type: 'ok', req: m.req, pending: 'pnd_1' },
 ];
 
@@ -164,9 +164,10 @@ async function askOpen(at: At) {
 }
 
 /** Pick an agent in SEND TO. */
+/** Pick an agent of weft in SEND TO, by its harness: rows are named as tabs. */
 async function sendTo(at: At, harness: string) {
   await sheet(at).getByRole('button', { name: /^SEND TO/ }).click();
-  await sheet(at).getByRole('option', { name: harness, exact: true }).first().click();
+  await sheet(at).getByRole('option', { name: `weft · ${harness}`, exact: true }).first().click();
 }
 
 /** Eval on the Open round (or Seal on Eval 3) from the tree's bar; on a desktop with claude open beside it. */
@@ -476,17 +477,21 @@ const SCREENS: Screen[] = [
     await expect(at.page.getByRole('dialog', { name: 'Ready to ask claude' })).toBeVisible();
   } },
   ...([
-    ['M4.6', 'D4.6', CODEX, 'Ready to send to codex', 'This is the exact wording. Weft will not change it.', 'Implement /health: read BUILD_NUMBER from the environment at startup; fall back to "unknown". Add a test …'],
-    ['M4.7', '', CODEX, 'Ready to send to codex', 'This is the exact wording. Weft will not change it.\ncodex asked you about this and never got an answer, so it is still waiting. Sending it records your yes first.', 'Implement /health: read BUILD_NUMBER …'],
+    ['M4.6', 'D4.6', CODEX, 'Ready to send', 'This is the exact wording. Weft will not change it.', 'Implement /health: read BUILD_NUMBER from the environment at startup; fall back to "unknown". Add a test …'],
+    ['M4.7', '', CODEX, 'Ready to send', 'This is the exact wording. Weft will not change it.\ncodex asked you about this and never got an answer, so it is still waiting. Sending it records your yes first.', 'Implement /health: read BUILD_NUMBER …'],
     ['M4.8', 'D4.8', CODEX, 'Eval this work?', "Weft will type  /rf:eval debate evl_2  into codex.\nWeft has gathered the change. The agent will run RingFrame's\njudging tasks on it; none of the judges did the work.", '/rf:eval debate evl_2 coverage contract'],
     ['M4.9', 'D4.9', CODEX, 'Seal this work?', 'Weft will type  /rf:seal evl_2  into codex.\nThe agent will ask what you decided, and write a receipt.', '/rf:seal evl_2'],
     ['M4.10', '', CLAUDE, 'Eval this work?', "Weft will type  /rf:eval debate evl_2  into claude.\nWeft has gathered the change. The agent will run RingFrame's\njudging tasks on it; none of the judges did the work.\nclaude did not do this work. Both acts read the record.", '/rf:eval debate evl_2 coverage contract'],
   ] as const).map(([m, d, agent, what, why, text]): Screen => ({
     ids: [m, d].filter(Boolean),
     run: async (at) => {
-      at.machine.onAct = staging(agent, what, why, text);
+      // A send's bar has SEND TO; the card shows it open.
+      const sends = what === 'Ready to send' ? 'ask_3' : null;
+      at.machine.onAct = staging(agent, what, why, text, sends);
       await barOn(at, what.startsWith('Seal') ? 'Seal' : 'Eval');
-      await expect(at.page.getByRole('dialog', { name: what })).toBeVisible();
+      const bar = at.page.getByRole('dialog', { name: what });
+      await expect(bar).toBeVisible();
+      if (m === 'M4.6') await bar.getByRole('button', { name: /^SEND TO/ }).click();
     },
   })),
   { ids: ['M4.11', 'D4.11'], run: async (at) => {

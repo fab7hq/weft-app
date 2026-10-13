@@ -1,6 +1,7 @@
-// The agent's terminal fills its pane (remote.md §9): opening it sends this
-// device's size with `watch`; drawn at the Mac's size it is as large as fits,
-// and at the device's own size, once the machine gives it, it fills both ways.
+// Weft owns an agent's size (ADR-0038, remote.md §9); the app mirrors it. An
+// agent is drawn at the size its frames carry: narrower than its pane at the
+// normal 13 px, the rest empty (D3.14); wider, smaller to fit, down to 9 px,
+// and past that it scrolls sideways (M3.14). The app never sends a `size`.
 import { expect, test, type Page } from '@playwright/test';
 import { FakeMachine, atlas } from './fake-machine';
 import { openAgent } from './open';
@@ -14,16 +15,20 @@ function frame(rows: number, cols: number) {
   return { type: 'screen', agent: CODEX, seq: 1, full: true, rows, cols, bytes: Buffer.from(text).toString('base64') };
 }
 
-/** How much of its pane the terminal covers, each way, and whether a row a
- * pixel taller (xterm.js draws rows in whole pixels) would still fit. */
-async function covered(page: Page, rows: number) {
-  await page.waitForTimeout(300);
-  return page.evaluate((rows) => {
-    const host = document.querySelector('[aria-label="The agent\'s screen"]')!.getBoundingClientRect();
-    const drawn = document.querySelector('.xterm-screen')!.getBoundingClientRect();
-    const taller = (Math.round(drawn.height / rows) + 1) * rows <= host.height;
-    return { width: drawn.width / host.width, height: drawn.height / host.height, taller };
-  }, rows);
+/** The text size it is drawn at, and how it sits in its area. */
+async function drawn(page: Page) {
+  await page.waitForTimeout(400);
+  return page.evaluate(() => {
+    const host = document.querySelector('.pane-screen') as HTMLElement;
+    const rows = document.querySelector('.xterm-rows') as HTMLElement;
+    const screen = document.querySelector('.xterm-screen')!.getBoundingClientRect();
+    return {
+      font: parseFloat(getComputedStyle(rows).fontSize),
+      width: screen.width / host.clientWidth,
+      sideways: host.scrollWidth > host.clientWidth + 1,
+      bar: Boolean(document.querySelector('.pane-bar--h')),
+    };
+  });
 }
 
 async function opened(page: Page, context: Parameters<typeof signIn>[0]) {
@@ -33,50 +38,52 @@ async function opened(page: Page, context: Parameters<typeof signIn>[0]) {
   await page.goto('/');
   await openAgent(page, 'codex · health endpoint');
   await expect.poll(() => machine.of('watch').at(-1)?.agent).toBe(CODEX);
+  await page.evaluate(() => document.fonts.ready);
   return machine;
 }
 
-test('watching at the Mac\'s size, the terminal is as large as fits: one side full, nothing cut off', async ({ page, context }) => {
+test('D3.14 M3.14: an agent is drawn at its own size: narrower at 13 px; wider, smaller down to 9 px, then sideways', async ({ page, context }) => {
   const machine = await opened(page, context);
-  const watch = machine.of('watch').at(-1)!;
-  expect(Number(watch.rows)).toBeGreaterThan(10);
-  expect(Number(watch.cols)).toBeGreaterThan(20);
-  // A phone fits a wide Mac only below the 5 px floor; there the machine gives it its own size (away).
-  const sizes = page.viewportSize()!.width < 768 ? [[30, 100], [24, 80]] : [[30, 100], [44, 158], [24, 80]];
-  for (const [rows, cols] of sizes) {
-    machine.send(frame(rows, cols));
-    const c = await covered(page, rows);
-    // As large as fits: one side nearly full, or no whole-pixel row taller fits.
-    expect(c.width > 0.93 || (c.height > 0.85 && !c.taller), `${cols}×${rows}: ${JSON.stringify(c)}`).toBe(true);
-    expect(Math.max(c.width, c.height), `${cols}×${rows}: ${JSON.stringify(c)}`).toBeLessThanOrEqual(1.001);
-  }
+  const phone = page.viewportSize()!.width < 768;
+
+  // Narrower than the pane: the normal text size, the rest of the pane empty.
+  machine.send(frame(20, 30));
+  const narrow = await drawn(page);
+  expect(narrow.font, JSON.stringify(narrow)).toBe(13);
+  expect(narrow.width, JSON.stringify(narrow)).toBeLessThan(0.95);
+  expect(narrow.sideways).toBe(false);
+
+  // Far wider: the readable minimum, and the rest to the right.
+  machine.send(frame(30, 220));
+  const wide = await drawn(page);
+  expect(wide.font, JSON.stringify(wide)).toBe(9);
+  expect(wide.sideways, JSON.stringify(wide)).toBe(true);
+  // On a phone a bar says how much is to the right (M3.14).
+  expect(wide.bar).toBe(phone);
+
+  // A little wider: smaller to fit, between the two, nothing to the right.
+  const cols = phone ? 46 : 120;
+  machine.send(frame(20, cols));
+  const fitted = await drawn(page);
+  expect(fitted.font, JSON.stringify(fitted)).toBeGreaterThanOrEqual(9);
+  expect(fitted.font, JSON.stringify(fitted)).toBeLessThanOrEqual(13);
+  expect(fitted.sideways, JSON.stringify(fitted)).toBe(false);
   await machine.close();
 });
 
-test('at its own size, once the machine gives it, the terminal fills the pane both ways', async ({ page, context }) => {
+test('ADR-0038: typing sends no size; the agent keeps the Mac\'s', async ({ page, context }) => {
   const machine = await opened(page, context);
-  const first = machine.of('watch').length;
-  // As weft remote does with nobody at the Mac: the keys, then a screen at the device's size.
+  machine.send(frame(24, 80));
   machine.send({ type: 'control', agent: CODEX, by: 'you' });
-  await expect.poll(() => machine.of('watch').length).toBeGreaterThan(first);
-  // The size the device gave last: in the Atlas's mono once it has loaded.
-  await page.evaluate(() => document.fonts.ready);
-  await page.waitForTimeout(100);
-  const watch = machine.of('watch').at(-1)!;
-  machine.send(frame(Number(watch.rows), Number(watch.cols)));
-  const c = await covered(page, Number(watch.rows));
-  expect(c.width, JSON.stringify(c)).toBeGreaterThan(0.93);
-  expect(c.height, JSON.stringify(c)).toBeGreaterThan(0.93);
-  expect(Math.max(c.width, c.height), JSON.stringify(c)).toBeLessThanOrEqual(1.001);
-  // The size sent before a first key is the one `watch` gave. (On a phone the
-  // key comes from the key bar under the message row.)
+  // A key, from the key bar on a phone; a message on a desktop.
   if (await page.getByRole('toolbar', { name: 'Keys' }).count()) {
     await page.getByRole('toolbar', { name: 'Keys' }).getByRole('button', { name: 'Tab', exact: true }).click();
+    await expect.poll(() => machine.of('keys').length).toBe(1);
   } else {
     await page.getByLabel('Message').fill('hello');
     await page.getByRole('button', { name: 'Send' }).click();
+    await expect.poll(() => machine.of('text').length).toBe(1);
   }
-  await expect.poll(() => machine.of('size').length).toBe(1);
-  expect(machine.of('size')[0]).toMatchObject({ rows: watch.rows, cols: watch.cols });
+  expect(machine.of('size')).toHaveLength(0);
   await machine.close();
 });

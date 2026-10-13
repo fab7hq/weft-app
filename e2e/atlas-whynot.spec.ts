@@ -50,14 +50,15 @@ test('M10.2 D10.2: a text the machine did not type says why above the message bo
   const machine = await opened(page, context);
   machine.onText = (m) => ({ type: 'error', req: m.req, code: 'in_flight', message: 'still typing' });
   await openAgent(page, 'claude · fix login');
-  const box = page.getByPlaceholder('Message claude…');
+  // A phone names the agent's harness; a desktop's one row names its tab (D15.1).
+  const wide = page.viewportSize()!.width >= 768;
+  const box = page.getByPlaceholder(wide ? 'Message weft · claude…' : 'Message claude…');
   await box.fill('try again');
   // ▶ sends: on a touch screen Enter is a new line (M3.13).
   await page.getByRole('button', { name: 'Send', exact: true }).click();
   await expect(page.getByRole('status')).toHaveText('Weft did not type it: it is still typing the last one.');
   // On a phone the box stands without ▶ until it is used again (M10.2); a desktop keeps it (D10.2).
   const send = page.getByRole('button', { name: 'Send', exact: true });
-  const wide = page.viewportSize()!.width >= 768;
   await expect(send).toHaveCount(wide ? 1 : 0);
   await box.pressSequentially('x');
   await expect(send).toHaveCount(1);

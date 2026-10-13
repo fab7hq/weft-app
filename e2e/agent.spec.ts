@@ -50,11 +50,8 @@ test('test 2: allow, open an agent, press 1, send a message, read history', asyn
 
   await page.getByRole('toolbar', { name: 'Keys' }).getByRole('button', { name: 'Tab', exact: true }).click();
   await expect.poll(() => machine.of('keys').length).toBe(1);
-  const [size] = machine.of('size');
-  expect(size).toMatchObject({ type: 'size', agent: '3f9a1c07b2de-0' });
-  expect(Number(size.rows)).toBeGreaterThan(10);
-  expect(Number(size.cols)).toBeGreaterThan(20);
-  expect(machine.heard.indexOf(size)).toBeLessThan(machine.heard.indexOf(machine.of('keys')[0]));
+  // Weft owns the agent's size: no size before the key (ADR-0038).
+  expect(machine.of('size')).toHaveLength(0);
   expect(machine.of('keys')[0]).toMatchObject({ agent: '3f9a1c07b2de-0', bytes: 'CQ==' });
   machine.send({ type: 'control', agent: '3f9a1c07b2de-0', by: 'you' });
 

@@ -3,14 +3,16 @@
 // it is. Input from xterm.js itself is off; links are not opened.
 import { Terminal } from '@xterm/xterm';
 import '@xterm/xterm/css/xterm.css';
-import { useEffect, useRef } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { encode } from '../keys';
 import * as m from '../machine';
 import { paneActive } from './Bar';
 
-/** The size a device drives at (§6). */
+/** The text size an agent is drawn at when it fits (§6). */
 export const DRIVING_FONT = 13;
-/** The cell xterm.js draws at the driving size, in px: measured once a
+/** The smallest it is made to fit a wider agent; past that it scrolls sideways (M3.14). */
+export const MIN_FONT = 9;
+/** The cell xterm.js draws at the normal text size, in px: measured once a
  * terminal is open, since each browser rounds its font differently. */
 let cell = { width: DRIVING_FONT * 0.6, height: DRIVING_FONT * 1.2 };
 /** The terminal's family until the Atlas's mono has loaded. */
@@ -21,7 +23,7 @@ function bytes(b64: string): Uint8Array {
   return Uint8Array.from(s, (c) => c.charCodeAt(0));
 }
 
-/** Rows and columns this device fits at the driving size. */
+/** Rows and columns this device fits at the normal text size. */
 export function fit(el: HTMLElement): { rows: number; cols: number } {
   const r = el.getBoundingClientRect();
   return {
@@ -30,9 +32,12 @@ export function fit(el: HTMLElement): { rows: number; cols: number } {
   };
 }
 
-export function Screen({ agent, driving, current = true, history, onHistory, onTop, onLive, onKey, box }: { agent: string; driving: boolean; /** The side with the keys, of two side by side. */ current?: boolean; history: string | null; onHistory: () => void; onTop: () => void; onLive: () => void; onKey: (bytes: number[]) => void; box: { current: HTMLDivElement | null } }) {
+export function Screen({ agent, current = true, bars = false, history, onHistory, onTop, onLive, onKey, box }: { agent: string; /** The side with the keys, of two side by side. */ current?: boolean; /** A phone's scroll bars (M3.3, M3.14). */ bars?: boolean; history: string | null; onHistory: () => void; onTop: () => void; onLive: () => void; onKey: (bytes: number[]) => void; box: { current: HTMLDivElement | null } }) {
   const host = useRef<HTMLDivElement>(null);
   const shown = useRef<HTMLPreElement>(null);
+  // Where the screen and the history are scrolled to, for the bars.
+  const [, redraw] = useState(0);
+  const moved = () => redraw((n) => n + 1);
   const tapped = useRef(-Infinity);
   // Only the side with the keys takes them, scrolls, or is framed active.
   const isCurrent = useRef(current);
@@ -99,23 +104,24 @@ export function Screen({ agent, driving, current = true, history, onHistory, onT
         const { width, height } = el.getBoundingClientRect();
         const drawn = el.querySelector('.xterm-screen')?.getBoundingClientRect();
         const now = term.options.fontSize ?? DRIVING_FONT;
-        if (!drawn?.width || !drawn.height || now <= 5) return;
+        if (!drawn?.width || !drawn.height || now <= MIN_FONT) return moved();
         const over = Math.min(width / drawn.width, height / drawn.height);
         if (over < 0.999) {
-          term.options.fontSize = Math.max(5, Math.floor(now * over * 10) / 10);
+          term.options.fontSize = Math.max(MIN_FONT, Math.floor(now * over * 10) / 10);
           settle();
-        }
+        } else moved();
       })));
     };
+    // Weft owns the agent's size (ADR-0038): it is drawn at it, never
+    // resized. A narrower one at the normal text size, the rest empty; a wider
+    // one smaller to fit, down to MIN_FONT, and past that it scrolls sideways.
     const size = (rows: number, c: number) => {
       cols = c;
       if (term.rows !== rows || term.cols !== c) term.resize(c, rows);
-      // Driving: the driving size, the grid made to fit. Watching at the
-      // Mac's size: as large as fits, filling the width or the height.
       const { width, height } = el.getBoundingClientRect();
       const fits = DRIVING_FONT * Math.min(width / (cols * cell.width), height / (rows * cell.height));
-      term.options.fontSize = driving ? DRIVING_FONT : Math.max(5, Math.floor(fits * 10) / 10);
-      if (!driving) settle();
+      term.options.fontSize = Math.max(MIN_FONT, Math.min(DRIVING_FONT, Math.floor(fits * 10) / 10));
+      settle();
     };
     // Whether the agent asked for SGR mouse reports (1006): xterm.js keeps
     // the tracking mode, not the encoding.
@@ -192,7 +198,7 @@ export function Screen({ agent, driving, current = true, history, onHistory, onT
       cancelAnimationFrame(settling);
       term.dispose();
     };
-  }, [agent, driving]);
+  }, [agent]);
   /** In the history: scrolled to its newest line and still going down, back to live. */
   const atBottom = (el: HTMLElement) => el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
   let historyFrom: number | null = null;
@@ -227,13 +233,15 @@ export function Screen({ agent, driving, current = true, history, onHistory, onT
         e.preventDefault();
         onKey(bytes);
       }}>
-      <div ref={host} style={{ width: '100%', height: '100%' }} aria-label="The agent's screen" />
+      <div ref={host} class="pane-screen" onScroll={moved} aria-label="The agent's screen" />
+      {bars && <Bars screen={host} history={shown} live={history === null} onHistory={onHistory} onLive={onLive} />}
       {history !== null && (
         // The agent's earlier output, in the pane itself (§6).
         <div class="pane-history">
           <pre
             ref={shown}
             aria-label="History"
+            onScroll={moved}
             onWheel={(e) => {
               if (e.deltaY > 0 && atBottom(e.currentTarget)) onLive();
               // Still going up at its oldest line: nothing older is here.
@@ -257,5 +265,63 @@ export function Screen({ agent, driving, current = true, history, onHistory, onT
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * A phone's scroll bars (M3.3, M3.14): up and down at the right, always,
+ * for the history above the screen, its thumb at the bottom while the screen
+ * is live; sideways at the bottom when the agent is wider than the pane. A
+ * finger drags either; dragging the first up opens the history.
+ */
+function Bars({ screen, history, live, onHistory, onLive }: { screen: { current: HTMLDivElement | null }; history: { current: HTMLPreElement | null }; live: boolean; onHistory: () => void; onLive: () => void }) {
+  const s = screen.current;
+  const h = history.current;
+  // Up and down: the history's place, or the bottom while live.
+  const [vTop, vSize] = !live && h && h.scrollHeight > 0 ? [h.scrollTop / h.scrollHeight, Math.min(1, h.clientHeight / h.scrollHeight)] : [0.78, 0.22];
+  const wide = s ? s.scrollWidth > s.clientWidth + 1 : false;
+  const [hLeft, hSize] = s && wide ? [s.scrollLeft / s.scrollWidth, s.clientWidth / s.scrollWidth] : [0, 1];
+  const wanted = useRef<number | null>(null);
+  // Once the history has come, the place the finger asked for.
+  useEffect(() => {
+    if (!live && h && wanted.current !== null) {
+      h.scrollTop = wanted.current * (h.scrollHeight - h.clientHeight);
+      wanted.current = null;
+    }
+  });
+  const drag = (along: (f: number) => void, vertical: boolean) => (e: PointerEvent) => {
+    const track = e.currentTarget as HTMLElement;
+    track.setPointerCapture(e.pointerId);
+    const at = (ev: PointerEvent) => {
+      const r = track.getBoundingClientRect();
+      along(Math.min(1, Math.max(0, vertical ? (ev.clientY - r.top) / r.height : (ev.clientX - r.left) / r.width)));
+    };
+    at(e);
+    const move = (ev: PointerEvent) => at(ev);
+    const up = () => (track.removeEventListener('pointermove', move), track.removeEventListener('pointerup', up));
+    track.addEventListener('pointermove', move);
+    track.addEventListener('pointerup', up);
+    e.stopPropagation();
+  };
+  const upDown = (f: number) => {
+    if (live) {
+      if (f < 0.9) (wanted.current = f), onHistory();
+      return;
+    }
+    if (f >= 0.98) return onLive();
+    if (h) h.scrollTop = f * (h.scrollHeight - h.clientHeight);
+  };
+  const sideways = (f: number) => s && (s.scrollLeft = f * (s.scrollWidth - s.clientWidth));
+  return (
+    <>
+      <div class="pane-bar pane-bar--v" aria-hidden="true" onPointerDown={drag(upDown, true)}>
+        <span style={{ top: `${vTop * 100}%`, height: `${vSize * 100}%` }} />
+      </div>
+      {wide && (
+        <div class="pane-bar pane-bar--h" aria-hidden="true" onPointerDown={drag(sideways, false)}>
+          <span style={{ left: `${hLeft * 100}%`, width: `${hSize * 100}%` }} />
+        </div>
+      )}
+    </>
   );
 }

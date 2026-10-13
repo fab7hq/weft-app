@@ -29,7 +29,7 @@ test('the list beside the agent; typing goes to the agent; Cmd+R stays the brows
   await page.keyboard.press('Control+C');
   await page.keyboard.press('ArrowUp');
   await expect.poll(() => machine.of('keys').map(decoded).join('')).toBe('ls\r\x03\x1b[A');
-  expect(machine.of('size')).toHaveLength(1);
+  expect(machine.of('size')).toHaveLength(0);
 
   const before = machine.of('keys').length;
   const waited = page.evaluate(

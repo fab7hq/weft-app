@@ -42,7 +42,7 @@ async function layout(where: Page | Locator, item: string) {
 test.describe('desktop', () => {
   test.skip(({ isMobile }) => isMobile, 'a desktop');
 
-  test('Split right moves the tab shown to a new pane, which has the keys; each pane its own tabs, frames, keys and message box', async ({ page, context }) => {
+  test('Split right moves the tab shown to a new pane, which has the keys; each pane its own tabs, frames and keys; one message row for the agent in front', async ({ page, context }) => {
     const machine = await opened(page, context);
     await tab(page, 'docs · claude').click();
     await layout(page, 'Split right');
@@ -63,17 +63,23 @@ test.describe('desktop', () => {
     await expect(right.locator('.xterm-rows')).toContainText('right pane');
     await expect(left.locator('.xterm-rows')).not.toContainText('right pane');
 
-    // A click in the left pane gives it the keys.
+    // One message row, under the panes, for the agent in front (D15.1).
+    await expect(page.locator('.message-input')).toHaveCount(1);
+    await expect(page.locator('.message-input')).toHaveAttribute('placeholder', 'Message docs · claude…');
+    await page.locator('.message-input').fill('to docs');
+    await page.getByRole('button', { name: 'Send' }).click();
+    await expect.poll(() => machine.of('text').at(-1)).toMatchObject({ agent: DOCS_CLAUDE, text: 'to docs' });
+
+    // A click in the left pane's screen gives it the keys and selects its
+    // agent: its tree row, the bar's text, and the message row (D15.1).
     await left.getByLabel("The agent's screen").click();
     await expect(left).toHaveClass(/pane-box--current/);
     await expect(right).not.toHaveClass(/pane-box--current/);
+    await expect(page.locator('.tree-selected')).toHaveText(/^selected: codex · /);
+    await expect(row(page, 'codex · no Ask yet')).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('.message-input')).toHaveAttribute('placeholder', 'Message weft · codex…');
     await page.keyboard.type('x');
     await expect.poll(() => machine.of('keys').at(-1)?.agent).toBe(CODEX_NEW);
-
-    // Each pane its own message box.
-    await right.locator('.message-input').fill('to docs');
-    await right.getByRole('button', { name: 'Send' }).click();
-    await expect.poll(() => machine.of('text').at(-1)).toMatchObject({ agent: DOCS_CLAUDE, text: 'to docs' });
 
     // A tree row shows its agent in the pane that holds it.
     await row(page, 'claude · fix login').click();
@@ -191,6 +197,28 @@ test.describe('desktop', () => {
     await layout(boxes(page).first(), 'Split down');
     await expect(page.getByText('No room for another pane here.')).toBeVisible();
     await expect(boxes(page)).toHaveCount(2);
+    await machine.close();
+  });
+});
+
+test.describe('the list', () => {
+  test.skip(({ isMobile }) => isMobile, 'a desktop');
+
+  test('D15.1 D15.7: the list\'s toggle hides the list and shows it again; the browser keeps it', async ({ page, context }) => {
+    const machine = await opened(page, context);
+    const list = page.getByRole('navigation', { name: 'Work' });
+    await expect(list).toBeVisible();
+    await page.getByRole('button', { name: 'Hide the list' }).click();
+    await expect(list).toHaveCount(0);
+    // The panes take the width.
+    const pane = await page.locator('.pane-box').first().boundingBox();
+    expect(pane!.x).toBeLessThan(40);
+    // Kept: the next visit opens the same way.
+    await page.reload();
+    await expect(page.getByRole('button', { name: 'Show the list' })).toBeVisible();
+    await expect(list).toHaveCount(0);
+    await page.getByRole('button', { name: 'Show the list' }).click();
+    await expect(list).toBeVisible();
     await machine.close();
   });
 });

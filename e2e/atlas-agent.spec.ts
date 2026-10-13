@@ -265,3 +265,25 @@ test('M3.13 D3.13: the message box takes several lines; Enter adds one on a touc
   await expect.poll(async () => (await box.boundingBox())!.height).toBeLessThanOrEqual(one + 1);
   await machine.close();
 });
+
+test('M3.3 M3.14: on a phone the screen has a bar up and down; dragging it up reads the history; the page never takes a pull', async ({ page, context }, info) => {
+  test.skip(!info.project.name.startsWith('iphone'), 'a phone');
+  const machine = await opened(page, context);
+  // The page's own pull (reload) is off, and the screen's vertical drag is the app's.
+  const css = await page.evaluate(() => ({
+    body: getComputedStyle(document.body).overscrollBehaviorY,
+    screen: getComputedStyle(document.querySelector('.pane-screen')!).touchAction,
+  }));
+  expect(css).toEqual({ body: 'none', screen: 'pan-x' });
+  const bar = pane(page).locator('.pane-bar--v');
+  await expect(bar).toBeVisible();
+  // Live: its thumb at the bottom.
+  const [track, thumb] = [(await bar.boundingBox())!, (await bar.locator('span').boundingBox())!];
+  expect(thumb.y + thumb.height).toBeGreaterThan(track.y + track.height - 2);
+  // A finger on its top: the history, in the pane.
+  await bar.dispatchEvent('pointerdown', { pointerId: 1, clientX: track.x + 2, clientY: track.y + 4, bubbles: true });
+  await bar.dispatchEvent('pointerup', { pointerId: 1, bubbles: true });
+  await expect.poll(() => machine.of('read').filter((r) => r.what === 'history').length).toBe(1);
+  await expect(pane(page).getByLabel('History')).toBeVisible();
+  await machine.close();
+});

@@ -5,6 +5,7 @@
 import type { Machine } from '../api';
 import * as m from '../machine';
 import { type View } from '../nav';
+import { signal } from '@preact/signals';
 import { useEffect, useRef } from 'preact/hooks';
 import * as L from '../layout';
 import { focusPane, held, layout, most, over, room, show } from '../panes';
@@ -13,12 +14,46 @@ import { AskDock } from './Ask';
 import { Details, RoundDetails, SealDetails } from './Details';
 import { SessionDetails } from './Session';
 import { EvalView } from './EvalView';
-import { Mark, StartButton, TreeList } from './Tree';
+import { Mark, StartButton, TreeList, selectAgent } from './Tree';
+import { MessageRow } from './Message';
+import { w } from '../words';
 import { StartPanel } from './Start';
 import { HeaderPills, Strips } from './Status';
 import { TreeBar } from './Bar';
 import { MenuButton } from './Settings';
 import { TabName, Tabs, dropped } from './Tabs';
+
+/** Whether the list of agents and works is shown (D15.1) or hidden (D15.7): kept per browser. */
+const LIST = 'weft.list';
+const listShown = signal(((): boolean => {
+  try {
+    return localStorage.getItem(LIST) !== 'hidden';
+  } catch {
+    return true;
+  }
+})());
+function toggleList(): void {
+  listShown.value = !listShown.value;
+  try {
+    localStorage.setItem(LIST, listShown.value ? 'shown' : 'hidden');
+  } catch {
+    // Not kept: it is shown again next time.
+  }
+}
+
+/** The list's toggle, at the top left of the header (D15.1, D15.7). */
+function ListToggle() {
+  const on = listShown.value;
+  return (
+    <button class={on ? 'list-toggle list-toggle--on' : 'list-toggle'} type="button" aria-label={w(on ? 'web.list.hide' : 'web.list.show')} aria-pressed={on} onClick={toggleList}>
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
+        <rect x="1.5" y="2.5" width="13" height="11" rx="2" />
+        <line x1="6" y1="2.5" x2="6" y2="13.5" />
+        {on && <rect x="2.2" y="3.2" width="3.1" height="9.6" fill="currentColor" stroke="none" />}
+      </svg>
+    </button>
+  );
+}
 
 /** The empty right pane (D2.1): the woven mark, and the way to start an agent. */
 function Woven({ machine }: { machine: Machine }) {
@@ -60,7 +95,9 @@ function PaneBox({ machine, pane, many, open }: { machine: Machine; pane: L.Pane
       onDrop={(e) => dropped(machine.id, e)}
     >
       {agent ? (
-        <Agent key={agent} machine={machine} agent={agent} embedded side={many} current={current || !many} onPick={() => focusPane(machine.id, pane.id)} head={head} />
+        // A press anywhere in a pane, its screen included, makes it the pane
+        // you are in and selects its agent (D15.1).
+        <Agent key={agent} machine={machine} agent={agent} embedded side={many} current={current || !many} onPick={() => (focusPane(machine.id, pane.id), show(machine.id, agent), selectAgent(agent))} head={head} />
       ) : head}
       {here && (
         <div class={`drop-zone drop-zone--${'edge' in here ? here.side : 'middle'}`} aria-hidden="true">
@@ -103,10 +140,23 @@ function Agents({ machine, open }: { machine: Machine; open: string }) {
   );
 }
 
+/** The agent in front: the one the pane you are in shows, else the open one. */
+function front(open: string): string {
+  const l = layout.value;
+  return L.paneOf(l, open) === undefined ? open : (L.showing(L.active(l)) ?? open);
+}
+
 export function Wide({ login, machine, agent, starting = null, view }: { login: string; machine: Machine; agent: string | null; starting?: string | null; view: View }) {
+  const agents = view.name !== 'eval' && view.name !== 'detail' && view.name !== 'round' && view.name !== 'seal' && view.name !== 'session' && starting === null && agent !== null;
+  const inFront = agents && agent ? front(agent) : null;
+  // The agent in front is the one selected: its row, and the bar's text.
+  useEffect(() => {
+    if (inFront) selectAgent(inFront);
+  }, [inFront]);
   return (
     <div class="app">
       <div class="appbar">
+        <ListToggle />
         <Mark />
         <h1>{machine.name}</h1>
         <span class="spacer" />
@@ -115,9 +165,11 @@ export function Wide({ login, machine, agent, starting = null, view }: { login: 
       </div>
       <Strips machine={machine} />
       <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
-        <nav aria-label="Work" class="tree-side">
-          <TreeList machine={machine} wide onAgent={(a) => show(machine.id, a)} />
-        </nav>
+        {listShown.value && (
+          <nav aria-label="Work" class="tree-side">
+            <TreeList machine={machine} wide onAgent={(a) => show(machine.id, a)} />
+          </nav>
+        )}
         <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
           {view.name === 'eval' ? <EvalView key={`${view.eval}${view.at}${view.files}`} machine={machine} project={view.project} eval={view.eval} at={view.at} files={view.files} wide />
           : view.name === 'detail' ? <Details key={view.unit} machine={machine} project={view.project} unit={view.unit} wide />
@@ -125,6 +177,8 @@ export function Wide({ login, machine, agent, starting = null, view }: { login: 
           : view.name === 'seal' ? <SealDetails key={view.seal} machine={machine} project={view.project} seal={view.seal} wide />
           : view.name === 'session' ? <SessionDetails key={view.session} machine={machine} project={view.project} session={view.session} wide />
           : starting !== null ? <StartPanel machine={machine} harness={starting} project={view.name === 'start' ? view.project : undefined} /> : agent ? <Agents machine={machine} open={agent} /> : <Woven machine={machine} />}
+          {/* One message row, for the agent in front (D15.1); another agent in front gets its own box. */}
+          {inFront && m.agents.value.some((x) => x.agent === inFront && x.running) && <MessageRow key={inFront} agent={inFront} wide />}
           <AskDock />
         </main>
       </div>

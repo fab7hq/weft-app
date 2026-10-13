@@ -388,6 +388,14 @@ const SCREENS: Screen[] = [
 
   // 03 · The agent
   { ids: ['M3.1', 'D3.1'], sample: calm, run: (at) => onClaude(at) },
+  // The Mac's 104 columns on a phone: smaller to fit, down to 9 px, then sideways.
+  { ids: ['M3.14'], sample: calm, run: async (at) => {
+    await agentOpen(at, 'claude');
+    await expect.poll(() => at.machine.of('watch').some((m) => m.agent === CLAUDE)).toBe(true);
+    const wide = ['● Read(src/login.rs)', '● Update(src/login.rs)', "  ⎿ Updated src/login.rs with 12 additions and 3 removals; the expiry check now reads the token's own clock", '● Running cargo test -p auth -- login::rejects_expired login::refreshes_token --nocapture', '  test login::rejects_expired ... ok', '  test login::refreshes_token ... ok', '', '✻ Thinking… (esc to interrupt) · 1m 12s · ↓ 2.4k tokens', '', '❯'];
+    at.machine.send({ type: 'screen', agent: CLAUDE, seq: 1, full: true, rows: 30, cols: 104, bytes: Buffer.from(wide.join('\r\n')).toString('base64') });
+    await expect(at.page.locator('.pane-bar--h')).toBeVisible();
+  } },
   { ids: ['M3.3', 'D3.3'], sample: calm, run: async (at) => {
     await onClaude(at);
     await activate(at);
@@ -750,7 +758,8 @@ const SCREENS: Screen[] = [
   { ids: ['M10.2', 'D10.2'], sample: calm, run: async (at) => {
     at.machine.onText = (m) => ({ type: 'error', req: m.req, code: 'in_flight', message: 'still typing' });
     await onClaude(at);
-    const box = at.page.getByPlaceholder('Message claude…');
+    // A desktop's one row names the agent's tab (D15.1).
+    const box = at.page.getByPlaceholder(at.page.viewportSize()!.width >= 768 ? 'Message weft · claude…' : 'Message claude…');
     await box.fill('try again');
     // ▶: on a touch screen Enter adds a line (M3.13).
     await at.page.getByRole('button', { name: 'Send', exact: true }).click();
@@ -839,6 +848,17 @@ const SCREENS: Screen[] = [
   // 15 · Panes and tabs like an editor
   { ids: ['D15.1'], sample: across, run: async (at) => {
     await twoPanes(at);
+  } },
+  { ids: ['D15.7'], sample: across, run: async (at) => {
+    await twoPanes(at);
+    await button(at, 'Hide the list').click();
+  } },
+  // The Mac shows openbox · claude in a narrow pane: the agent is 46 columns, drawn at its own size.
+  { ids: ['D3.14'], sample: across, run: async (at) => {
+    await twoPanes(at);
+    const narrow = ['● Write(src/billing.rs)', '  Do you want to make this edit', '  to billing.rs?', '  ❯ 1. Yes', "    2. Yes, and don't ask again", '       this session', '    3. No, and tell Claude what', '       to do differently'];
+    at.machine.send({ type: 'screen', agent: OPENBOX_CLAUDE, seq: 2, full: true, rows: 24, cols: 46, bytes: Buffer.from(narrow.join('\r\n')).toString('base64') });
+    await expect(at.page.getByText('to do differently')).toBeVisible();
   } },
   { ids: ['D15.2'], sample: across, run: async (at) => {
     await tree(at);

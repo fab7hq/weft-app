@@ -280,6 +280,17 @@ export function stateOf(s: m.Session): string {
  * named no session yet, its agent (sessions.md). */
 export const rowKey = (s: m.Session) => s.session || s.agent || '';
 
+/** Select the row of the agent `agent` runs, as a click on it would. */
+export function selectAgent(agent: string): void {
+  for (const p of m.tree.value) {
+    const row = p.agents.rows.find((r) => r.agent === agent);
+    if (row) {
+      selected.value = { kind: 'agent', project: p.project, session: rowKey(row) };
+      return;
+    }
+  }
+}
+
 export const sessionName = (s: m.Session) => `${s.harness} · ${s.title ?? w('tree.no_ask')}`;
 
 /** A round's name: `Eval 3`. */

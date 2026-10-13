@@ -46,6 +46,19 @@
 .pane { position: relative; flex: 1; min-height: 0; padding: 12px; border: 1px solid var(--fab7-line); border-radius: 10px; background: #05080f; overflow: hidden; outline: none; }
 /* Active: a 2 px blue border, the screen where it was. */
 .pane[data-active="true"] { padding: 11px; border: 2px solid var(--fab7-accent); }
+/* The agent's screen, at the agent's own size: a wider one scrolls sideways; a
+   vertical drag is the app's (the history), never the page's, so it never reloads it. */
+.pane-screen { width: 100%; height: 100%; overflow: auto hidden; touch-action: pan-x; overscroll-behavior: contain; scrollbar-width: thin; }
+/* A phone's scroll bars (M3.3, M3.14): up and down at the right, sideways at the bottom. */
+.pane-bar { position: absolute; z-index: 2; border-radius: 2px; background: var(--fab7-surface); touch-action: none; }
+.pane-bar span { position: absolute; border-radius: 2px; background: #3a4a66; }
+.pane[data-active="true"] .pane-bar span { background: var(--fab7-accent); }
+.pane-bar--v { right: 3px; top: 12px; bottom: 12px; width: 4px; }
+.pane-bar--v span { left: 0; right: 0; }
+.pane-bar--h { left: 12px; right: 12px; bottom: 3px; height: 4px; }
+.pane-bar--h span { top: 0; bottom: 0; }
+/* A finger needs more than 4 px to hold: the bar's reach is wider than it looks. */
+.pane-bar::before { content: ''; position: absolute; inset: -10px; }
 .pane-said { margin: 0; flex: none; font: 400 13px var(--font-sans); color: var(--fab7-amber-text); }
 /* The history, inside the pane: its lines where the screen's are. */
 .pane-history { position: absolute; inset: 0; display: flex; flex-direction: column; padding: 11px; background: #05080f; }
@@ -74,6 +87,8 @@
 .message-foot { flex: none; display: flex; flex-direction: column; gap: 8px; padding: 8px 12px 30px; background: var(--fab7-panel); border-top: 1px solid var(--fab7-line); }
 .message-foot--said { padding: 10px 16px 30px; }
 .message-foot.message-foot--keys { padding-bottom: 8px; }
+/* A desktop has no home bar to leave room for (D15.1). */
+.message-foot.message-foot--wide { padding: 8px 12px; }
 .message-foot .message-said { margin: 0; padding: 0; border: 0; font-size: 13px; color: var(--fab7-amber-text); }
 .message-row { display: flex; gap: 8px; align-items: flex-end; }
 .message-input { flex: 1; min-width: 0; box-sizing: border-box; margin: 0; padding: 10px 14px; border: 1px solid var(--fab7-line); border-radius: 20px; background: var(--fab7-surface); color: var(--fab7-text); font: 400 13px/18px var(--font-sans); outline: none; resize: none; overflow-y: auto; max-height: calc(5lh + 22px); }

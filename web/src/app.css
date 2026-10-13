@@ -1,5 +1,5 @@
 /* The app's own layout, over the system's classes. */
-html, body { height: 100%; margin: 0; background: var(--fab7-canvas); }
+html, body { height: 100%; margin: 0; background: var(--fab7-canvas); overscroll-behavior-y: none; }
 /* Text drawn at the weight the cards draw it: no thinner smoothing. */
 body { font-family: var(--font-sans); color: var(--fab7-text); }
 ::selection { background: var(--fab7-selection); color: #fff; }
@@ -14,6 +14,9 @@ body { font-family: var(--font-sans); color: var(--fab7-text); }
 .appbar { display: flex; align-items: center; gap: 10px; height: 52px; padding: 8px 16px; box-sizing: content-box; border-bottom: 1px solid var(--fab7-line); flex: none; }
 .appbar h1 { margin: 0; font-size: 15px; font-weight: 600; white-space: nowrap; }
 @media (min-width: 768px) { .appbar { gap: 12px; padding: 8px 20px; } }
+/* The list's toggle (D15.1, D15.7): lit while the list is shown. */
+.list-toggle { flex: none; display: flex; align-items: center; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--fab7-line); background: var(--fab7-surface); color: var(--fab7-muted); cursor: pointer; }
+.list-toggle--on { border-color: var(--fab7-accent); background: #16233a; color: var(--fab7-accent); }
 /* The header's pills (M1.7, M2.6, M2.9): filled, sentence case, at the right. */
 .link-pill { padding: 3px 10px; border-radius: 20px; background: var(--fab7-surface); color: var(--fab7-muted); font-size: 12px; white-space: nowrap; }
 .turbo-pill { padding: 3px 10px; border-radius: 20px; background: #16233a; color: var(--fab7-accent); font-size: 12px; white-space: nowrap; }

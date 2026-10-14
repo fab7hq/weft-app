@@ -213,12 +213,29 @@ test.describe('the list', () => {
     // The panes take the width.
     const pane = await page.locator('.pane-box').first().boundingBox();
     expect(pane!.x).toBeLessThan(40);
-    // Kept: the next visit opens the same way.
+    // Kept: the next visit, once an agent is open, hides it again.
     await page.reload();
-    await expect(page.getByRole('button', { name: 'Show the list' })).toBeVisible();
+    await expect(list).toBeVisible();
+    await openAgent(page, 'codex · health endpoint');
     await expect(list).toHaveCount(0);
     await page.getByRole('button', { name: 'Show the list' }).click();
     await expect(list).toBeVisible();
+    await machine.close();
+  });
+
+  test('D15.7: with no agent open the list is shown, though it was hidden, and has no toggle', async ({ page, context }) => {
+    const machine = await FakeMachine.start();
+    Object.assign(machine, atlas());
+    await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
+    await page.addInitScript(() => localStorage.setItem('weft.list', 'hidden'));
+    await page.goto('/');
+    const list = page.getByRole('navigation', { name: 'Work' });
+    await expect(list).toBeVisible();
+    await expect(page.getByRole('button', { name: /^(Hide|Show) the list$/ })).toHaveCount(0);
+    // An agent opened: the list is hidden as this browser keeps it.
+    await openAgent(page, 'codex · health endpoint');
+    await expect(list).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Show the list' })).toBeVisible();
     await machine.close();
   });
 });

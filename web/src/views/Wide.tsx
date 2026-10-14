@@ -156,7 +156,8 @@ export function Wide({ login, machine, agent, starting = null, view }: { login: 
   return (
     <div class="app">
       <div class="appbar">
-        <ListToggle />
+        {/* The list hides only beside an agent; with none open it is the page (D15.7). */}
+        {agent !== null && <ListToggle />}
         <Mark />
         <h1>{machine.name}</h1>
         <span class="spacer" />
@@ -165,7 +166,7 @@ export function Wide({ login, machine, agent, starting = null, view }: { login: 
       </div>
       <Strips machine={machine} />
       <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
-        {listShown.value && (
+        {(listShown.value || agent === null) && (
           <nav aria-label="Work" class="tree-side">
             <TreeList machine={machine} wide onAgent={(a) => show(machine.id, a)} />
           </nav>

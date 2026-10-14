@@ -154,7 +154,7 @@ export const current = signal<api.Machine | null>(null);
 export const needsYou = computed(() => agents.value.filter((a) => a.turn === 'waiting').length);
 
 /** The remote protocol's version this page speaks (remote.md §6). */
-export const VERSION = 1;
+export const VERSION = 2;
 
 /** The refusals a machine gives, by the words key that says each. */
 const REFUSED = ['denied', 'expired', 'not_owner', 'busy'];

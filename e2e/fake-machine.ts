@@ -191,7 +191,7 @@ export function page<T>(rows: T[], after: unknown, id: (r: T) => string): { rows
 
 export class FakeMachine {
   /** The remote protocol's version `weft remote` speaks. */
-  static readonly VERSION = 1;
+  static readonly VERSION = 2;
   readonly server: WebSocketServer;
   private readonly tls: Server;
   readonly heard: Record<string, unknown>[] = [];
@@ -234,6 +234,10 @@ export class FakeMachine {
   onStart: ((m: Record<string, unknown>) => Record<string, unknown>[]) | null = null;
   /** Answer `pair` with `asking`, then `paired` at once. */
   allowAtOnce = true;
+  /** Each agent's conversation, by its id; an agent with none cannot be read. */
+  conversations: Record<string, Item[]> = {};
+  /** The agent each device follows, by its socket. */
+  private following = new Map<WebSocket, string>();
   private sockets = new Set<WebSocket>();
 
   constructor() {
@@ -249,7 +253,7 @@ export class FakeMachine {
     });
     this.server.on('connection', (ws) => {
       this.sockets.add(ws);
-      ws.on('close', () => this.sockets.delete(ws));
+      ws.on('close', () => (this.sockets.delete(ws), this.following.delete(ws)));
       ws.on('message', (data) => {
         const m = JSON.parse(String(data));
         this.heard.push(m);
@@ -284,6 +288,11 @@ export class FakeMachine {
           this.send({ type: 'tree', tree: this.tree });
         } else if (m.type === 'act' && this.onAct) {
           for (const out of this.onAct(m)) ws.send(JSON.stringify(out));
+        } else if (m.type === 'read' && m.what === 'conversation' && !this.onRead?.(m)) {
+          for (const out of this.conversation(m)) ws.send(JSON.stringify(out));
+        } else if (m.type === 'follow') {
+          if (typeof m.agent === 'string') this.following.set(ws, m.agent);
+          else this.following.delete(ws);
         } else if (m.type === 'read') {
           ws.send(JSON.stringify(this.onRead?.(m) ?? this.read(m)));
         } else if (m.type === 'text' && this.onText) {
@@ -354,6 +363,44 @@ export class FakeMachine {
     }
   }
 
+  /**
+   * A conversation's page, as `weft remote` answers it (remote.md §6d): the
+   * newest 50 items, or those before `before`; a long message in parts, its
+   * earlier parts after the `ok`. An agent with no conversation is unreadable.
+   */
+  conversation(m: Record<string, unknown>): Record<string, unknown>[] {
+    const agent = String(m.agent);
+    const items = this.conversations[agent];
+    if (!this.agents.some((a) => a.agent === agent)) {
+      return [{ type: 'error', req: m.req, code: 'no_agent', message: `there is no agent ${agent} here` }];
+    }
+    if (!items) return [{ type: 'ok', req: m.req, conversation: { readable: false, items: [] } }];
+    const end = typeof m.before === 'string' ? Number(m.before.slice(2)) : items.length;
+    const start = Math.max(0, end - PAGE);
+    const all = pieces(items.slice(start, end));
+    const cut = all.findIndex((p) => (p.part ?? 1) === (p.parts ?? 1));
+    const later = all.filter((p) => (p.part ?? 1) > 1 && all.indexOf(p) < cut);
+    const page = { readable: true, items: all.filter((p) => !later.includes(p)), before: start > 0 ? `c-${start}` : null, after: `c-${items.length}` };
+    return [{ type: 'ok', req: m.req, conversation: page }, ...later.map((p) => ({ type: 'conversation', agent, items: [p] }))];
+  }
+
+  /** The agent's file grew: every device that follows it is sent the new items. */
+  grow(agent: string, items: Item[]): void {
+    const all = (this.conversations[agent] ??= []);
+    all.push(...items);
+    this.toFollowers(agent, { type: 'conversation', agent, items: pieces(items), after: `c-${all.length}` });
+  }
+
+  /** The agent's file was replaced: every device that follows it starts over. */
+  resetConversation(agent: string, items: Item[] = []): void {
+    this.conversations[agent] = items;
+    this.toFollowers(agent, { type: 'conversation', agent, reset: true });
+  }
+
+  private toFollowers(agent: string, message: Record<string, unknown>): void {
+    for (const [ws, followed] of this.following) if (followed === agent) ws.send(JSON.stringify(message));
+  }
+
   /** A session's Details from its tree row, when `reads` holds none. */
   private sessionOf(project: string, session: string): SessionDetail | null {
     const tree = this.tree ?? treeOf(this.agents);
@@ -417,6 +464,65 @@ export class FakeMachine {
   }
 }
 
+/** One item of a conversation (remote.md §6d). */
+export interface Item {
+  id: string;
+  kind: 'person' | 'agent' | 'step' | 'outcome';
+  at: number | null;
+  text?: string;
+  tool?: string;
+  arg?: string;
+  call?: string;
+  failed?: boolean;
+  part?: number;
+  parts?: number;
+}
+
+/** The most of an item's text one part holds, as `weft remote` cuts it. */
+export const PART = 32 * 1024;
+
+/** Each item, or its parts when its text is longer than `PART`. */
+export function pieces(items: Item[]): Item[] {
+  return items.flatMap((i) => {
+    if (!i.text || i.text.length <= PART) return [i];
+    const n = Math.ceil(i.text.length / PART);
+    return Array.from({ length: n }, (_, k) => ({ ...i, text: i.text!.slice(k * PART, (k + 1) * PART), part: k + 1, parts: n }));
+  });
+}
+
+/** A step and its outcome, as a transcript gives them. */
+export function step(id: string, tool: string, arg: string, at: number, failed: boolean | null): Item[] {
+  const s: Item = { id, kind: 'step', at, tool, arg, call: id };
+  return failed === null ? [s] : [s, { id: `${id}.o`, kind: 'outcome', at, call: id, failed }];
+}
+
+/**
+ * The 12.x cards' sample (M12.1–M12.4, D12.1–D12.3): claude in weft on fix
+ * login, its message, its reply, four steps done, then its question. Codex
+ * whose turn ended has a failed step and one still running; claude in docs
+ * cannot be read.
+ */
+export function conversations(): Record<string, Item[]> {
+  return {
+    [CLAUDE]: [
+      { id: '0.0', kind: 'person', at: at(11, 20), text: 'Refresh the token before it expires, not after' },
+      { id: '1.0', kind: 'agent', at: at(11, 20), text: "I'll update `src/login.rs` so the session token refreshes 60 s before expiry, then run the login tests." },
+      ...step('2.0', 'Read', 'src/login.rs', at(11, 21), false),
+      ...step('3.0', 'Update', 'src/login.rs', at(11, 22), false),
+      ...step('4.0', 'Bash', 'cargo test -p app-core', at(11, 23), false),
+      ...step('5.0', 'Bash', 'cargo clippy', at(11, 23), false),
+      { id: '6.0', kind: 'agent', at: at(11, 24), text: 'Done. The token now refreshes 60 s early; `cargo test` passes (12 tests). One question: should a failed refresh retry, or sign the person out?' },
+    ],
+    [CODEX]: [
+      { id: '0.0', kind: 'person', at: at(10, 40), text: 'Add a health endpoint' },
+      ...step('1.0', 'Ran', 'cargo test health', at(10, 41), true),
+      ...step('2.0', 'Edited', 'src/health.rs', at(10, 44), false),
+      ...step('3.0', 'Ran', 'cargo test', at(10, 50), null),
+      { id: '4.0', kind: 'agent', at: at(10, 52), text: 'Added `GET /health`; the tests are still running.' },
+    ],
+  };
+}
+
 export function agent(n: number, project: string, harness: string, turn: Agent['turn']): Agent {
   return { agent: `3f9a1c07b2de-${n}`, project, harness, title: harness === 'claude-code' ? 'Claude Code' : 'Codex', turn, running: true, since: Date.now() - 120_000 };
 }
@@ -464,7 +570,7 @@ export function treeOf(agents: Agent[]): Project[] {
  * telemetry), Eval 3 aligned and not sealed, Sealed · 4 seals 31. In docs, a
  * claude ready with nothing asked.
  */
-export function atlas(): { agents: Agent[]; tree: Project[]; harnesses: Start[]; reads: Reads } {
+export function atlas(): { agents: Agent[]; tree: Project[]; harnesses: Start[]; reads: Reads; conversations: Record<string, Item[]> } {
   const since = Date.now() - 120_000;
   const agents: Agent[] = [
     { agent: CLAUDE, project: 'weft', harness: 'claude', title: 'Claude Code', turn: 'waiting', running: true, since },
@@ -483,5 +589,5 @@ export function atlas(): { agents: Agent[]; tree: Project[]; harnesses: Start[];
     { project: p, harness: 'claude', title: 'Claude Code' },
     { project: p, harness: 'codex', title: 'Codex' },
   ]);
-  return { agents, tree: [weft, docs], harnesses, reads: reads() };
+  return { agents, tree: [weft, docs], harnesses, reads: reads(), conversations: conversations() };
 }

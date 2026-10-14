@@ -11,7 +11,7 @@ browser. It has no model and no agent of its own.
 - `worker/`: a small Cloudflare Worker for GitHub sign-in and your machines'
   addresses. No screen, keystroke or push passes through it.
 
-Works with the agents Weft runs: Claude Code, Codex and Antigravity.
+Works with the agents Weft runs: Claude Code, Codex, Antigravity and Grok Build.
 
 ## Use
 

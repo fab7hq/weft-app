@@ -141,7 +141,7 @@ export function Conversation({ agent, wide }: { agent: string; wide: boolean }) 
       const page = answer?.type === 'ok' ? (answer.conversation as Record<string, unknown>) : null;
       if (!page || page.readable !== true) {
         setReadable(false);
-        m.follow(null);
+        m.unfollow(agent);
         return;
       }
       held.clear();
@@ -163,7 +163,7 @@ export function Conversation({ agent, wide }: { agent: string; wide: boolean }) 
     return () => {
       gone = true;
       stop();
-      m.follow(null);
+      m.unfollow(agent);
     };
   }, [agent, connected]);
 

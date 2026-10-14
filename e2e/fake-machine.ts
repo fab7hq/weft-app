@@ -236,8 +236,8 @@ export class FakeMachine {
   allowAtOnce = true;
   /** Each agent's conversation, by its id; an agent with none cannot be read. */
   conversations: Record<string, Item[]> = {};
-  /** The agent each device follows, by its socket. */
-  private following = new Map<WebSocket, string>();
+  /** The agents each device follows, one to each of its panes, by its socket. */
+  private following = new Map<WebSocket, Set<string>>();
   private sockets = new Set<WebSocket>();
 
   constructor() {
@@ -291,8 +291,8 @@ export class FakeMachine {
         } else if (m.type === 'read' && m.what === 'conversation' && !this.onRead?.(m)) {
           for (const out of this.conversation(m)) ws.send(JSON.stringify(out));
         } else if (m.type === 'follow') {
-          if (typeof m.agent === 'string') this.following.set(ws, m.agent);
-          else this.following.delete(ws);
+          const also: { agent: string }[] = Array.isArray(m.also) ? m.also : [];
+          this.following.set(ws, new Set([m.agent, ...also.map((a) => a.agent)].filter((a): a is string => typeof a === 'string')));
         } else if (m.type === 'read') {
           ws.send(JSON.stringify(this.onRead?.(m) ?? this.read(m)));
         } else if (m.type === 'text' && this.onText) {
@@ -398,7 +398,7 @@ export class FakeMachine {
   }
 
   private toFollowers(agent: string, message: Record<string, unknown>): void {
-    for (const [ws, followed] of this.following) if (followed === agent) ws.send(JSON.stringify(message));
+    for (const [ws, followed] of this.following) if (followed.has(agent)) ws.send(JSON.stringify(message));
   }
 
   /** A session's Details from its tree row, when `reads` holds none. */

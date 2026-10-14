@@ -150,3 +150,35 @@ test("a harness that cannot be read shows one line, and nothing of a conversatio
   await expect(page.getByText("claude's conversation cannot be shown here — Terminal shows everything.")).toBeVisible();
   await machine.close();
 });
+
+test('D12.1 in two panes: each pane in Conversation is followed, and one leaving it leaves the other followed', async ({ page, context, isMobile }) => {
+  test.skip(isMobile, 'a desktop');
+  const machine = await opened(page, context, 'codex · health endpoint');
+  const bar = (where: Page | ReturnType<Page['locator']>) => where.getByRole('navigation', { name: 'Tabs' });
+  await bar(page).getByRole('button', { name: 'weft · claude ●', exact: true }).click();
+  await page.getByRole('button', { name: 'Layout', exact: true }).first().click();
+  await page.getByRole('menuitem', { name: 'Split right', exact: true }).click();
+  const [left, right] = [page.locator('.pane-box').first(), page.getByRole('region', { name: 'weft · claude', exact: true })];
+  await tab(page, 'Conversation').click();
+  await expect(right.getByText('Refresh the token before it expires, not after')).toBeVisible();
+  // The left pane shows codex in weft, whose turn ended on health endpoint.
+  const codexTabs = bar(left).getByRole('button', { name: 'weft · codex', exact: true });
+  for (let i = 0; i < 2 && (await left.getByText('Add a health endpoint').count()) === 0; i++) await codexTabs.nth(i).click();
+  await expect(left.getByText('Add a health endpoint')).toBeVisible();
+  const followed = () => {
+    const f = machine.of('follow').at(-1) ?? {};
+    const also = Array.isArray(f.also) ? (f.also as { agent: string }[]).map((a) => a.agent) : [];
+    return [f.agent, ...also].sort();
+  };
+  await expect.poll(followed).toEqual([CLAUDE, CODEX].sort());
+  machine.grow(CLAUDE, [{ id: '7.0', kind: 'agent', at: at(11, 26), text: 'right grew' }]);
+  machine.grow(CODEX, [{ id: '5.0', kind: 'agent', at: at(10, 53), text: 'left grew' }]);
+  await expect(right.getByText('right grew')).toBeVisible();
+  await expect(left.getByText('left grew')).toBeVisible();
+  // The left pane shows another agent: claude on the right is still followed.
+  await codexTabs.nth((await codexTabs.nth(0).getAttribute('data-shown')) === 'true' ? 1 : 0).click();
+  await expect.poll(followed).not.toContain(CODEX);
+  machine.grow(CLAUDE, [{ id: '8.0', kind: 'agent', at: at(11, 27), text: 'still followed' }]);
+  await expect(right.getByText('still followed')).toBeVisible();
+  await machine.close();
+});

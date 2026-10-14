@@ -447,9 +447,23 @@ export function hear(heard: (msg: Record<string, unknown>) => void): () => void 
   return () => hearing.delete(heard);
 }
 
-/** Follow an agent's conversation from a cursor, or, with null, none. */
-export function follow(agent: string | null, after: string | null = null): void {
-  send(agent ? { type: 'follow', agent, after } : { type: 'follow', agent: null });
+/** The agents whose conversation this device shows, one to each of its panes, each from the cursor its page gave. */
+const following = new Map<string, string>();
+
+/** Follow an agent's conversation from a cursor, beside those its other panes follow. */
+export function follow(agent: string, after: string): void {
+  following.set(agent, after);
+  sendFollow();
+}
+
+/** Follow this agent's conversation no more; the other panes' stay followed. */
+export function unfollow(agent: string): void {
+  if (following.delete(agent)) sendFollow();
+}
+
+function sendFollow(): void {
+  const [first, ...also] = [...following].map(([agent, after]) => ({ agent, after }));
+  send(first ? { type: 'follow', ...first, ...(also.length > 0 && { also }) } : { type: 'follow', agent: null });
 }
 
 /** Watch an agent's screen, beside those already watched in the other panes. */

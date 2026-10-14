@@ -243,6 +243,22 @@ async function onClaude(at: At, lines: { wide: string[]; phone: string[] } = WOR
   at.machine.send({ type: 'screen', agent: CLAUDE, seq: 1, full: true, rows: 30, cols: at.wide ? 117 : 47, bytes });
 }
 
+/** The 12 cards' machine: claude waiting on its question, and codex. */
+const twelve = () => ({ ...atlas(), agents: atlas().agents.slice(0, 2) });
+
+/** claude's screen at the 12 cards' moment: the same turn, as its terminal draws it. */
+const TWELVE = {
+  wide: ['> Refresh the token before it expires, not after', '', "● I'll update src/login.rs so the session token refreshes 60 s before expiry, then run", '  the login tests.', '', '● Read(src/login.rs)', '  ⎿ Read 84 lines', '● Update(src/login.rs)', '  ⎿ Updated src/login.rs with 12 additions and 3 removals', '● Bash(cargo test -p app-core)', '  ⎿ test result: ok. 12 passed; 0 failed', '● Bash(cargo clippy)', '  ⎿ Finished `dev` profile', '', '● Done. The token now refreshes 60 s early; cargo test passes (12 tests). One question:', '  should a failed refresh retry, or sign the person out?', '', '─'.repeat(94), '❯ '],
+  phone: ['● Read(src/login.rs)', '● Update(src/login.rs)', '  ⎿ Updated src/login.rs with', '    12 additions and 3 removals', '● Running cargo test…', '  test login::rejects_expired ok', '  test login::refreshes_token ok', '● Bash(cargo clippy)', '', '● Done. The token now refreshes 60 s', '  early; cargo test passes (12', '  tests). One question: should a', '  failed refresh retry, or sign the', '  person out?', '', '❯'],
+};
+
+/** claude's agent, in Conversation. */
+async function conversing(at: At) {
+  await agentOpen(at, 'claude');
+  await at.page.getByRole('tab', { name: 'Conversation' }).first().click();
+  await expect(at.page.getByText('Refresh the token before it expires, not after')).toBeVisible();
+}
+
 /** The sample of the cards of agents across projects: gl with codex at work and
  * claude ready, openbox with claude waiting for you. */
 const GL_CODEX = 'a0c1d2e3f4a5-0';
@@ -908,6 +924,14 @@ const SCREENS: Screen[] = [
     await at.page.mouse.move(to.x + to.width / 2, to.y + to.height * 0.86);
     await expect(at.page.locator('.drop-zone--down')).toBeVisible();
   } },
+  // 12 · Terminal and Conversation: claude in weft waits on its question.
+  { ids: ['M12.1', 'D12.1', 'M12.4'], sample: twelve, run: conversing },
+  { ids: ['M12.2', 'D12.2'], sample: twelve, run: async (at) => {
+    await conversing(at);
+    await at.page.getByRole('button', { name: /^▸ 4 tool steps/ }).click();
+    await expect(at.page.getByText('cargo clippy')).toBeVisible();
+  } },
+  { ids: ['M12.3', 'D12.3'], sample: twelve, run: (at) => onClaude(at, TWELVE) },
   { ids: ['M14.1'], sample: across, run: async (at) => {
     await tree(at);
     await openAgent(at.page, 'codex · health endpoint');

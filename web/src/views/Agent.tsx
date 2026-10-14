@@ -13,6 +13,7 @@ import { Screen } from './Screen';
 import { HeaderPills } from './Status';
 import { MessageRow, b64, notLive, refusal } from './Message';
 import { fill, w } from '../words';
+import { Conversation, ViewSwitch, view } from './Conversation';
 
 /**
  * One agent. On a desktop, `embedded` beside the tree under `head`, its
@@ -63,7 +64,9 @@ export function Agent({ machine, agent, embedded = false, current = true, onPick
   });
 
   const wide = embedded;
-  const keys = typing || (!wide && Boolean(a?.running));
+  const talk = view.value === 'conversation';
+  // The key bar is only under Terminal (M12.1).
+  const keys = typing || (!wide && !talk && Boolean(a?.running));
   const unset = a?.running && notSetUp(a);
   return (
     <div class={wide ? 'app agent agent--wide' : 'app agent'} style={embedded ? { height: '100%' } : undefined} onPointerDownCapture={onPick}>
@@ -86,8 +89,15 @@ export function Agent({ machine, agent, embedded = false, current = true, onPick
       )}
       {!embedded && list && <AgentList machine={machine.id} open={agent} onClose={() => setList(false)} />}
       {embedded && head}
-      {a?.running ? (
+      {talk ? (
+        // Conversation, of a running agent or one that has ended alike.
         <div class="pane-wrap">
+          {!wide && <ViewSwitch wide={false} />}
+          <Conversation key={agent} agent={agent} wide={wide} />
+        </div>
+      ) : a?.running ? (
+        <div class="pane-wrap">
+          {!wide && <ViewSwitch wide={false} />}
           <Screen agent={agent} current={current} bars={!embedded} history={history} onHistory={() => void showHistory()} onTop={() => setTop(true)} onLive={() => (setHistory(null), setTop(false))} onKey={key} box={box} />
           {history !== null && top && (
             // The top of what Weft holds: whose history it is, as the TUI says it (M3.6).
@@ -108,7 +118,7 @@ export function Agent({ machine, agent, embedded = false, current = true, onPick
           {!wide && <button class="tree-act" type="button" onClick={() => swap({ name: 'tree', machine: machine.id })}>{w('web.agent.back')}</button>}
         </div>
       )}
-      {!side && a?.turn === 'waiting' && a.running && m.link.value === 'connected' && (
+      {!side && !talk && a?.turn === 'waiting' && a.running && m.link.value === 'connected' && (
         // While the agent waits for its person (its hooks say so; the screen is never read),
         // as the machine says now: not while it is being reached again (M1.8, D1.8).
         <div class="answer-strip" role="toolbar" aria-label="Answer">

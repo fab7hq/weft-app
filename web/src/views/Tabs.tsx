@@ -8,6 +8,7 @@ import * as L from '../layout';
 import * as m from '../machine';
 import { dropTab, held, joinAll, most, nextPane, over, show, splitPane } from '../panes';
 import { w } from '../words';
+import { ViewSwitch } from './Conversation';
 
 /** Whether the agent's harness is not set up for RingFrame in its project, as the tree says. */
 export const notSetUp = (a: m.Agent) =>
@@ -122,6 +123,7 @@ export function Tabs({ machine, pane, current }: { machine: string; pane: L.Pane
           );
         })}
       </nav>
+      <ViewSwitch wide />
       <LayoutMenu machine={machine} pane={pane.id} />
     </div>
   );

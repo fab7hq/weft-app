@@ -47,7 +47,8 @@ test('D3.14 M3.14: an agent is drawn at its own size: narrower at 13 px; wider, 
   const phone = page.viewportSize()!.width < 768;
 
   // Narrower than the pane: the normal text size, the rest of the pane empty.
-  machine.send(frame(20, 30));
+  // Few rows: the phone's pane is shorter under Terminal | Conversation (M12.3).
+  machine.send(frame(16, 30));
   const narrow = await drawn(page);
   expect(narrow.font, JSON.stringify(narrow)).toBe(13);
   expect(narrow.width, JSON.stringify(narrow)).toBeLessThan(0.95);

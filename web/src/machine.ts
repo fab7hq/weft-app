@@ -353,6 +353,9 @@ function heard(s: WebSocket, m: api.Machine, msg: Record<string, unknown>): void
     case 'screen':
       watching.get(String(msg.agent))?.frames(msg as unknown as Frame);
       break;
+    case 'conversation':
+      for (const heard of hearing) heard(msg);
+      break;
     case 'pong':
       clearTimeout(pongDue);
       break;
@@ -433,6 +436,20 @@ export function request(message: Record<string, unknown>): Promise<Record<string
   const req = nextReq++;
   if (!send({ ...message, req })) return null;
   return new Promise((done) => waiting.set(req, done));
+}
+
+/** Who hears what a followed agent's conversation adds (remote.md §6d). */
+const hearing = new Set<(msg: Record<string, unknown>) => void>();
+
+/** Hear `conversation` messages until the returned function is called. */
+export function hear(heard: (msg: Record<string, unknown>) => void): () => void {
+  hearing.add(heard);
+  return () => hearing.delete(heard);
+}
+
+/** Follow an agent's conversation from a cursor, or, with null, none. */
+export function follow(agent: string | null, after: string | null = null): void {
+  send(agent ? { type: 'follow', agent, after } : { type: 'follow', agent: null });
 }
 
 /** Watch an agent's screen, beside those already watched in the other panes. */

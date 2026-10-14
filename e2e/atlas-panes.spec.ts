@@ -173,8 +173,10 @@ test.describe('desktop', () => {
     await tab(page, 'weft · claude ●').dragTo(right, { targetPosition: { x: r.width / 2, y: r.height / 2 } });
     await expect(boxes(page).nth(1).getByRole('navigation', { name: 'Tabs' }).getByRole('button')).toHaveText(['docs · claude', 'weft · claude ●']);
     // Onto the left bar, after its tabs; the right pane keeps one.
-    const b = (await bar().boundingBox())!;
-    await tab(page, 'docs · claude').dragTo(bar(), { targetPosition: { x: b.width - 8, y: b.height / 2 } });
+    // Past its last tab's middle (the switch beside it leaves the bar narrower than the pane).
+    const last = bar().getByRole('button').last();
+    const b = (await last.boundingBox())!;
+    await tab(page, 'docs · claude').dragTo(last, { targetPosition: { x: b.width - 4, y: b.height / 2 } });
     await expect(bar().getByRole('button')).toHaveText(['weft · codex', 'weft · codex', 'docs · claude']);
     // The last tab out of a pane: it closes.
     const left = boxes(page).first();

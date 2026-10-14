@@ -112,11 +112,14 @@ export function Agent({ machine, agent, embedded = false, current = true, onPick
         </div>
       ) : (
         // Its pane closed, as the TUI's does; its work stays on the tree,
-        // which a desktop has beside it (D3.7).
+        // which a desktop has beside it (D3.7). Its Conversation is a switch away (M3.7).
+        <>
+        {!wide && <div class="ended-switch"><ViewSwitch wide={false} /></div>}
         <div class="ended">
           {a && <p class="ended-said">{fill('agent.ended', { harness: a.harness })}</p>}
           {!wide && <button class="tree-act" type="button" onClick={() => swap({ name: 'tree', machine: machine.id })}>{w('web.agent.back')}</button>}
         </div>
+        </>
       )}
       {!side && !talk && a?.turn === 'waiting' && a.running && m.link.value === 'connected' && (
         // While the agent waits for its person (its hooks say so; the screen is never read),

@@ -182,3 +182,16 @@ test('D12.1 in two panes: each pane in Conversation is followed, and one leaving
   await expect(right.getByText('still followed')).toBeVisible();
   await machine.close();
 });
+
+test('M3.7: an agent that has ended keeps the switch, and its Conversation reads like any other', async ({ page, context }) => {
+  const machine = await opened(page, context);
+  const s = atlas();
+  s.agents[0].running = false;
+  machine.send({ type: 'agents', agents: s.agents });
+  await expect(page.getByText('claude has ended. Its work is still on the list.')).toBeVisible();
+  await tab(page, 'Conversation').click();
+  await expect(page.getByText('Refresh the token before it expires, not after')).toBeVisible();
+  // No waiting line for an agent that no longer runs.
+  await expect(page.getByText('claude is waiting for you —')).toHaveCount(0);
+  await machine.close();
+});

@@ -278,3 +278,31 @@ test('M3.3 M3.14: on a phone the screen has a bar up and down; dragging it up re
   await expect(pane(page).getByLabel('History')).toBeVisible();
   await machine.close();
 });
+
+test('each agent keeps its own draft: switching agents brings it back and never carries it to another', async ({ page, context }, info) => {
+  const machine = await opened(page, context);
+  const phone = info.project.name !== 'desktop';
+  // A desktop switches from the tree; a phone from the list under the agent's name.
+  const to = async (name: string, harness: string, agent: string) => {
+    if (phone) {
+      // The list names each agent by its harness: the one wanted is the one then watched.
+      const rows = page.getByRole('dialog').getByRole('button', { name: new RegExp(harness) });
+      for (let n = 0; machine.of('watch').at(-1)?.agent !== agent; n++) {
+        await page.locator('.agent-name').click();
+        await rows.nth(n).click();
+      }
+    } else await openAgent(page, name);
+    await expect.poll(() => machine.of('watch').at(-1)?.agent).toBe(agent);
+  };
+  const box = page.getByLabel('Message');
+  await box.click();
+  await box.pressSequentially('fix the lint');
+  await to('claude · fix login', 'claude', '3f9a1c07b2de-0');
+  await expect(box).toHaveValue('');
+  await box.click();
+  await box.pressSequentially('run the tests');
+  await to('codex · health endpoint', 'codex', '3f9a1c07b2de-1');
+  await expect(box).toHaveValue('fix the lint');
+  expect(machine.of('text')).toHaveLength(0);
+  await machine.close();
+});

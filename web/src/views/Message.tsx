@@ -28,10 +28,16 @@ export function notLive(a: m.Agent | undefined): string {
  * cleared by `clear` on the next use. `onTyping`: whether the box has focus,
  * for the phone's key bar.
  */
+/** What each agent's message field holds, by agent, for this visit. */
+const drafts = new Map<string, string>();
+
 export function MessageRow({ agent, wide, said, clear, onTyping, keys = false }: { agent: string; wide: boolean; said?: string | null; clear?: () => void; onTyping?: (on: boolean) => void; keys?: boolean }) {
   const a = m.agents.value.find((x) => x.agent === agent);
   const live = m.link.value === 'connected' && Boolean(a?.running);
-  const [message, setMessage] = useState('');
+  // Each agent's own draft, brought back when it is in front again.
+  const [message, setDraft] = useState(drafts.get(agent) ?? '');
+  const setMessage = (text: string) => (text ? drafts.set(agent, text) : drafts.delete(agent), setDraft(text));
+  useEffect(() => setDraft(drafts.get(agent) ?? ''), [agent]);
   const [mine, setMine] = useState<string | null>(null);
   const field = useRef<HTMLTextAreaElement>(null);
   const why = mine ?? said ?? null;

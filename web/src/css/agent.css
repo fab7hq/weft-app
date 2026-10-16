@@ -26,7 +26,7 @@
 .layout-menu button { padding: 8px 12px; border: 0; background: transparent; color: var(--fab7-text); font: 400 15px var(--font-sans); text-align: left; cursor: pointer; }
 .layout-menu button:hover, .layout-menu button:focus-visible { background: var(--fab7-selected); outline: none; }
 /* Panes: a tree of them sharing the space equally; the pane you are in framed blue. */
-.panes { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.panes { flex: 1; min-height: 0; display: flex; flex-direction: column; background: var(--fab7-void); }
 .panes-right, .panes-down { flex: 1 1 0; min-width: 0; min-height: 0; display: flex; }
 .panes-down { flex-direction: column; }
 .pane-box { position: relative; flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
@@ -41,7 +41,7 @@
 .drop-zone--up { inset: 52px 12px 50%; }
 .drop-zone--left { inset: 52px 50% 58px 12px; }
 .drop-zone--right { inset: 52px 12px 58px 50%; }
-.drop-tab { color: var(--fab7-accent); border-color: var(--fab7-accent); background: var(--fab7-selected); }
+.drop-tab { padding: 6px 12px; color: var(--fab7-accent); border: 1px solid var(--fab7-accent); background: var(--fab7-selected); border-radius: var(--weft-radius-control); }
 
 /* The pane, and what is said under it (M3.6, M3.8). */
 .pane-wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; background: var(--fab7-void); }
@@ -145,3 +145,5 @@
 .split-focused { font-weight: 600; color: var(--fab7-accent); }
 .split-bar .view-switch--wide { margin-left: 0; }
 .panes-grid { flex: 1; min-height: 0; display: flex; }
+/* In a pane, the agent fills it, on the terminal's well. */
+.pane-box > .agent { flex: 1 1 0; min-height: 0; background: var(--fab7-void); }

@@ -47,6 +47,6 @@
 .sure-acts { display: flex; gap: 10px; justify-content: flex-end; padding-top: 6px; }
 .sure-act { padding: 8px 16px; border: 1px solid var(--fab7-line); background: none; color: var(--fab7-text); font: 600 13px var(--font-sans); cursor: pointer; border-radius: var(--weft-radius-control); }
 .sure-act--go { color: var(--fab7-accent); border-color: var(--fab7-accent); }
-.sure-act--warn { color: var(--fab7-amber-text); border-color: var(--fab7-amber-text); }
+.sure-act--warn { color: var(--fab7-amber-text); border-color: var(--fab7-amber); }
 .sure-act--danger { color: var(--fab7-danger); border-color: var(--fab7-danger); }
 @media (max-width: 767px) { .sure-acts { flex-wrap: wrap-reverse; } .sure-act { flex: 1 1 auto; padding: 11px 16px; font-size: 14px; } }

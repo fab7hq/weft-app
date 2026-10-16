@@ -37,6 +37,8 @@ export async function card(page: Page, title: string): Promise<string> {
         const p = cs[i];
         if (p.startsWith('--') || p.startsWith('-webkit-') || p === 'transition' || p.startsWith('transition-') || p.startsWith('animation')) continue;
         const v = cs.getPropertyValue(p);
+        // The card's tokens make every box border-box: each says its own.
+        if (p === 'box-sizing') { decl.push(`${p}:${v}`); continue; }
         // An inherited value is written where it changes from the parent's,
         // or where this tag's own default (a heading's size) would differ.
         const own = base.getPropertyValue(p) !== plain.getPropertyValue(p);
@@ -54,11 +56,24 @@ export async function card(page: Page, title: string): Promise<string> {
         const src = (el as HTMLCanvasElement).toDataURL('image/png');
         return `<img src="${src}" style="${attr(decl.join(';'))};width:${r.width}px;height:${r.height}px">`;
       }
-      let inner = '';
+      // A ::before or ::after drawn by the app, as a span the card can hold.
+      const pseudo = (where: '::before' | '::after') => {
+        const ps = getComputedStyle(el, where);
+        const c = ps.content;
+        if (!c || c === 'none' || c === 'normal' || ps.display === 'none') return '';
+        // The first string of the content: what is drawn, before any alternative text.
+        const q = c.match(/"((?:[^"\\]|\\.)*)"/);
+        const text = (q ? q[1] : '').replace(/\\([0-9a-f]{1,6}) ?/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)));
+        if (!text) return '';
+        const keep = ['color', 'font-family', 'font-size', 'font-weight', 'margin-left', 'margin-right', 'padding-left', 'padding-right', 'letter-spacing'].map((q) => `${q}:${ps.getPropertyValue(q)}`).join(';');
+        return `<span style="${attr(keep)}">${esc(text)}</span>`;
+      };
+      let inner = pseudo('::before');
       for (const n of el.childNodes) {
         if (n.nodeType === Node.TEXT_NODE) inner += esc(n.textContent ?? '');
         else if (n.nodeType === Node.ELEMENT_NODE) inner += walk(n as Element, cs);
       }
+      inner += pseudo('::after');
       if (tag === 'input' || tag === 'textarea') {
         const f = el as HTMLInputElement;
         inner = esc(f.value || f.placeholder || '');

@@ -16,7 +16,7 @@
 .ask-row { display: flex; gap: 10px; align-items: flex-start; }
 .ask-row .tree-act { flex: none; padding: 9px 18px; }
 /* The view above gives the panel its place: the message row goes while it is open, as on D4.1. */
-main:has(> .ask-panel--docked) .message-row { display: none; }
+main:has(> .ask-panel--docked) .message-foot { display: none; }
 main:has(> .ask-panel--docked) > :not(.ask-panel) { flex: 1; min-height: 0; height: auto !important; }
 
 /* SEND TO: the picked agent and ▾; open, the list in its place with the picked one ✓ (M4.3, D4.3). */

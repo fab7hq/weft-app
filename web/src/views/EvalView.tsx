@@ -56,7 +56,7 @@ function Aside({ text, needs = false }: { text: string; needs?: boolean }) {
 
 function markTone(state: State): string {
   const s = state && typeof state === 'object' ? state.read : state;
-  return s === 'met' ? 'good' : s === 'not_met' ? 'needs' : 'dim';
+  return s === 'met' ? 'good' : s === 'not_met' ? 'bad' : 'dim';
 }
 
 function Mark({ row }: { row: Row }) {

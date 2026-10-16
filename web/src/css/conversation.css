@@ -38,7 +38,7 @@
 .convo-name.needs { color: var(--fab7-amber-text); }
 .convo-text { font-size: 14px; line-height: 20px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .convo-time { font: 400 11px var(--font-mono); color: var(--fab7-faint); }
-.convo-code { font: 400 12px var(--font-mono); padding: 1px 5px; background: var(--fab7-surface); border: 1px solid var(--fab7-line); border-radius: var(--weft-radius-control); }
+.convo-code { font: 400 12px var(--font-mono); white-space: nowrap; padding: 1px 5px; background: var(--fab7-surface); border: 1px solid var(--fab7-line); border-radius: var(--weft-radius-control); }
 
 /* The steps between two messages: one line, opened in place. */
 .convo-steps { align-self: stretch; min-width: 0; display: block; padding: 7px 12px 7px 14px; border: 1px solid var(--fab7-line); background: var(--fab7-panel); box-shadow: inset 2px 0 0 var(--fab7-teal); color: var(--fab7-muted); font: 400 12px/18px var(--font-mono); text-align: left; cursor: pointer; border-radius: var(--weft-radius-control); }

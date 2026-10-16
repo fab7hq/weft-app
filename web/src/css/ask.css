@@ -8,10 +8,10 @@
 .sheet-backdrop.ask-backdrop { padding-bottom: 0; }
 .ask-panel--docked { flex: none; padding: 16px; border-top: 2px solid var(--fab7-accent); }
 .ask-title { font-size: 16px; font-weight: 600; }
-.ask-eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: var(--fab7-muted); }
-.ask-text { height: 110px; box-sizing: content-box; padding: 12px; border: 1px solid var(--fab7-line); background: var(--fab7-surface); color: var(--fab7-text); font: 400 15px var(--font-sans); resize: none; outline: none; border-radius: var(--weft-radius-control); }
+.ask-eyebrow { font: 600 11px var(--font-mono); letter-spacing: 0.08em; color: var(--fab7-faint); }
+.ask-text { height: 134px; box-sizing: border-box; padding: 12px; border: 1px solid var(--fab7-line); background: var(--fab7-surface); color: var(--fab7-text); font: 400 15px var(--font-sans); resize: none; outline: none; border-radius: var(--weft-radius-control); }
 .ask-text:focus, .ask-text--said { border-color: var(--fab7-accent); }
-.ask-panel--docked .ask-text { height: 84px; }
+.ask-panel--docked .ask-text { height: 108px; }
 .ask-acts { display: flex; gap: 10px; }
 .ask-row { display: flex; gap: 10px; align-items: flex-start; }
 .ask-row .tree-act { flex: none; padding: 9px 18px; }
@@ -29,7 +29,7 @@ main:has(> .ask-panel--docked) > :not(.ask-panel) { flex: 1; min-height: 0; heig
 .ask-to-option--active { background: var(--fab7-selected); color: var(--fab7-accent); }
 .ask-to-option[aria-selected="true"]::after { content: '✓'; content: '✓' / ''; margin-left: auto; font-size: 13px; color: var(--fab7-accent); }
 /* START AN AGENT, between the agents and the new ones; "wrote it" beside the agent that wrote it. */
-.ask-to-heading { padding: 10px 12px 4px; border-top: 1px solid var(--fab7-line); font: 600 11px var(--font-mono); letter-spacing: 0.08em; color: var(--fab7-muted); }
+.ask-to-heading { padding: 10px 12px 4px; border-top: 1px solid var(--fab7-line); font: 600 11px var(--font-mono); letter-spacing: 0.08em; color: var(--fab7-faint); }
 .ask-to-wrote { font-size: 13px; color: var(--fab7-muted); }
 .ask-to-option .ask-to-name { flex: 1; }
 .ask-row .ask-to { width: 220px; box-sizing: content-box; flex: none; gap: 10px; padding: 9px 12px; }

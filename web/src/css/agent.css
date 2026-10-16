@@ -20,7 +20,7 @@
 .tab-turbo { font-size: 11px; color: var(--fab7-amber-text); }
 /* The layout button, a four-pane icon with ▾, and its menu. */
 .layout-at { position: relative; flex: none; margin-left: auto; }
-.layout-button { display: flex; gap: 6px; align-items: center; padding: 4px 8px; border: 1px solid var(--fab7-line); background: var(--fab7-surface); color: var(--fab7-text); cursor: pointer; border-radius: var(--weft-radius-control); }
+.layout-button { font: inherit; display: flex; gap: 6px; align-items: center; padding: 4px 8px; border: 1px solid var(--fab7-line); background: var(--fab7-surface); color: var(--fab7-text); cursor: pointer; border-radius: var(--weft-radius-control); }
 .layout-caret { font-size: 11px; color: var(--fab7-muted); }
 .layout-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 20; min-width: 240px; display: flex; flex-direction: column; padding: 4px; background: var(--fab7-surface); border: 1px solid var(--fab7-line); border-radius: var(--weft-radius-panel); }
 .layout-menu button { padding: 8px 12px; border: 0; background: transparent; color: var(--fab7-text); font: 400 15px var(--font-sans); text-align: left; cursor: pointer; }
@@ -129,7 +129,7 @@
 .agents-sheet { display: flex; flex-direction: column; gap: 0; max-height: 80vh; overflow-y: auto; padding: 8px 0 calc(30px + env(safe-area-inset-bottom, 0px)); border: 0; border-radius: var(--weft-radius-panel) var(--weft-radius-panel) 0 0; }
 .agents-handle { align-self: center; flex: none; width: 36px; height: 4px; margin: 4px 0 6px; background: var(--fab7-line); }
 .agents-title { margin: 0; padding: 6px 16px 2px; font: 600 16px var(--font-sans); }
-.agents-group { margin: 0; padding: 14px 16px 4px; font: 600 11px var(--font-sans); letter-spacing: 0.08em; color: var(--fab7-faint); }
+.agents-group { margin: 0; padding: 14px 16px 4px; font: 600 11px var(--font-mono); letter-spacing: 0.08em; color: var(--fab7-faint); }
 .agents-row { display: flex; gap: 10px; align-items: center; width: 100%; min-height: 48px; padding: 0 16px; border: 0; background: none; color: var(--fab7-text); font: 400 15px var(--font-sans); text-align: left; cursor: pointer; }
 .agents-row--in { padding-left: 32px; }
 .agents-row[aria-current="true"] { background: var(--fab7-selected); }

@@ -42,6 +42,7 @@ a { color: var(--fab7-accent); }
 .menu { padding: 8px; margin: -8px; }
 .needs-pill { padding: 4px 10px; border: 1px solid var(--fab7-amber); background: var(--fab7-amber-bg); color: var(--fab7-amber-text); font: 400 12px var(--font-mono); white-space: nowrap; border-radius: var(--weft-radius-control); }
 .needs { color: var(--fab7-amber-text); }
+.bad { color: var(--fab7-danger); }
 .needs-pill { cursor: pointer; }
 .loading { flex: 1; display: flex; align-items: center; justify-content: center; }
 @media (min-width: 768px) { .phone-only { display: none; } }

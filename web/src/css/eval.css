@@ -25,11 +25,11 @@
 .eval-step { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 4px 16px; }
 .eval-line { margin: 0; align-self: stretch; font-size: 13px; overflow-wrap: anywhere; }
 .eval-under { padding-left: 1.5em; }
-.eval-label { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: var(--fab7-muted); }
+.eval-label { font: 600 11px var(--font-mono); letter-spacing: 0.08em; color: var(--fab7-faint); }
 
 /* A change's lines. */
 .eval-change { display: flex; flex-direction: column; gap: 8px; padding: 0 12px; }
-.eval-code { margin: 0; padding: 12px; background: var(--fab7-void); font: 11px/17px var(--font-mono); white-space: pre-wrap; overflow-x: auto; border-radius: var(--weft-radius-control); }
+.eval-code { margin: 0; padding: 12px; background: var(--fab7-void); font: 11px/17px var(--font-mono); white-space: pre-wrap; overflow-x: auto; }
 .eval-lit { color: var(--fab7-amber-text); font-weight: 700; }
 .eval-caption { margin: 0; font-size: 12px; color: var(--fab7-faint); }
 .eval-hint { font-size: 12px; color: var(--fab7-faint); align-self: center; }

@@ -22,7 +22,7 @@
    cards with Remove on a desktop; a row opens its machine. */
 @media (max-width: 767px) { .page.machines-page { gap: 0; padding: 0; } }
 .machines { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
-.machine { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--fab7-line); border-radius: var(--weft-radius-control); }
+.machine { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--fab7-line); }
 .machine-open { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 0; background: none; border: 0; text-align: left; font: inherit; color: inherit; cursor: pointer; }
 .machine-name { font-size: 15px; font-weight: 600; }
 .machine-meta { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: var(--fab7-muted); }

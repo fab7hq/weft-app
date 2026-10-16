@@ -1,6 +1,7 @@
 import { render } from 'preact';
 import { App } from './app';
 import { load } from './words';
+import './tokens.css';
 import './fab7.css';
 import './app.css';
 import './css/tree.css';

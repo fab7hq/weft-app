@@ -1,15 +1,15 @@
 /* conversation: an agent's two views, Terminal and Conversation (M12.1–M12.4, D12.1–D12.3), drawn to the cards. */
 
 /* Terminal | Conversation. A phone: full width, two halves in one frame. */
-.view-switch { flex: none; align-self: stretch; display: flex; gap: 3px; padding: 3px; background: var(--fab7-surface); border: 1px solid var(--fab7-line); border-radius: 10px; }
-.view-seg { flex: 1 1 0; min-width: 0; padding: 6px 0; border: 1px solid transparent; border-radius: 7px; background: transparent; color: var(--fab7-muted); font: 400 13px var(--font-sans); cursor: pointer; }
-.view-seg[aria-selected="true"] { background: #16233a; border-color: var(--fab7-accent); color: var(--fab7-accent); }
+.view-switch { flex: none; align-self: stretch; display: flex; gap: 3px; padding: 3px; background: var(--fab7-surface); border: 1px solid var(--fab7-line); }
+.view-seg { flex: 1 1 0; min-width: 0; padding: 6px 0; border: 1px solid transparent; background: transparent; color: var(--fab7-muted); font: 400 13px var(--font-sans); cursor: pointer; }
+.view-seg[aria-selected="true"] { background: var(--fab7-selected); border-color: var(--fab7-accent); color: var(--fab7-accent); }
 /* A desktop: two joined pills at the tab strip's right, before the layout button. */
-.view-switch--wide { align-self: center; gap: 0; padding: 0; margin-left: auto; background: none; border: 0; border-radius: 0; }
+.view-switch--wide { align-self: center; gap: 0; padding: 0; margin-left: auto; background: none; border: 0; }
 .view-switch--wide .view-seg { flex: none; padding: 6px 12px; background: var(--fab7-surface); border: 1px solid var(--fab7-line); color: var(--fab7-text); }
-.view-switch--wide .view-seg:first-child { border-radius: 16px 0 0 16px; border-right-width: 0; }
-.view-switch--wide .view-seg:last-child { border-radius: 0 16px 16px 0; border-left-width: 0; }
-.view-switch--wide .view-seg[aria-selected="true"] { background: #16233a; border: 1px solid var(--fab7-accent); color: var(--fab7-accent); }
+.view-switch--wide .view-seg:first-child { border-right-width: 0; }
+.view-switch--wide .view-seg:last-child { border-left-width: 0; }
+.view-switch--wide .view-seg[aria-selected="true"] { background: var(--fab7-selected); border: 1px solid var(--fab7-accent); color: var(--fab7-accent); }
 .tab-row .view-switch--wide + .layout-at { margin-left: 8px; }
 
 /* An ended agent's switch, on a phone (M3.7). */
@@ -20,12 +20,12 @@
 .convo-scroll { flex: 1 1 0; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 8px 14px 8px 4px; scrollbar-width: none; }
 .convo-scroll::-webkit-scrollbar { display: none; }
 .convo-column { min-height: 100%; display: flex; flex-direction: column; gap: 16px; }
-.convo-bar { position: absolute; right: 2px; top: 8px; bottom: 8px; width: 4px; border-radius: 2px; background: var(--fab7-surface); pointer-events: none; }
-.convo-bar span { position: absolute; left: 0; right: 0; border-radius: 2px; background: #3a4a66; }
+.convo-bar { position: absolute; right: 2px; top: 8px; bottom: 8px; width: 4px; background: var(--fab7-surface); pointer-events: none; }
+.convo-bar span { position: absolute; left: 0; right: 0; background: var(--fab7-line-hover); }
 
 /* The person's message: right, in a bubble. */
 .convo-you { align-self: stretch; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
-.convo-bubble { max-width: 270px; padding: 9px 13px; background: #16233a; border: 1px solid var(--fab7-line); border-radius: 16px 16px 4px 16px; font-size: 14px; line-height: 20px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.convo-bubble { max-width: 270px; padding: 9px 13px; background: var(--fab7-selected); border: 1px solid var(--fab7-line); font-size: 14px; line-height: 20px; white-space: pre-wrap; overflow-wrap: anywhere; }
 /* The agent's reply: left, on the canvas, the harness's name above. */
 .convo-agent { align-self: stretch; display: flex; flex-direction: column; gap: 4px; padding-right: 18px; }
 .convo-who { font-size: 12px; color: var(--fab7-muted); }
@@ -43,7 +43,7 @@
 .convo-step-arg { flex: 1 1 0; min-width: 0; color: var(--fab7-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .convo-mark { color: var(--fab7-teal); }
 .convo-step[data-state="failed"] .convo-mark { color: var(--fab7-danger); }
-.convo-running { padding: 0 6px; border: 1px solid var(--fab7-line); border-radius: 8px; font-size: 11px; line-height: 16px; color: var(--fab7-muted); }
+.convo-running { padding: 0 6px; border: 1px solid var(--fab7-line); font-size: 11px; line-height: 16px; color: var(--fab7-muted); }
 
 /* While the agent waits: one amber line, its link to Terminal (M12.4). */
 .convo-waiting { margin: 0; align-self: stretch; font-size: 13px; line-height: 19px; color: var(--fab7-amber-text); }
@@ -52,15 +52,15 @@
 .convo-unreadable { margin: 0; padding: 12px 4px; font-size: 14px; line-height: 21px; color: var(--fab7-muted); }
 
 /* A desktop: in a pane's frame, a column at most 760 px wide, centred. */
-.convo--wide { background: #05080f; border: 1px solid var(--fab7-line); border-radius: 10px; overflow: hidden; }
+.convo--wide { background: var(--fab7-void); border: 1px solid var(--fab7-line); overflow: hidden; }
 .convo--wide .convo-scroll { padding: 20px 12px; scrollbar-width: thin; }
 .convo--wide .convo-scroll::-webkit-scrollbar { display: initial; }
 .convo--wide .convo-column { width: 100%; max-width: 760px; margin: 0 auto; justify-content: flex-end; gap: 18px; }
 .convo--wide .convo-you { align-self: flex-end; max-width: 520px; }
-.convo--wide .convo-bubble { max-width: none; padding: 10px 14px; border-radius: 14px; line-height: 21px; }
+.convo--wide .convo-bubble { max-width: none; padding: 10px 14px; line-height: 21px; }
 .convo--wide .convo-agent { align-self: flex-start; max-width: 640px; padding-right: 0; }
 .convo--wide .convo-who { display: flex; gap: 8px; align-items: baseline; }
-.convo--wide .convo-steps { align-self: flex-start; max-width: 560px; padding: 7px 12px; background: var(--fab7-panel); border: 1px solid var(--fab7-line); border-radius: 8px; }
+.convo--wide .convo-steps { align-self: flex-start; max-width: 560px; padding: 7px 12px; background: var(--fab7-panel); border: 1px solid var(--fab7-line); }
 .convo--wide .convo-steps--open { width: 560px; gap: 3px; padding: 7px 12px 9px; line-height: 18px; }
 .convo--wide .convo-step { gap: 12px; padding-left: 16px; }
 .convo--wide .convo-step-tool { width: 56px; color: var(--fab7-text); }

@@ -8,13 +8,13 @@
 .start-lede { margin: 0; font-size: 15px; color: var(--fab7-muted); }
 .start-said { margin: 0; font-size: 13px; line-height: 1.6; color: var(--fab7-muted); }
 .fab7-group.start-pick { padding: 14px 16px 6px; }
-.start-list { display: flex; flex-direction: column; padding: 4px 0; border: 1px solid var(--fab7-line); border-radius: 10px; background: var(--fab7-surface); }
+.start-list { display: flex; flex-direction: column; padding: 4px 0; border: 1px solid var(--fab7-line); background: var(--fab7-surface); }
 .start-option { display: flex; gap: 10px; align-items: center; padding: 12px; border: 0; background: none; color: var(--fab7-text); font: 400 15px var(--font-sans); text-align: left; cursor: pointer; }
 .start-name { flex: 1; min-width: 0; }
 .start-aside { font-size: 12px; color: var(--fab7-muted); }
 .start-radio { color: var(--fab7-muted); }
 .start-radio--off { line-height: 15px; }
-.start-option[aria-checked="true"] { background: #16233a; color: var(--fab7-accent); }
+.start-option[aria-checked="true"] { background: var(--fab7-selected); color: var(--fab7-accent); }
 .start-option[aria-checked="true"] > .start-radio { color: var(--fab7-accent); }
 .start-bar { flex: none; display: flex; justify-content: flex-end; gap: 10px; padding: 10px 20px; border-top: 1px solid var(--fab7-line); }
 .start-bar .tree-act { flex: none; padding: 9px 18px; }
@@ -29,7 +29,7 @@
 .settings-connected { font-size: 12px; font-weight: 400; color: var(--fab7-teal); }
 .settings-field { display: flex; flex-direction: column; gap: 6px; padding: 4px 16px 12px; }
 .settings-label { font-size: 12px; color: var(--fab7-muted); }
-.settings-name { box-sizing: border-box; width: 100%; padding: 10px 12px; border: 1px solid var(--fab7-line); border-radius: 8px; background: var(--fab7-surface); color: var(--fab7-text); font: 400 15px var(--font-sans); outline: none; }
+.settings-name { box-sizing: border-box; width: 100%; padding: 10px 12px; border: 1px solid var(--fab7-line); background: var(--fab7-surface); color: var(--fab7-text); font: 400 15px var(--font-sans); outline: none; }
 .settings-name:focus-visible { border-color: var(--fab7-accent); }
 .settings-leave.leave--warn { color: var(--fab7-amber-text); }
 .settings-leave.leave--danger { color: var(--fab7-danger); }
@@ -52,21 +52,21 @@
 /* The switch the cards draw for notifications: a checkbox under it takes the press. */
 .switch { position: relative; flex: none; display: inline-flex; }
 .switch-input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; z-index: 1; }
-.switch-track { box-sizing: content-box; display: flex; align-items: center; width: 46px; height: 28px; padding: 3px; border: 1px solid var(--fab7-line); border-radius: 14px; background: var(--fab7-surface); }
-.switch-knob { width: 22px; height: 22px; border-radius: 11px; background: #fff; }
+.switch-track { box-sizing: content-box; display: flex; align-items: center; width: 46px; height: 28px; padding: 3px; border: 1px solid var(--fab7-line); background: var(--fab7-surface); }
+.switch-knob { width: 22px; height: 22px; background: #fff; }
 .switch-input:checked + .switch-track { justify-content: flex-end; border: 0; background: var(--fab7-button); }
 .switch-input:focus-visible + .switch-track { outline: 2px solid var(--fab7-accent); outline-offset: 2px; }
 
 /* Why notifications did not turn on: amber under the row (M9.3, D9.3), or the
    Home Screen's banner (M9.2). */
 .push-said { margin: 0; padding: 12px 16px; font-size: 13px; color: var(--fab7-amber-text); }
-.push-said--home { display: flex; flex-direction: column; gap: 6px; background: #3a2c0c; }
+.push-said--home { display: flex; flex-direction: column; gap: 6px; background: var(--fab7-amber-bg); }
 .push-said--home strong { font-size: 15px; font-weight: 600; color: var(--fab7-amber-text); }
 .push-said--home span { color: var(--fab7-text); }
 
 /* The desktop's menu (D9.1), dropping from ☰. */
 .menu-backdrop { position: fixed; inset: 0; z-index: 30; }
-.menu-pop { position: absolute; right: 20px; top: 64px; width: 300px; max-height: calc(100vh - 80px); overflow: auto; display: flex; flex-direction: column; padding: 12px 0; border: 1px solid var(--fab7-line); border-radius: 12px; background: var(--fab7-panel); }
+.menu-pop { position: absolute; right: 20px; top: 64px; width: 300px; max-height: calc(100vh - 80px); overflow: auto; display: flex; flex-direction: column; padding: 12px 0; border: 1px solid var(--fab7-line); background: var(--fab7-panel); }
 .menu-row { display: flex; align-items: center; gap: 10px; width: 100%; padding: 0; border: 0; background: none; color: var(--fab7-text); font: 15px var(--font-sans); text-align: left; cursor: pointer; }
 .menu-row.menu-start { padding: 4px 16px 10px; }
 .menu-part { display: flex; flex-direction: column; gap: 2px; padding: 10px 16px 8px; border-top: 1px solid var(--fab7-line); }
@@ -76,8 +76,8 @@
 .menu-value { font-size: 15px; }
 .menu-push { display: flex; align-items: center; gap: 10px; font-size: 15px; cursor: pointer; }
 .menu-part:has(> .menu-push) { padding: 10px 16px; }
-.menu-push .switch-track { width: 40px; height: 24px; border-radius: 12px; }
-.menu-push .switch-knob { width: 18px; height: 18px; border-radius: 9px; }
+.menu-push .switch-track { width: 40px; height: 24px; }
+.menu-push .switch-knob { width: 18px; height: 18px; }
 .settings-row .eval-more:not(.settings-connected), .menu-machine .eval-more { font-weight: 600; }
 /* Notifications that cannot turn on: only their row and why (D9.3). */
 .menu-pop--said { gap: 8px; padding: 14px; }

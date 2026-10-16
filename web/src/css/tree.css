@@ -6,7 +6,7 @@
 .tree-row { display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 16px; box-sizing: border-box; cursor: pointer; }
 .tree-row--harness { padding-left: 32px; }
 .tree-row--work { padding-left: 50px; }
-.tree-row[aria-selected="true"] { background: #16233a; border-left: 3px solid var(--fab7-accent); }
+.tree-row[aria-selected="true"] { background: var(--fab7-selected); border-left: 3px solid var(--fab7-accent); }
 .tree-fold { font-family: inherit; font-size: 13px; line-height: normal; color: var(--fab7-muted); background: none; border: 0; padding: 0; cursor: pointer; }
 .tree-name { flex: 1; min-width: 0; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tree-row--project .tree-name { font-weight: 600; }
@@ -37,7 +37,7 @@
 .tree-bar { flex: none; background: var(--fab7-panel); border-top: 1px solid var(--fab7-line); }
 .tree-said { margin: 0; padding: 10px 16px; font-size: 13px; color: var(--fab7-amber-text); border-bottom: 1px solid var(--fab7-line); }
 .tree-acts { display: flex; align-items: center; gap: 10px; padding: 10px 16px 30px; }
-.tree-act { flex: 1; min-width: 0; padding: 11px 16px; border: 1px solid var(--fab7-line); border-radius: 10px; background: var(--fab7-surface); color: var(--fab7-text); font: 600 14px var(--font-sans); cursor: pointer; }
+.tree-act { flex: 1; min-width: 0; padding: 11px 16px; border: 1px solid var(--fab7-line); background: var(--fab7-surface); color: var(--fab7-text); font: 600 14px var(--font-sans); cursor: pointer; }
 /* Sent, and the machine has not answered yet: the act works, a light passing across it; a second press does nothing. */
 .tree-act[aria-busy="true"] { position: relative; overflow: hidden; pointer-events: none; }
 .tree-act[aria-busy="true"]::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.22), transparent); transform: translateX(-100%); animation: working 1s ease-in-out infinite; }
@@ -47,7 +47,7 @@
 /* The why above the acts: one panel with them on a phone (M10.1), a line between them on a desktop (D10.1). */
 .tree-bar .tree-said { border-bottom: 0; }
 .tree-bar--wide .tree-said { padding: 8px 20px; border-bottom: 1px solid var(--fab7-line); }
-.tree-act.tree-act--go { border: 0; background: var(--fab7-button); color: #fff; }
+.tree-act.tree-act--go { border: 0; background: var(--fab7-button); color: var(--fab7-on-button); }
 .tree-act--start { flex: none; border: 1px solid var(--fab7-line); }
 .woven { flex: 1; display: flex; flex-direction: column; gap: 24px; align-items: center; justify-content: center; }
 .woven .tree-act--start { padding: 9px 18px; }
@@ -55,7 +55,7 @@
 .tree-skeleton { display: flex; flex-direction: column; gap: 4px; padding: 12px 0; }
 .tree-side .tree-skeleton { gap: 0; padding: 8px 0; }
 .tree-skeleton .tree-row { flex: none; }
-.skeleton-bar { display: block; height: 12px; border-radius: 6px; background: var(--fab7-surface); }
+.skeleton-bar { display: block; height: 12px; background: var(--fab7-surface); }
 .woven--weaving .woven-mark { animation: weave 1.6s ease-in-out infinite alternate; }
 @keyframes weave { from { opacity: 0.35; letter-spacing: 0; } to { opacity: 1; letter-spacing: 1px; } }
 @media (prefers-reduced-motion: reduce) { .woven--weaving .woven-mark { animation: none; } }
@@ -92,10 +92,10 @@
 .seal-lines { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 8px; }
 .seal-lines .tree-name { flex: none; }
 .tree-more-rows { height: 1px; flex: none; }
-.row-act { flex: none; padding: 4px 10px; border: 1px solid var(--fab7-line); border-radius: 7px; background: var(--fab7-surface); color: var(--fab7-text); font: 600 12px var(--font-sans); cursor: pointer; }
+.row-act { flex: none; padding: 4px 10px; border: 1px solid var(--fab7-line); background: var(--fab7-surface); color: var(--fab7-text); font: 600 12px var(--font-sans); cursor: pointer; }
 .tree-selected { font-size: 12px; color: var(--fab7-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* The search (M11.8, D11.8): a pill above the tree, blue once it holds text. */
-.tree-search { flex: none; display: flex; align-items: center; gap: 8px; margin: 10px 16px 2px; padding: 8px 14px; border: 1px solid var(--fab7-line); border-radius: 20px; background: var(--fab7-surface); }
+.tree-search { flex: none; display: flex; align-items: center; gap: 8px; margin: 10px 16px 2px; padding: 8px 14px; border: 1px solid var(--fab7-line); background: var(--fab7-surface); }
 .tree-search:focus-within, .tree-search--on { border-color: var(--fab7-accent); }
 .tree-glass { font-size: 15px; color: var(--fab7-faint); }
 .tree-field { flex: 1; min-width: 0; padding: 0; border: 0; background: none; color: var(--fab7-text); font: 400 16px var(--font-sans); outline: none; -webkit-appearance: none; appearance: none; }
@@ -120,6 +120,6 @@
 .tree-side .group-aside { font-size: 12px; }
 .tree-side .tree-row--work, .tree-side .tree-row--seal { padding-left: 52px; }
 /* A project reopened after Weft on the machine ended uncleanly (M13.5). */
-.reopened { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin: 0 16px 6px 32px; padding: 12px 14px; background: var(--fab7-surface); border: 1px solid var(--fab7-line); border-radius: 10px; }
+.reopened { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin: 0 16px 6px 32px; padding: 12px 14px; background: var(--fab7-surface); border: 1px solid var(--fab7-line); }
 .reopened-notice { margin: 0; font-size: 13px; line-height: 19px; color: var(--fab7-text); }
 .reopened-dismiss { padding: 7px 14px; font-size: 13px; }

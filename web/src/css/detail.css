@@ -2,8 +2,8 @@
 .detail { display: flex; flex-direction: column; gap: 10px; }
 .page .detail h2 { font-size: 19px; font-weight: 700; letter-spacing: 0; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.chip { padding: 3px 9px; border-radius: 20px; background: var(--fab7-surface); color: var(--fab7-muted); font-size: 12px; text-transform: uppercase; }
-.chip--needs { background: #3a2c0c; color: var(--fab7-amber-text); }
+.chip { padding: 3px 9px; background: var(--fab7-surface); color: var(--fab7-muted); font-size: 12px; text-transform: uppercase; }
+.chip--needs { background: var(--fab7-amber-bg); color: var(--fab7-amber-text); }
 .chip--good { background: #0c2f2a; color: var(--fab7-teal); }
 .detail-section { border-top: 1px solid var(--fab7-line); padding-top: 10px; display: flex; flex-direction: column; gap: 4px; }
 .detail-head { display: flex; align-items: baseline; gap: 8px; width: 100%; padding: 4px 0; background: none; border: 0; color: var(--fab7-text); font: inherit; cursor: pointer; text-align: left; }

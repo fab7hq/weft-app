@@ -74,7 +74,7 @@
 .ended .tree-act { flex: none; padding: 11px 16px; border: 1px solid var(--fab7-line); }
 
 /* A key, as the cards draw every key: a bevelled cap, the full width of its row's share. */
-.agent-key { flex: 1 1 0; min-width: 0; display: inline-flex; align-items: center; justify-content: center; padding: 7px 0; border: 1px solid var(--fab7-line); background: var(--fab7-surface); color: var(--fab7-text); font: 400 11px/18px var(--font-mono); white-space: nowrap; cursor: pointer; box-shadow: var(--weft-bevel); touch-action: manipulation; user-select: none; -webkit-user-select: none; border-radius: var(--weft-radius-control); }
+.agent-key { flex: 1 1 0; min-width: 0; display: inline-flex; align-items: center; justify-content: center; padding: 7px 0; border: 1px solid var(--fab7-line); background: var(--fab7-surface); color: var(--fab7-text); font: 400 11px/18px var(--font-mono); white-space: nowrap; cursor: pointer; touch-action: manipulation; user-select: none; -webkit-user-select: none; border-radius: var(--weft-radius-control); }
 .agent-key:active { background: var(--fab7-selected); }
 .key-lit { background: var(--fab7-selected); border-color: var(--fab7-accent); color: var(--fab7-accent); font-weight: 600; }
 
@@ -94,7 +94,7 @@
 /* A phone zooms into a box under 16 px when it takes the focus: the words
    typed are drawn at 16, the placeholder at the card's 13. */
 @media (pointer: coarse) { .message-input { font-size: 16px; } .message-input::placeholder { font-size: 13px; } }
-.send-key { flex: none; display: inline-flex; align-items: center; justify-content: center; padding: 8px 13px; border: 1px solid var(--fab7-accent); background: var(--fab7-button); color: var(--fab7-on-button); box-shadow: var(--weft-bevel-primary); font: 400 13px var(--font-sans); cursor: pointer; border-radius: var(--weft-radius-control); }
+.send-key { flex: none; display: inline-flex; align-items: center; justify-content: center; padding: 8px 13px; border: 1px solid var(--fab7-accent); background: var(--fab7-button); color: var(--fab7-on-button); font: 400 13px var(--font-sans); cursor: pointer; border-radius: var(--weft-radius-control); }
 .send-key:hover { background: var(--fab7-accent); }
 .agent--wide .message-foot { gap: 0; padding: 0; }
 .agent--wide .message-foot .message-said { padding: 8px 14px; }

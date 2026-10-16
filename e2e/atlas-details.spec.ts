@@ -345,16 +345,16 @@ test('M11.5: a quiet session: its last active time on the row and in its Details
   await machine.close();
 });
 
-test('M11.7 D11.7: n earlier sessions unfolds in the tree, newest first; a tap folds it; a row opens its session', async ({ page, context }) => {
+test('M11.7 D11.7: n earlier sessions unfolds in the tree, newest first, and the sessions take its row; a row opens its session', async ({ page, context }) => {
   const machine = await opened(page, context);
   const more = row(page, '12 earlier sessions');
   const past = page.locator('.tree-row--past');
-  await expect(more).toHaveAttribute('aria-expanded', 'false');
-  await expect(more).toHaveText('▸12 earlier sessions');
+  await expect(more).toHaveText('12 earlier sessions ›');
   await expect(past).toHaveCount(0);
   expect(machine.of('read')).toHaveLength(0);
   await more.click();
-  await expect(more).toHaveText('▾12 earlier sessions');
+  // Unfolded, the row goes: the sessions are in its place.
+  await expect(more).toHaveCount(0);
   await expect(past).toHaveCount(12);
   const reads = () => machine.of('read').filter((r) => r.what === 'sessions');
   expect(reads()).toEqual([expect.objectContaining({ project: 'weft' })]);
@@ -366,20 +366,14 @@ test('M11.7 D11.7: n earlier sessions unfolds in the tree, newest first; a tap f
   await expect(first).toContainText('07:40');
   await expect(row(page, 'claude · turn-state map')).toContainText('Tue 18:22');
   await expect(row(page, 'claude · turn-state map').locator('.agent-dot')).toHaveText('□');
-  await more.click();
-  await expect(more).toHaveText('▸12 earlier sessions');
-  await expect(past).toHaveCount(0);
-  await more.click();
-  await expect(past).toHaveCount(12);
-  // Kept as read: folding and unfolding again asks nothing.
   expect(reads()).toHaveLength(1);
   await row(page, 'codex · ci cache').click();
   await expect(region(page, /^codex · 01997a2d/)).toBeVisible();
-  // Open for this visit: back at the tree, it is still unfolded.
+  // Open for this visit: back at the tree, its sessions are still there.
   if (!wideOf(page)) {
     await page.goBack();
-    await expect(row(page, '12 earlier sessions')).toHaveAttribute('aria-expanded', 'true');
     await expect(past).toHaveCount(12);
+    await expect(row(page, '12 earlier sessions')).toHaveCount(0);
   }
   await machine.close();
 });

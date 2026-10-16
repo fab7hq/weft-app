@@ -449,10 +449,12 @@ function EarlierRows({ p, moves, found }: { p: m.Project; moves: Moves; found?: 
   const said = earlierSaid(p.agents.earlier);
   return (
     <>
-      <div class="tree-row tree-row--earlier" role="treeitem" aria-label={said} aria-expanded={open} onClick={() => (pastOpen.value = { ...pastOpen.value, [p.project]: !pastOpen.value[p.project] })}>
-        <span class="tree-fold">{open ? '▾' : '▸'}</span>
-        <span class="tree-name">{said}</span>
-      </div>
+      {/* Unfolded, the sessions take the row's place: a long list has no fold above it. */}
+      {!open && (
+        <div class="tree-row tree-row--earlier" role="treeitem" aria-label={said} aria-expanded={false} onClick={() => (pastOpen.value = { ...pastOpen.value, [p.project]: true })}>
+          <span class="tree-name">{`${said} ›`}</span>
+        </div>
+      )}
       {open && rows.map((e) => <AgentRow key={e.session} p={p} s={asRow(e)} moves={moves} later={when(e)} />)}
       {open && next && <div ref={end} class="tree-more-rows" aria-hidden="true" />}
     </>

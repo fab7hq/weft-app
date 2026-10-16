@@ -37,7 +37,7 @@
 .tree-bar { flex: none; background: var(--fab7-panel); border-top: 1px solid var(--fab7-line); }
 .tree-said { margin: 0; padding: 10px 16px; font-size: 13px; color: var(--fab7-amber-text); border-bottom: 1px solid var(--fab7-line); }
 .tree-acts { display: flex; align-items: center; gap: 10px; padding: 10px 16px 30px; }
-.tree-act { flex: 1; min-width: 0; padding: 11px 16px; border: 1px solid var(--fab7-line); background: var(--fab7-surface); color: var(--fab7-text); font: 600 14px var(--font-sans); cursor: pointer; box-shadow: var(--weft-bevel); border-radius: var(--weft-radius-control); }
+.tree-act { flex: 1; min-width: 0; padding: 11px 16px; border: 1px solid var(--fab7-line); background: var(--fab7-surface); color: var(--fab7-text); font: 600 14px var(--font-sans); cursor: pointer; border-radius: var(--weft-radius-control); }
 /* Sent, and the machine has not answered yet: the act works, a light passing across it; a second press does nothing. */
 .tree-act[aria-busy="true"] { position: relative; overflow: hidden; pointer-events: none; }
 .tree-act[aria-busy="true"]::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.22), transparent); transform: translateX(-100%); animation: working 1s ease-in-out infinite; }
@@ -48,7 +48,7 @@
 /* The why above the acts: one panel with them on a phone (M10.1), a line between them on a desktop (D10.1). */
 .tree-bar .tree-said { border-bottom: 0; }
 .tree-bar--wide .tree-said { padding: 8px 20px; border-bottom: 1px solid var(--fab7-line); }
-.tree-act.tree-act--go { border: 1px solid var(--fab7-accent); background: var(--fab7-button); color: var(--fab7-on-button); box-shadow: var(--weft-bevel-primary); }
+.tree-act.tree-act--go { border: 1px solid var(--fab7-accent); background: var(--fab7-button); color: var(--fab7-on-button); }
 .tree-act--start { flex: none; border: 1px solid var(--fab7-line); }
 .woven { flex: 1; display: flex; flex-direction: column; gap: 16px; align-items: center; justify-content: center; background-color: var(--fab7-void); }
 .woven .tree-act--start { flex: none; padding: 7px 18px; font-size: 13px; }
@@ -81,7 +81,7 @@
 .agent-at { flex: none; font: 400 11px var(--font-mono); color: var(--fab7-faint); white-space: nowrap; }
 .tree-row--earlier { height: 36px; padding-left: 32px; }
 .tree-row--earlier .tree-name { font-size: 12px; color: var(--fab7-accent); }
-.tree-row--earlier .tree-fold { display: none; }
+
 .tree-row--past { padding-left: 48px; }
 .tree-row--group { height: 38px; padding: 0 16px 0 32px; gap: 10px; }
 .group-name { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px; overflow: hidden; white-space: pre; }

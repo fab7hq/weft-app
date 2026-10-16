@@ -14,7 +14,7 @@ import { AskDock } from './Ask';
 import { Details, RoundDetails, SealDetails } from './Details';
 import { SessionDetails } from './Session';
 import { EvalView } from './EvalView';
-import { Mark, StartButton, TreeList, selectAgent } from './Tree';
+import { Mark, TreeList, selectAgent } from './Tree';
 import { MessageRow } from './Message';
 import { w } from '../words';
 import { StartPanel } from './Start';
@@ -75,7 +75,7 @@ function Woven({ machine }: { machine: Machine }) {
           </span>
         ))}
       </div>
-      {!weaving && <StartButton machine={machine} />}
+      {!weaving && <p class="woven-said">{w('workspace.empty')}</p>}
     </div>
   );
 }

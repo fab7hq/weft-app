@@ -194,7 +194,7 @@ function GoneBar({ gone: g }: { gone: Gone }) {
   };
   const fresh = () => {
     close();
-    if (machine) go({ name: 'start', machine: machine.id, from: g.project, harness: g.harness });
+    if (machine) go({ name: 'start', machine: machine.id, from: g.project, project: g.project, harness: g.harness });
   };
   const title = s ? fill('web.resume.ask', { harness: g.harness, session: shortId(s.session) }) : g.said ?? '';
   return (

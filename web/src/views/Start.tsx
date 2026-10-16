@@ -1,5 +1,5 @@
-// Start an agent (M9.7, D9.7): the harnesses the project can start, fresh, as
-// the TUI's N lists them; Start opens the new agent.
+// Start an agent (M9.7, D9.7): from a project's +, the harnesses it can start,
+// fresh; Start opens the new agent.
 import { useState } from 'preact/hooks';
 import type { Machine } from '../api';
 import * as m from '../machine';
@@ -14,13 +14,10 @@ function project(): string | undefined {
 
 /** The list and Start: in the right pane on a desktop (D9.7), or under the phone's bar (M9.7). */
 export function StartPanel({ machine, harness, project: chosen, phone = false }: { machine: Machine; harness?: string; project?: string; phone?: boolean }) {
-  // With more than one project open, the person chooses which one (M9.8).
-  const projects = m.tree.value;
-  const [picked, setAt] = useState<string | null>(null);
-  const at = picked ?? chosen ?? project();
+  // The project is the one whose + was pressed: only its harnesses are chosen here.
+  const at = chosen ?? project();
   const starts = m.harnesses.value.filter((s) => s.project === at);
   const [pick, setPick] = useState(Math.max(0, starts.findIndex((s) => s.harness === harness)));
-  const several = projects.length > 1;
   const [said, setSaid] = useState<string | null>(null);
   const start = async () => {
     const s = starts[pick];
@@ -38,28 +35,14 @@ export function StartPanel({ machine, harness, project: chosen, phone = false }:
   );
   return (
     <>
-      {!phone && <h2 class="start-head">{w('start.title')}</h2>}
+      {!phone && <h2 class="start-head">{at ? fill('web.start.in', { project: at }) : w('start.title')}</h2>}
       <div class={phone ? 'start' : 'start start--wide'}>
         <p class="start-lede">{fill('web.start.runs_on', { machine: machine.name })}</p>
-        {several && (
-          <>
-            <div class="fab7-group settings-group start-pick">{w('web.start.project')}</div>
-            <div class="start-list" role="radiogroup" aria-label={w('web.start.project')}>
-              {projects.map((p) => (
-                <button key={p.project} type="button" role="radio" aria-checked={p.project === at} class="start-option" onClick={() => (setAt(p.project), setPick(0))}>
-                  <span class="start-radio" aria-hidden="true" />
-                  <span class="start-name">{p.project}</span>
-                  <span class="start-aside">{p.open === 0 && p.agents.rows.length === 0 ? w('web.start.nothing_yet') : `${p.open} ${w('title.open')}`}</span>
-                </button>
-              ))}
-            </div>
-          </>
-        )}
         {starts.length === 0 ? (
           <p class="start-said" role="status">{fill('web.start.none', { machine: machine.name })}</p>
         ) : (
           <>
-            {(phone || several) && <div class="fab7-group settings-group start-pick">{several ? w('web.start.harness') : w('web.start.pick_one')}</div>}
+            {phone && <div class="fab7-group settings-group start-pick">{w('web.start.pick_one')}</div>}
             <div class="start-list" role="radiogroup" aria-label={w('start.title')}>
               {starts.map((s, i) => (
                 <button key={s.harness} type="button" role="radio" aria-checked={i === pick} class="start-option" onClick={() => setPick(i)}>
@@ -89,7 +72,7 @@ export function StartPage({ machine, from, harness, project }: { machine: Machin
     <div class="app">
       <div class="appbar">
         <button class="back" type="button" onClick={back}>{`‹ ${from}`}</button>
-        <h1>{w('start.title')}</h1>
+        <h1>{project ? fill('web.start.in', { project }) : w('start.title')}</h1>
       </div>
       <StartPanel machine={machine} harness={harness} project={project} phone />
     </div>

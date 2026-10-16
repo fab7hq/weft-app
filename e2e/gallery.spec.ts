@@ -680,8 +680,7 @@ const SCREENS: Screen[] = [
   })),
   { ids: ['M9.7', 'D9.7'], run: async (at) => {
     await tree(at);
-    await button(at, 'Menu').click();
-    await (at.wide ? at.page.getByRole('menu') : at.page).getByRole('button', { name: 'Start an agent' }).click();
+    await button(at, 'Start an agent in weft').click();
     await expect(at.page.getByRole('radiogroup', { name: 'Start an agent' })).toBeVisible();
   } },
 

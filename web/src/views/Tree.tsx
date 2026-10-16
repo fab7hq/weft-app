@@ -193,17 +193,8 @@ export function NeedsYouPill({ machine }: { machine: Machine }) {
   );
 }
 
-/** The way to start an agent from the empty tree. */
-export function StartButton({ machine }: { machine: Machine }) {
-  return (
-    <button class="tree-act tree-act--start" type="button" onClick={() => go({ name: 'start', machine: machine.id, from: m.tree.value[0]?.project ?? machine.name })}>
-      {w('start.title')}
-    </button>
-  );
-}
-
-/** What the empty tree says, as the TUI's empty list does. */
-function Empty({ machine }: { machine: Machine }) {
+/** What the empty tree says. Nothing asked yet, its projects stay, each with its +. */
+function Empty({ machine, onAgent, wide }: { machine: Machine; onAgent: (agent: string) => void; wide: boolean }) {
   const why = m.tree.value.find((p) => p.ask)?.ask;
   // M2.3, D2.3: the harness is not set up; else M2.1, D2.1: nothing asked yet.
   if (why && why.key !== 'why.start_an_agent')
@@ -214,11 +205,16 @@ function Empty({ machine }: { machine: Machine }) {
         <p class="tree-empty-line tree-empty-line--faint">{fill('web.why.set_up_on', { machine: machine.name })}</p>
       </div>
     );
+  const moves = { machine, wide, onAgent, searching: false };
   return (
-    <div class="tree-empty">
-      <p class="tree-empty-said">{w('tree.nothing_asked')}</p>
-      <span class="phone-only"><StartButton machine={machine} /></span>
-    </div>
+    <>
+      <div class="tree" role="tree" aria-label="Work">
+        {m.tree.value.map((p) => <ProjectRows key={p.project} p={p} moves={moves} />)}
+      </div>
+      <div class="tree-empty">
+        <p class="tree-empty-said">{w('tree.nothing_asked')}</p>
+      </div>
+    </>
   );
 }
 
@@ -307,7 +303,7 @@ interface Moves {
 
 export function TreeList({ machine, onAgent, wide = false }: { machine: Machine; onAgent: (agent: string) => void; wide?: boolean }) {
   if (!m.welcomed.value) return <Skeleton />;
-  if (m.tree.value.every((p) => bare(p) && !p.setup)) return <Empty machine={machine} />;
+  if (m.tree.value.every((p) => bare(p) && !p.setup)) return <Empty machine={machine} onAgent={onAgent} wide={wide} />;
   return <Searched machine={machine} onAgent={onAgent} wide={wide} />;
 }
 

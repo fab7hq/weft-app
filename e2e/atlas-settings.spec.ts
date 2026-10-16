@@ -1,5 +1,5 @@
 // The menu and Settings (M9.1, D9.1, D9.2): on a phone ☰ opens Settings, with
-// Start an agent and the machines; on a desktop ☰ opens the menu under it, and
+// the machines; on a desktop ☰ opens the menu under it, and
 // Settings… holds the rest. Leaving is coloured by what it costs (M9.4).
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import { FakeMachine, atlas } from './fake-machine';
@@ -19,13 +19,13 @@ async function opened(page: Page, context: BrowserContext) {
   return machine;
 }
 
-test('M9.1: Settings has Start an agent, this device, its notifications, the machines and the account', async ({ page, context }, info) => {
+test('M9.1: Settings has this device, its notifications, the machines and the account', async ({ page, context }, info) => {
   test.skip(info.project.name !== 'iphone', 'the phone');
   const machine = await opened(page, context);
   await page.getByRole('button', { name: 'Menu' }).click();
-  await expect(page.locator('.fab7-group')).toHaveText(['studio', 'This device', 'Machines', 'Account · octo']);
-  await expect(page.getByRole('button', { name: 'Start an agent' })).toBeVisible();
-  await expect(page.getByText('It runs on studio, with your own settings.')).toBeVisible();
+  await expect(page.locator('.fab7-group')).toHaveText(['This device', 'Machines', 'Account · octo']);
+  // An agent starts from a project's +, not from here.
+  await expect(page.getByRole('button', { name: 'Start an agent', exact: true })).toHaveCount(0);
   await expect(page.getByLabel(/Notifications from studio/)).toBeVisible();
   const rows = page.locator('.settings-row').filter({ hasText: /^(studio|laptop)/ });
   await expect(rows).toHaveText(['studioconnected ›', 'laptop›']);
@@ -53,7 +53,7 @@ test('D9.1 D9.2: ☰ at the top right opens the menu under it; a click outside c
   expect(box.y).toBeGreaterThan(at.y + at.height);
   expect(Math.abs(box.y - (header.y + header.height + 6))).toBeLessThanOrEqual(1);
   expect(Math.abs(box.x + box.width - (at.x + at.width))).toBeLessThan(24);
-  await expect(menu.getByRole('button', { name: 'Start an agent' })).toBeVisible();
+  await expect(menu.getByRole('button', { name: 'Start an agent', exact: true })).toHaveCount(0);
   await expect(menu.locator('.fab7-group')).toHaveText(['This device', 'Machines']);
   await expect(menu.getByLabel(/Notifications from studio/)).toBeVisible();
   await expect(menu.getByRole('button', { name: /laptop/ })).toBeVisible();

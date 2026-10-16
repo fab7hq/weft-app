@@ -1,5 +1,5 @@
-// Start an agent (M2.1, D2.1, M9.7, D9.7): from the empty tree and from the menu,
-// a harness the project can start; the new agent opens.
+// Start an agent (M2.1, D2.1, M9.7, D9.7): only from a project's +, a harness
+// that project can start; the new agent opens. Neither the menu nor Settings start one.
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import { FakeMachine, atlas, project, type Project } from './fake-machine';
 import { person, signIn } from './seed';
@@ -18,10 +18,10 @@ async function opened(page: Page, context: BrowserContext, harnesses = atlas().h
   return machine;
 }
 
-test('M2.1 D2.1 → M9.7 D9.7: start an agent from the empty tree; it opens', async ({ page, context }) => {
+test('M2.1 D2.1 → M9.7 D9.7: nothing asked yet, the project keeps its +; it starts an agent there, which opens', async ({ page, context }) => {
   const machine = await opened(page, context);
   await expect(page.getByText('Nothing asked for yet.')).toBeVisible();
-  await page.getByRole('button', { name: 'Start an agent' }).click();
+  await page.getByRole('button', { name: 'Start an agent in weft' }).click();
   await expect(page.getByText('It runs on studio, with your own settings.')).toBeVisible();
   const list = page.getByRole('radiogroup', { name: 'Start an agent' });
   await expect(list.getByRole('radio')).toHaveText(['claude · start fresh', 'codex · start fresh']);
@@ -33,12 +33,14 @@ test('M2.1 D2.1 → M9.7 D9.7: start an agent from the empty tree; it opens', as
   await machine.close();
 });
 
-test('M9.1 D9.1 → M9.7: start an agent from Settings or the menu; Cancel goes back', async ({ page, context }, info) => {
+test('M9.1 D9.1: neither Settings nor the menu starts an agent; Cancel on the start goes back', async ({ page, context }, info) => {
   const machine = await opened(page, context);
   const desktop = info.project.name === 'desktop';
   await page.getByRole('button', { name: 'Menu' }).click();
-  // On a desktop ☰ opens the menu (D9.1), which starts one too.
-  await (desktop ? page.getByRole('menu') : page).getByRole('button', { name: 'Start an agent' }).click();
+  await expect((desktop ? page.getByRole('menu') : page).getByRole('button', { name: 'Start an agent', exact: true })).toHaveCount(0);
+  if (desktop) await page.mouse.click(200, 300);
+  else await page.getByRole('button', { name: '‹ Back' }).click();
+  await page.getByRole('button', { name: 'Start an agent in weft' }).click();
   await expect(page.getByRole('radiogroup', { name: 'Start an agent' })).toBeVisible();
   await page.getByRole('button', { name: 'Cancel', exact: true }).click();
   await expect(page.getByRole('radiogroup')).toHaveCount(0);
@@ -48,14 +50,14 @@ test('M9.1 D9.1 → M9.7: start an agent from Settings or the menu; Cancel goes 
 
 test('M9.7 D9.7: with no harness to start, the sentence says why', async ({ page, context }) => {
   const machine = await opened(page, context, []);
-  await page.getByRole('button', { name: 'Start an agent' }).click();
+  await page.getByRole('button', { name: 'Start an agent in weft' }).click();
   await expect(page.getByRole('status')).toHaveText('No harness is set up for RingFrame yet. Updates… in ☰ on studio sets one up.');
   await page.getByRole('button', { name: 'Start', exact: true }).click();
   expect(machine.of('start')).toHaveLength(0);
   await machine.close();
 });
 
-// M9.8 D9.8: with more than one project open, the person chooses the project.
+// M9.8 D9.8: with more than one project open, each project's + starts in it.
 const starts = [
   { project: 'weft', harness: 'claude', title: 'Claude Code' },
   { project: 'web', harness: 'claude', title: 'Claude Code' },
@@ -72,26 +74,13 @@ async function openedTwo(page: Page, context: BrowserContext) {
   return machine;
 }
 
-test('M9.8 D9.8: choose the project, then the harness; a project with nothing in it can be started in', async ({ page, context }, info) => {
-  const machine = await openedTwo(page, context);
-  await page.getByRole('button', { name: 'Menu' }).click();
-  await (info.project.name === 'desktop' ? page.getByRole('menu') : page).getByRole('button', { name: 'Start an agent', exact: true }).click();
-  const projects = page.getByRole('radiogroup', { name: 'IN WHICH PROJECT' });
-  await expect(projects.getByRole('radio')).toHaveCount(3);
-  await expect(projects.getByRole('radio', { name: /web/ })).toContainText('nothing yet');
-  await projects.getByRole('radio', { name: /web/ }).click();
-  const harnesses = page.getByRole('radiogroup', { name: 'Start an agent' });
-  await expect(harnesses.getByRole('radio')).toHaveText(['claude · start fresh', 'codex · start fresh']);
-  await harnesses.getByRole('radio', { name: /codex/ }).click();
-  await page.getByRole('button', { name: 'Start', exact: true }).click();
-  await expect.poll(() => machine.of('start')).toEqual([expect.objectContaining({ project: 'web', harness: 'codex' })]);
-  await machine.close();
-});
-
-test('M9.8 D9.8: the + on a project row starts there, the project already chosen', async ({ page, context }) => {
+test('M9.8 D9.8: the + on a project row starts there, a project with nothing in it too; no project to choose', async ({ page, context }, info) => {
   const machine = await openedTwo(page, context);
   await page.getByRole('button', { name: 'Start an agent in web' }).click();
-  await expect(page.getByRole('radio', { name: /web/ })).toHaveAttribute('aria-checked', 'true');
+  if (info.project.name === 'desktop') await expect(page.getByRole('heading', { name: 'Start an agent in web' })).toBeVisible();
+  await expect(page.getByRole('radiogroup')).toHaveCount(1);
+  const harnesses = page.getByRole('radiogroup', { name: 'Start an agent' });
+  await expect(harnesses.getByRole('radio')).toHaveText(['claude · start fresh', 'codex · start fresh']);
   await page.getByRole('button', { name: 'Start', exact: true }).click();
   await expect.poll(() => machine.of('start')).toEqual([expect.objectContaining({ project: 'web', harness: 'claude' })]);
   await machine.close();

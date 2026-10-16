@@ -10,30 +10,6 @@ import { Mark } from './Tree';
 import * as push from '../push';
 import * as store from '../store';
 
-/** Start an agent on the open machine (M9.7). */
-export function StartRow({ then, menu = false }: { then?: () => void; menu?: boolean }) {
-  const machine = m.current.value;
-  if (!machine) return null;
-  const start = () => {
-    then?.();
-    go({ name: 'start', machine: machine.id, from: w('web.settings.title') });
-  };
-  if (menu)
-    return (
-      <button class="menu-row menu-start" type="button" onClick={start}>
-        {w('start.title')}
-      </button>
-    );
-  return (
-    <button class="settings-row" type="button" onClick={start} aria-label={w('start.title')}>
-      <span class="settings-text">
-        <span>{w('start.title')}</span>
-        <span class="settings-sub">{fill('web.start.runs_on', { machine: machine.name })}</span>
-      </span>
-      <span class="eval-more">›</span>
-    </button>
-  );
-}
 
 /** This device's name, as the machines show it. */
 function useName(): [string, (s: string) => void, () => void] {
@@ -191,7 +167,6 @@ export function Menu({ onClose, onSignOut }: { onClose: () => void; onSignOut: (
         </div>
       ) : (
         <div class="menu-pop" role="menu" aria-label="Weft">
-          <StartRow then={onClose} menu />
           <div class="menu-part">
             <div class="fab7-group settings-group">{w('web.settings.this_device')}</div>
             <div class="menu-value">{name}</div>
@@ -249,13 +224,6 @@ export function Settings({ login, wide }: { login: string; wide: boolean }) {
       )}
       <div class="settings">
         {wide && <h1 class="settings-title">{w('web.settings.title')}</h1>}
-        {/* On a desktop these are the menu's (D9.1). */}
-        {!wide && machine && (
-          <>
-            <div class="fab7-group settings-group">{machine.name}</div>
-            <StartRow />
-          </>
-        )}
         <div class="fab7-group settings-group">{w('web.settings.this_device')}</div>
         <div class="settings-field">
           <label for="device-name" class="settings-label">{w('web.settings.name')}</label>

@@ -27,7 +27,10 @@ export async function card(page: Page, title: string): Promise<string> {
       if (cs.display === 'none') return '';
       const tag = el.tagName.toLowerCase();
       if (tag === 'script' || tag === 'style' || tag === 'link' || tag === 'iframe' || tag === 'noscript') return '';
-      const base = defaults(tag);
+      // A card runs nothing: a field or a button is drawn as a box, so its
+      // styles are written against a bare box, the element the card holds.
+      const name = ['body', 'html', 'input', 'textarea', 'select', 'button'].includes(tag) ? 'div' : tag;
+      const base = defaults(name);
       const decl: string[] = [];
       for (let i = 0; i < cs.length; i++) {
         const p = cs[i];
@@ -36,6 +39,8 @@ export async function card(page: Page, title: string): Promise<string> {
         if (INHERITED.has(p) ? parent !== null && parent.getPropertyValue(p) === v : base.getPropertyValue(p) === v) continue;
         decl.push(`${p}:${v}`);
       }
+      // A button centres what it holds by itself; the box that draws it must say so.
+      if (tag === 'button' && !/flex|grid/.test(cs.display)) decl.push('display:inline-flex', 'align-items:center', `justify-content:${cs.textAlign === 'left' || cs.textAlign === 'start' ? 'flex-start' : 'center'}`);
       // Its box as drawn, so a card keeps the app's geometry.
       const r = el.getBoundingClientRect();
       if (tag === 'canvas') {
@@ -47,8 +52,6 @@ export async function card(page: Page, title: string): Promise<string> {
         if (n.nodeType === Node.TEXT_NODE) inner += esc(n.textContent ?? '');
         else if (n.nodeType === Node.ELEMENT_NODE) inner += walk(n as Element, cs);
       }
-      // A card runs nothing: a field or a button is drawn as a box.
-      const name = ['body', 'html', 'input', 'textarea', 'select', 'button'].includes(tag) ? 'div' : tag;
       if (tag === 'input' || tag === 'textarea') {
         const f = el as HTMLInputElement;
         inner = esc(f.value || f.placeholder || '');

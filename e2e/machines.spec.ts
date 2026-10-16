@@ -15,7 +15,7 @@ test('signed in with no machine, it says how to add one', async ({ page, context
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Add a machine' })).toBeVisible();
   await expect(page.getByText('Signed in as octo')).toBeVisible();
-  await expect(page.getByText('Press R for Remote')).toBeVisible();
+  await expect(page.getByText('Choose Remote…, then turn it on.')).toBeVisible();
 });
 
 test('signed in with one machine, it opens that machine', async ({ page, context }) => {

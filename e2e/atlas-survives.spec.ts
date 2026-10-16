@@ -98,7 +98,7 @@ test('M13.4 D13.4: a machine signed out of Weft says to sign it in again there',
   machine.signedOut = true;
   await opened(page, context, machine);
   await expect(page.getByRole('heading', { name: 'Sign in again on studio' })).toBeVisible();
-  await expect(page.getByText('studio is not signed in to Weft. On studio, press W, then R, and enter the code it shows at github.com/login/device.')).toBeVisible();
+  await expect(page.getByText('studio is not signed in to Weft. On studio, open ☰ › Remote… and sign in with the code it shows at github.com/login/device.')).toBeVisible();
   machine.signedOut = false;
   await page.getByRole('button', { name: 'Try again', exact: true }).click();
   await expect(page.getByRole('treeitem', { name: 'weft', exact: true }).first()).toBeVisible();

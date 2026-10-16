@@ -609,7 +609,7 @@ const SCREENS: Screen[] = [
     // On the phone the bar says it; on a desktop the agent beside the tree does.
     if (!at.wide) {
       await at.page.locator('.tree-acts').getByRole('button', { name: 'Ask', exact: true }).click();
-      await expect(at.page.getByText('claude is not set up for RingFrame. Set it up in Weft on studio: U.')).toBeVisible();
+      await expect(at.page.getByText('claude is not set up for RingFrame. Set it up on studio: ☰ › Updates….')).toBeVisible();
     }
   } },
 

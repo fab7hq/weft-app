@@ -49,7 +49,7 @@ test('M9.1 D9.1 → M9.7: start an agent from Settings or the menu; Cancel goes 
 test('M9.7 D9.7: with no harness to start, the sentence says why', async ({ page, context }) => {
   const machine = await opened(page, context, []);
   await page.getByRole('button', { name: 'Start an agent' }).click();
-  await expect(page.getByRole('status')).toHaveText('No harness is set up for RingFrame yet. [U]PDATE on studio sets one up.');
+  await expect(page.getByRole('status')).toHaveText('No harness is set up for RingFrame yet. Updates… in ☰ on studio sets one up.');
   await page.getByRole('button', { name: 'Start', exact: true }).click();
   expect(machine.of('start')).toHaveLength(0);
   await machine.close();

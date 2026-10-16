@@ -252,7 +252,7 @@ test('M2.3 D2.3: a harness not set up says where to fix it', async ({ page, cont
   const machine = await opened(page, context, { agents: [], tree: empty({ key: 'why.not_set_up', harness: 'claude' }) }, page.getByText('claude is not set up for RingFrame.'));
   await expect(page.getByText('claude is not set up for RingFrame.')).toBeVisible();
   await expect(page.getByText('Your agent runs here either way. Nothing is written down until it is set up.')).toBeVisible();
-  await expect(page.getByText('Set it up in Weft on studio: U.')).toBeVisible();
+  await expect(page.getByText('Set it up on studio: ☰ › Updates….')).toBeVisible();
   await machine.close();
 });
 
@@ -308,7 +308,7 @@ test('M7.1 D7.1: a harness not set up is marked ⚠ on its sessions; Ask on one 
   await row(page, 'claude · no Ask yet').click();
   await expect(row(page, 'claude · no Ask yet')).toHaveAttribute('aria-selected', 'true');
   await bar(page, 'Ask').click();
-  await expect(said(page)).toHaveText('claude is not set up for RingFrame. Set it up in Weft on studio: U.');
+  await expect(said(page)).toHaveText('claude is not set up for RingFrame. Set it up on studio: ☰ › Updates….');
   await machine.close();
 });
 

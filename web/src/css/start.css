@@ -13,7 +13,6 @@
 .signin-title { margin: 0; font-size: 24px; line-height: normal; font-weight: 700; }
 /* Allowing a device and refused: a little more air on a phone. */
 @media (max-width: 767px) { .page.allow { gap: 14px; padding: 28px 20px; } }
-.allow-key { color: var(--fab7-accent); font-weight: 700; }
 .allow-waits { margin: 0; font-size: 15px; line-height: normal; color: var(--fab7-muted); }
 /* Add a machine: the keys to press, as small keycaps. */
 .add-steps { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 16px; }

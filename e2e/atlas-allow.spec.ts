@@ -19,7 +19,7 @@ test('M8.1 D8.1: the machine asks, and the page says where to answer', async ({ 
   const machine = await asked(page, context);
   const where = page.viewportSize()!.width >= 768 ? 'browser' : 'phone';
   await expect(page.getByRole('heading', { name: `Allow this ${where} on your machine` })).toBeVisible();
-  await expect(page.locator('.lede')).toHaveText('Go to studio and press Y.');
+  await expect(page.locator('.lede')).toHaveText('Go to studio and choose Allow.');
   await expect(page.getByText(where === 'phone' ? 'It waits two minutes. Nothing on this phone can answer it.' : 'It waits two minutes. Nothing here can answer it.')).toBeVisible();
   await expect(page.getByText('Asking', { exact: true })).toBeVisible();
   // Y on the machine: it is allowed, and the tree opens.

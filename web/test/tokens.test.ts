@@ -39,8 +39,9 @@ describe('the tokens', () => {
     for (const { name, css } of sheets) {
       const corners = values(css, 'border-radius').flatMap((v) => v.split(/\s+(?![^(]*\))/));
       expect(corners.filter((c) => !radius.test(c)), name).toEqual([]);
-      // An inset bar along a side (a selection, a split's frame) is drawn; a bevel along the bottom is not.
-      const shadows = values(css, 'box-shadow').filter((v) => v !== 'none' && (!v.startsWith('inset') || /inset 0 -\d/.test(v)));
+      // An inset bar in the accent (a selection, a shown tab's underline, a split's frame) is drawn;
+      // a bevel along a button's bottom is not.
+      const shadows = values(css, 'box-shadow').filter((v) => v !== 'none' && (!v.startsWith('inset') || /inset 0 -\d+px 0 (?!var\(--fab7-accent\))/.test(v)));
       expect(shadows, name).toEqual([]);
     }
   });

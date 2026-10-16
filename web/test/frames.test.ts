@@ -1,7 +1,7 @@
 // weftd's screen frames drawn by xterm.js (web-app.md §11
-// test 1). The fixtures are written by weft's crates/weftd/tests/screen_frames.rs
+// test 1). The fixtures are written by weft's crates/weft-term/tests/round_trip.rs
 // from recorded harness output: a full frame, then differences, each with
-// the text vt100 shows after it. xterm.js must show the same text.
+// the text the daemon's terminal shows after it. xterm.js must show the same text.
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -20,13 +20,14 @@ function write(term: Terminal, data: Uint8Array): Promise<void> {
   return new Promise((done) => term.write(data, done));
 }
 
-// vt100's contents(): each row with its trailing blanks dropped, rows joined
-// by newlines, trailing empty rows dropped.
+// The daemon's contents(): each row ending at its last character (a space
+// with a background is still a space), rows joined by newlines, trailing
+// empty rows dropped.
 function text(term: Terminal): string {
   const buffer = term.buffer.active;
   const rows: string[] = [];
   for (let y = 0; y < term.rows; y++) {
-    rows.push(buffer.getLine(buffer.viewportY + y)?.translateToString(true) ?? '');
+    rows.push((buffer.getLine(buffer.viewportY + y)?.translateToString(true) ?? '').replace(/ +$/, ''));
   }
   return rows.join('\n').replace(/\n+$/, '');
 }

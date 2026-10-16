@@ -208,7 +208,7 @@ function Empty({ machine, onAgent, wide }: { machine: Machine; onAgent: (agent: 
   const moves = { machine, wide, onAgent, searching: false };
   return (
     <>
-      <div class="tree" role="tree" aria-label="Work">
+      <div class="tree tree--bare" role="tree" aria-label="Work">
         {m.tree.value.map((p) => <ProjectRows key={p.project} p={p} moves={moves} />)}
       </div>
       <div class="tree-empty">

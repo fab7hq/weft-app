@@ -2,6 +2,7 @@
 /* The cards draw in Sora alone, so a symbol (▾ ● ✓ ✗ ⚠ ⚡) comes from the
    browser's own fallback, not the system UI font, and text is not thinned. */
 .tree { flex: 1; overflow: auto; padding: 0; }
+.tree--bare { flex: none; }
 .tree-side { flex: 0 0 341px; width: 341px; box-sizing: border-box; border-right: 1px solid var(--fab7-line); display: flex; flex-direction: column; min-height: 0; }
 .tree-row { display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 16px; box-sizing: border-box; border-bottom: 1px solid var(--fab7-line); cursor: pointer; }
 .tree-row--harness { padding-left: 32px; }

@@ -97,3 +97,19 @@ test('M4.3 D4.3: a new agent under START AN AGENT: Ask sends act ask with the pr
   expect(machine.of('act')[0].agent).toBeUndefined();
   await machine.close();
 });
+
+test('D4.1: with a keyboard, Enter asks and Shift+Enter adds a line', async ({ page, context }, info) => {
+  test.skip(info.project.name !== 'desktop', 'a keyboard; on a touch screen Enter adds a line');
+  const machine = await opened(page, context);
+  await page.getByRole('button', { name: 'Ask', exact: true }).click();
+  const box = page.getByRole('dialog', { name: 'What do you want done?' }).getByLabel('What do you want done?');
+  await box.click();
+  await box.pressSequentially('Fix the login');
+  await box.press('Shift+Enter');
+  await box.pressSequentially('then run its tests');
+  await expect(box).toHaveValue('Fix the login\nthen run its tests');
+  expect(machine.of('act')).toHaveLength(0);
+  await box.press('Enter');
+  await expect.poll(() => machine.of('act')).toEqual([expect.objectContaining({ act: 'ask', text: 'Fix the login\nthen run its tests' })]);
+  await machine.close();
+});

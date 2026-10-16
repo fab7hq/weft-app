@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import * as m from '../machine';
 import { mods } from './Keys';
 import { sent, typed } from '../keys';
+import { own } from '../textkeys';
 import { fill, w } from '../words';
 
 export const b64 = (bytes: number[]) => btoa(String.fromCharCode(...bytes));
@@ -59,9 +60,9 @@ export function MessageRow({ agent, wide, said, clear, onTyping, keys = false }:
     el.style.height = `${el.scrollHeight + 2}px`;
   }, [message]);
   // Enter sends where a keyboard is attached and adds a line on a touch screen;
-  // Shift+Enter adds a line everywhere (D3.13).
+  // Shift+Enter adds a line everywhere (D3.13). Composing, Enter is the input method's.
   const enter = (e: KeyboardEvent) => {
-    if (e.key !== 'Enter' || e.shiftKey || e.isComposing) return;
+    if (e.isComposing || own(e) !== 'send') return;
     if (matchMedia('(pointer: coarse)').matches) return;
     send(e);
   };

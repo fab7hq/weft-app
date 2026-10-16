@@ -8,6 +8,7 @@ import * as m from '../machine';
 import { act, acting } from './Asked';
 import { said } from './Bar';
 import { destinations, keyOf, SendTo, type Dest } from './SendTo';
+import { own } from '../textkeys';
 import { w } from '../words';
 
 export interface Asking {
@@ -28,6 +29,13 @@ const wide = signal(wideQuery.matches);
 wideQuery.addEventListener('change', (e) => (wide.value = e.matches));
 
 /** On a phone: the sheet over a backdrop. */
+/** Enter asks, as in the message row: Shift+Enter adds a line, and on a touch screen Enter does. */
+function sendOnEnter(e: KeyboardEvent) {
+  if (e.isComposing || own(e) !== 'send' || matchMedia('(pointer: coarse)').matches) return;
+  e.preventDefault();
+  (e.currentTarget as HTMLTextAreaElement).form?.requestSubmit();
+}
+
 export function AskSheet() {
   const a = asking.value;
   if (!a || wide.value) return null;
@@ -79,7 +87,7 @@ function AskForm({ asked, docked }: { asked: Asking; docked: boolean }) {
     >
       {f && <span class="ask-eyebrow">{`${w('act.follow_up')} · ${f.title} · ${f.follows}`.toUpperCase()}</span>}
       <label class="ask-title" for="ask-text">{w('ask.title')}</label>
-      <textarea ref={box} id="ask-text" class={text ? 'ask-text ask-text--said' : 'ask-text'} value={text} onInput={(e) => setText((e.target as HTMLTextAreaElement).value)} />
+      <textarea ref={box} id="ask-text" class={text ? 'ask-text ask-text--said' : 'ask-text'} value={text} onInput={(e) => setText((e.target as HTMLTextAreaElement).value)} onKeyDown={sendOnEnter} />
       {docked ? (
         <div class="ask-row">
           <span class="ask-eyebrow" id="ask-to-label">{w('ask.send_to')}</span>

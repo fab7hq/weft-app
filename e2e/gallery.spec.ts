@@ -388,7 +388,7 @@ const SCREENS: Screen[] = [
   } },
 
   // 02 · The tree. M2.6–M2.9 and their D twins are superseded by M11.1, D11.1.
-  { ids: ['M2.1', 'D2.1'], sample: () => ({ ...atlas(), agents: [], tree: [] }), run: async (at) => {
+  { ids: ['M2.1', 'D2.1'], sample: () => ({ ...atlas(), agents: [], tree: [{ ...project('weft', []), ask: { key: 'why.start_an_agent' } }] }), run: async (at) => {
     await open(at);
     await expect(at.page.getByText('Nothing asked for yet.')).toBeVisible();
   } },

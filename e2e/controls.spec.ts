@@ -38,40 +38,51 @@ test('M3.11: one row under the pane, the key bar under it, Ask at the top', asyn
 
 const hex = (b64: unknown) => [...Buffer.from(String(b64), 'base64')].map((b) => b.toString(16).padStart(2, '0')).join(' ');
 
-test('step 46: sticky modifiers: Ctrl then r sends ^R, a double tap locks, ⇧ then Tab', async ({ page, context }, info) => {
+test('the key bar: Fn opens row two; a row-two key, then a row-one key, is one combination; ⌫ held repeats', async ({ page, context }, info) => {
   test.skip(info.project.name !== 'iphone', 'the phone layout');
   const machine = await FakeMachine.start();
   machine.agents = [agent(0, 'weft', 'claude-code', 'ready')];
   await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
   await opened(page, machine);
   const keysSent = () => machine.of('keys').map((k) => hex(k.bytes));
-
-  // Ctrl lit once, then a letter typed: one key, nothing in the message box, Ctrl off.
   const bar = page.getByRole('toolbar', { name: 'Keys' });
-  const ctrl = bar.getByRole('button', { name: 'Ctrl', exact: true });
-  await ctrl.click();
-  await expect(ctrl).toHaveAttribute('aria-pressed', 'true');
+  const key = (name: string) => bar.getByRole('button', { name, exact: true });
+
+  // Row two is closed until Fn opens it.
+  await expect(key('Ctrl')).toHaveCount(0);
+  await key('Fn').click();
+  await expect(key('Fn')).toHaveAttribute('aria-expanded', 'true');
+  for (const name of ['Ctrl', 'Alt', 'Tab']) await expect(key(name)).toBeVisible();
+
+  // Ctrl, then a letter typed: one key, nothing in the message box, Ctrl off.
+  await key('Ctrl').click();
+  await expect(key('Ctrl')).toHaveAttribute('aria-pressed', 'true');
   await page.getByLabel('Message').pressSequentially('r');
   await expect.poll(keysSent).toEqual(['12']);
   await expect(page.getByLabel('Message')).toHaveValue('');
-  await page.getByLabel('Message').pressSequentially('s');
-  await expect(page.getByLabel('Message')).toHaveValue('s');
-  await page.getByLabel('Message').fill('');
+  await expect(key('Ctrl')).toHaveAttribute('aria-pressed', 'false');
 
-  // Two taps lock it: every letter is a key until it is tapped off.
-  await ctrl.click();
-  await ctrl.click();
-  await expect(ctrl).toHaveAttribute('data-lit', 'locked');
-  await page.getByLabel('Message').pressSequentially('ox');
-  await expect.poll(keysSent).toEqual(['12', '0f', '18']);
-  await ctrl.click();
-  await expect(ctrl).toHaveAttribute('aria-pressed', 'false');
+  // Ctrl then ←, Tab then →: each one combination, in one send.
+  await key('Ctrl').click();
+  await key('Left').click();
+  await key('Tab').click();
+  await key('Right').click();
+  await expect.poll(keysSent).toEqual(['12', '1b 5b 31 3b 35 44', '09 1b 5b 43']);
+  // A lit Tab tapped again is a Tab.
+  await key('Tab').click();
+  await key('Tab').click();
+  await expect.poll(keysSent).toEqual(['12', '1b 5b 31 3b 35 44', '09 1b 5b 43', '09']);
 
-  // ⇧ then Tab, and the arrows the bar now has.
-  await bar.getByRole('button', { name: '⇧', exact: true }).click();
-  await bar.getByRole('button', { name: 'Tab', exact: true }).click();
-  await bar.getByRole('button', { name: 'Left', exact: true }).click();
-  await expect.poll(keysSent).toEqual(['12', '0f', '18', '1b 5b 5a', '1b 5b 44']);
+  // ⌫ held deletes again and again until it is let go.
+  const box = (await key('Backspace').boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.waitForTimeout(600);
+  await page.mouse.up();
+  const deletes = keysSent().filter((k) => k === '7f').length;
+  expect(deletes).toBeGreaterThanOrEqual(3);
+  await page.waitForTimeout(300);
+  expect(keysSent().filter((k) => k === '7f').length).toBe(deletes);
   await machine.close();
 });
 
@@ -94,16 +105,17 @@ test('M3.10: the key bar stays under the message row while the message box has f
   await keys.getByRole('button', { name: 'Up', exact: true }).click();
   await expect.poll(() => machine.of('keys').map((k) => hex(k.bytes))).toEqual(['1b 5b 41']);
   await expect(page.getByLabel('Message')).toBeFocused();
-  // ⇧ then Tab from the same bar: one ⇧Tab.
-  await keys.getByRole('button', { name: '⇧', exact: true }).click();
+  // Fn, then Tab then → from the same bar: one combination.
+  await keys.getByRole('button', { name: 'Fn', exact: true }).click();
   await keys.getByRole('button', { name: 'Tab', exact: true }).click();
-  await expect.poll(() => machine.of('keys').map((k) => hex(k.bytes))).toEqual(['1b 5b 41', '1b 5b 5a']);
+  await keys.getByRole('button', { name: 'Right', exact: true }).click();
+  await expect.poll(() => machine.of('keys').map((k) => hex(k.bytes))).toEqual(['1b 5b 41', '09 1b 5b 43']);
   await expect(page.getByLabel('Message')).toBeFocused();
 
   // ⌫ deletes in the agent, not in the message box.
   await page.getByLabel('Message').fill('yes');
   await keys.getByRole('button', { name: 'Backspace', exact: true }).click();
-  await expect.poll(() => machine.of('keys').map((k) => hex(k.bytes))).toEqual(['1b 5b 41', '1b 5b 5a', '7f']);
+  await expect.poll(() => machine.of('keys').map((k) => hex(k.bytes))).toEqual(['1b 5b 41', '09 1b 5b 43', '7f']);
   await expect(page.getByLabel('Message')).toHaveValue('yes');
 
   await page.getByLabel('Message').blur();

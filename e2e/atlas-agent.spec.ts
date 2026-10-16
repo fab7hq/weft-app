@@ -128,29 +128,20 @@ test('M3.8: a harness not set up for RingFrame: ⚠ on its tab, and why under th
 
 const hex = (b64: unknown) => [...Buffer.from(String(b64), 'base64')].map((b) => b.toString(16).padStart(2, '0')).join(' ');
 
-test('M3.4 D3.4 M3.10: while the agent waits, the strip is ↑ ↓ ⏎ Esc and sends their bytes; no digit key anywhere', async ({ page, context }, info) => {
+test('M3.4 M3.10: while the agent waits, no NEEDS YOU strip; the key bar answers with ↑ ↓ ⏎ Esc, and no digit key anywhere', async ({ page, context }, info) => {
   const machine = await FakeMachine.start();
   Object.assign(machine, atlas());
   await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
   await page.goto('/');
   await openAgent(page, 'claude · fix login');
-  const strip = page.getByRole('toolbar', { name: 'Answer' });
-  await expect(strip.getByText('NEEDS YOU')).toBeVisible();
-  expect(await strip.getByRole('button').allTextContents()).toEqual(['↑', '↓', '⏎', 'Esc']);
-  for (const name of ['Up', 'Down', 'Enter', 'Esc']) await strip.getByRole('button', { name, exact: true }).click();
-  await expect.poll(() => machine.of('keys').map((k) => hex(k.bytes))).toEqual(['1b 5b 41', '1b 5b 42', '0d', '1b']);
+  await expect(page.getByRole('toolbar', { name: 'Answer' })).toHaveCount(0);
   for (const digit of ['1', '2', '3']) await expect(page.getByRole('button', { name: digit, exact: true })).toHaveCount(0);
-
-  // The key bar too has none.
   if (info.project.name.startsWith('iphone')) {
     const bar = page.getByRole('toolbar', { name: 'Keys' });
-    await expect(bar.getByRole('button', { name: 'Tab', exact: true })).toBeVisible();
+    for (const name of ['Up', 'Down', 'Enter', 'Esc']) await bar.getByRole('button', { name, exact: true }).click();
+    await expect.poll(() => machine.of('keys').map((k) => hex(k.bytes))).toEqual(['1b 5b 41', '1b 5b 42', '0d', '1b']);
     for (const digit of ['1', '2', '3']) await expect(bar.getByRole('button', { name: digit, exact: true })).toHaveCount(0);
   }
-  // Answered: no strip.
-  machine.agents = machine.agents.map((a) => ({ ...a, turn: 'working' as const }));
-  machine.send({ type: 'agents', agents: machine.agents });
-  await expect(strip).toHaveCount(0);
   await machine.close();
 });
 
@@ -159,7 +150,7 @@ test('M3.11: Ask at the top and the key bar under the message row; Eval, Seal an
   const machine = await opened(page, context);
   await expect(page.locator('.appbar').getByRole('button', { name: 'Ask', exact: true })).toBeVisible();
   const keys = page.getByRole('toolbar', { name: 'Keys' });
-  for (const key of ['Ctrl', 'Alt', '⇧', 'Esc', 'Tab', 'Backspace', 'Left', 'Up', 'Down', 'Right', 'Enter', 'Control-C', 'PgUp', 'PgDn']) {
+  for (const key of ['Esc', 'Up', 'Down', 'Left', 'Right', 'Backspace', 'Enter', 'Fn']) {
     await expect(keys.getByRole('button', { name: key, exact: true })).toBeVisible();
   }
   await expect(page.getByRole('dialog')).toHaveCount(0);
@@ -174,16 +165,16 @@ test('D3.4 M3.1: no Eval on cue once a turn has ended', async ({ page, context }
   await machine.close();
 });
 
-test('D3.3 D3.11: while the pane is active the bar is Ask · Keys, and Keys sends the agent its keys', async ({ page, context }, info) => {
+test('D3.3: a desktop has no key bar: while the pane is active the bar stays Ask · Eval · Seal, and its keyboard reaches the agent', async ({ page, context }, info) => {
   test.skip(info.project.name !== 'desktop', 'the desktop');
   const machine = await opened(page, context);
   const bar = page.locator('.tree-acts');
   await expect(bar.getByRole('button')).toHaveText(['Ask', 'Eval', 'Seal']);
   await pane(page).click();
-  await expect(bar.getByRole('button')).toHaveText(['Ask', 'Keys']);
-  await bar.getByRole('button', { name: 'Keys' }).click();
   await expect(pane(page)).toHaveAttribute('data-active', 'true');
-  await page.getByRole('toolbar', { name: 'Keys' }).getByRole('button', { name: 'Esc', exact: true }).click();
+  await expect(bar.getByRole('button')).toHaveText(['Ask', 'Eval', 'Seal']);
+  await expect(page.getByRole('toolbar', { name: 'Keys' })).toHaveCount(0);
+  await page.keyboard.press('Escape');
   await expect.poll(() => machine.of('keys').map((k) => hex(k.bytes))).toEqual(['1b']);
   await machine.close();
 });

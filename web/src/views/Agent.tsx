@@ -5,10 +5,9 @@ import * as m from '../machine';
 import { back, swap } from '../nav';
 import { openKeys, said as actSaid } from './Bar';
 import { asking } from './Ask';
-import { KeyBar, press } from './Keys';
+import { KeyBar } from './Keys';
 import { notSetUp } from './Tabs';
 import { AgentList, AgentName, Dots, useSwipe } from './Agents';
-import { ANSWER } from '../keys';
 import { Screen } from './Screen';
 import { HeaderPills } from './Status';
 import { MessageRow, b64, notLive, refusal } from './Message';
@@ -18,8 +17,7 @@ import { Conversation, ViewSwitch, view } from './Conversation';
 /**
  * One agent. On a desktop, `embedded` beside the tree under `head`, its
  * pane's tab bar; of several panes (`side`), `current` is the pane you are
- * in, a press in another calls `onPick`, and no answer strip is drawn: its
- * screen and the bar's Keys answer it.
+ * in, and a press in another calls `onPick`.
  */
 export function Agent({ machine, agent, embedded = false, current = true, onPick, head, side = false }: { machine: Machine; agent: string; embedded?: boolean; current?: boolean; onPick?: (e: PointerEvent) => void; head?: ComponentChildren; side?: boolean }) {
   const a = m.agents.value.find((x) => x.agent === agent);
@@ -120,18 +118,6 @@ export function Agent({ machine, agent, embedded = false, current = true, onPick
           {!wide && <button class="tree-act" type="button" onClick={() => swap({ name: 'tree', machine: machine.id })}>{w('web.agent.back')}</button>}
         </div>
         </>
-      )}
-      {!side && !talk && a?.turn === 'waiting' && a.running && m.link.value === 'connected' && (
-        // While the agent waits for its person (its hooks say so; the screen is never read),
-        // as the machine says now: not while it is being reached again (M1.8, D1.8).
-        <div class="answer-strip" role="toolbar" aria-label="Answer">
-          <span class="answer-label">{w('title.needs_you').toUpperCase()}</span>
-          {ANSWER.map(({ label, name }) => (
-            <button key={name} class="agent-key" type="button" aria-label={name} onClick={() => press(name, key)}>
-              {label}
-            </button>
-          ))}
-        </div>
       )}
       {/* On a phone the agent's own message row; on a desktop one under the panes (D15.1), and here only a key's why. */}
       {!wide ? (

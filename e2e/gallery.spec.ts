@@ -447,16 +447,12 @@ const SCREENS: Screen[] = [
   { ids: ['M3.10'], sample: calm, run: async (at) => {
     await onClaude(at);
     await at.page.getByPlaceholder('Message claude…').fill('yes, run the migration first');
-    await at.page.getByRole('button', { name: '⇧', exact: true }).click();
+    await at.page.getByRole('button', { name: 'Fn', exact: true }).click();
   } },
   { ids: ['M3.11'], sample: calm, run: async (at) => {
     await onClaude(at);
-    await button(at, '⇧').click();
-  } },
-  { ids: ['D3.11'], sample: calm, run: async (at) => {
-    await onClaude(at);
-    await activate(at);
-    await button(at, 'Keys').click();
+    await button(at, 'Fn').click();
+    await button(at, 'Ctrl').click();
   } },
   { ids: ['M3.12', 'D3.12'], sample: calm, run: async (at) => {
     await onClaude(at);

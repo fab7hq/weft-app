@@ -70,16 +70,10 @@
 .ended-said { margin: 0; align-self: stretch; font-size: 15px; color: var(--fab7-amber-text); }
 .ended .tree-act { flex: none; padding: 11px 16px; border: 1px solid var(--fab7-line); }
 
-/* A key, as the cards draw every key: the strip's and the key bar's. */
-.agent-key { flex: none; display: inline-flex; align-items: center; justify-content: center; padding: 7px 12px; border: 1px solid var(--fab7-line); background: var(--fab7-surface); color: var(--fab7-text); font: 400 12px/18px var(--font-mono); white-space: nowrap; cursor: pointer; }
+/* A key, as the cards draw every key: a bevelled cap, the full width of its row's share. */
+.agent-key { flex: 1 1 0; min-width: 0; display: inline-flex; align-items: center; justify-content: center; padding: 7px 0; border: 1px solid var(--fab7-line); background: var(--fab7-surface); color: var(--fab7-text); font: 400 11px/18px var(--font-mono); white-space: nowrap; cursor: pointer; box-shadow: var(--weft-bevel); touch-action: manipulation; user-select: none; -webkit-user-select: none; }
 .agent-key:active { background: var(--fab7-selected); }
-.key-lit { background: var(--fab7-selected); border-color: var(--fab7-accent); color: var(--fab7-accent); }
-.key-lit[data-lit="locked"] { background: var(--fab7-accent); color: var(--fab7-on-button); }
-
-/* NEEDS YOU, and the keys that answer (M3.4, D3.4). */
-.answer-strip { display: flex; align-items: center; gap: 8px; padding: 8px 12px; flex: none; overflow-x: auto; background: var(--fab7-panel); border-top: 1px solid var(--fab7-line); }
-.agent--wide .answer-strip { padding: 8px 14px; }
-.answer-label { margin-right: auto; font: 600 11px var(--font-sans); letter-spacing: 0.08em; color: var(--fab7-amber-text); white-space: nowrap; }
+.key-lit { background: var(--fab7-selected); border-color: var(--fab7-accent); color: var(--fab7-accent); font-weight: 600; }
 
 /* The message row: the pill and a round ▶ (M3.1, D3.1); a send that did
    not go says why above it (M10.2, D10.2). The key bar under it, when there
@@ -105,22 +99,12 @@
 .agent--wide .message-foot--said .message-row { border-top: 1px solid var(--fab7-line); }
 .agent--wide .message-input { padding: 9px 14px; }
 
-/* The key bar (M3.10, M3.11): one line that scrolls, under the message row;
-   on the on-screen keyboard while typing, else over the home bar's room. */
+/* The key bar: two rows under the message row, row two opened by Fn; on the
+   on-screen keyboard while typing, else over the home bar's room. */
 .keys-on-keyboard { flex: none; background: var(--fab7-panel); border-top: 1px solid var(--fab7-line); }
-.keys-at-rest .agent-keys { padding-bottom: 30px; }
-.agent-keys { display: flex; flex-direction: column; }
-.keys-on-keyboard .agent-keys { flex-direction: row; gap: 5px; padding: 6px 8px; overflow-x: auto; scrollbar-width: none; }
-.keys-on-keyboard .key-row { display: contents; }
-
-.key-row { display: flex; gap: 6px; align-items: center; }
-
-/* Keys on the desktop's bar (D3.11): a popover at the top right, two rows. */
-.keys-pop { position: fixed; z-index: 5; top: 64px; right: 20px; width: 520px; box-sizing: content-box; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; padding: 14px; border: 1px solid var(--fab7-line); background: var(--fab7-panel); }
-.keys-pop .label { font: 600 11px var(--font-sans); letter-spacing: 0.08em; color: var(--fab7-muted); }
-.keys-pop .agent-keys { align-self: stretch; flex-direction: row; flex-wrap: wrap; gap: 10px 6px; }
-.keys-pop .key-row:first-child { flex-basis: 100%; }
-.keys-pop .key-row + .key-row { display: contents; }
+.agent-keys { display: flex; flex-direction: column; gap: 5px; padding: 7px 8px; }
+.keys-at-rest .agent-keys { padding-bottom: 24px; }
+.key-row { display: flex; gap: 4px; align-items: stretch; }
 /* A desktop has its own keyboard, and its bar's Keys (D10.2, D3.11); a
    tablet's on-screen keyboard still gets the bar on top of it. */
 @media (pointer: fine) { .agent--wide .keys-on-keyboard { display: none; } }

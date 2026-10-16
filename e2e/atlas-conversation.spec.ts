@@ -79,7 +79,7 @@ test('M12.4: while the agent waits, one amber line, and answer in Terminal switc
   await page.getByRole('button', { name: 'answer in Terminal ›' }).click();
   await expect(tab(page, 'Terminal')).toHaveAttribute('aria-selected', 'true');
   await expect(page.getByLabel("The agent's screen")).toBeVisible();
-  if (!wideOf(page)) await expect(page.getByRole('toolbar', { name: 'Answer' })).toBeVisible();
+  await expect(page.getByRole('toolbar', { name: 'Answer' })).toHaveCount(0);
   await machine.close();
 });
 

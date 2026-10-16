@@ -78,7 +78,7 @@ test('ADR-0038: typing sends no size; the agent keeps the Mac\'s', async ({ page
   machine.send({ type: 'control', agent: CODEX, by: 'you' });
   // A key, from the key bar on a phone; a message on a desktop.
   if (await page.getByRole('toolbar', { name: 'Keys' }).count()) {
-    await page.getByRole('toolbar', { name: 'Keys' }).getByRole('button', { name: 'Tab', exact: true }).click();
+    await page.getByRole('toolbar', { name: 'Keys' }).getByRole('button', { name: 'Esc', exact: true }).click();
     await expect.poll(() => machine.of('keys').length).toBe(1);
   } else {
     await page.getByLabel('Message').fill('hello');

@@ -2,14 +2,12 @@
 // agent, Eval on the Open round, Seal on an Eval's). An act that does not
 // apply says why in one line; none is ever drawn disabled.
 import { effect, signal } from '@preact/signals';
-import { useState } from 'preact/hooks';
 import type { Machine } from '../api';
 import * as m from '../machine';
 import { here } from '../nav';
 import { clock } from '../bar';
 import { asking } from './Ask';
 import { act, acting } from './Asked';
-import { KeyBar } from './Keys';
 import { chosen, evalName, sealName, stateOf, unready, type Chosen } from './Tree';
 import { fill, w } from '../words';
 
@@ -111,11 +109,8 @@ function named(s: Chosen): string {
 
 /** The tree's bar (M11.1, D11.1): Ask, Eval and Seal follow the selection; where one does not apply, why. */
 export function TreeBar({ machine, wide }: { machine: Machine; wide: boolean }) {
-  const [keys, setKeys] = useState(false);
-  // In the active pane the bar is the agent's, as the TUI's is (D3.3): a press
-  // on it keeps the pane's focus.
+  // A press on the bar keeps the active pane's focus.
   const inPane = wide && paneActive.value && openKeys.value;
-  if (!inPane && keys) setKeys(false);
   // A notice about the agent open beside the tree is said in its own view (D3.7).
   const view = here();
   const told = notice.value && !(view?.name === 'agent' && view.agent === notice.value.agent) ? notice.value.text : null;
@@ -123,22 +118,10 @@ export function TreeBar({ machine, wide }: { machine: Machine; wide: boolean }) 
   return (
     <div class={wide ? 'tree-bar tree-bar--wide' : 'tree-bar'}>
       {said.value ? <p class="tree-said" role="status">{said.value}</p> : told && <p class="tree-said" role="status">{told}</p>}
-      {inPane && keys && (
-        <div class="keys-pop" onPointerDown={(e) => e.preventDefault()}>
-          <span class="label">{w('web.act.keys').toUpperCase()}</span>
-          <KeyBar send={(b) => openKeys.value?.(b)} />
-        </div>
-      )}
       <div class="tree-acts" onPointerDown={(e) => inPane && e.preventDefault()}>
         <button class="tree-act" type="button" onClick={askOn}>{w('act.ask')}</button>
-        {inPane ? (
-          <button class="tree-act" type="button" aria-pressed={keys} onClick={() => setKeys(!keys)}>{w('web.act.keys')}</button>
-        ) : (
-          <>
-            <button class="tree-act" type="button" aria-busy={acting.value === 'eval' || undefined} onClick={() => void evalOn()}>{w('act.eval')}</button>
-            <button class="tree-act" type="button" aria-busy={acting.value === 'seal' || undefined} onClick={() => void sealOn()}>{w('act.seal')}</button>
-          </>
-        )}
+        <button class="tree-act" type="button" aria-busy={acting.value === 'eval' || undefined} onClick={() => void evalOn()}>{w('act.eval')}</button>
+        <button class="tree-act" type="button" aria-busy={acting.value === 'seal' || undefined} onClick={() => void sealOn()}>{w('act.seal')}</button>
         {s && (
           <>
             <span class="spacer" />

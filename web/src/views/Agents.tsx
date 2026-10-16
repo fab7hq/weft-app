@@ -83,7 +83,7 @@ export function AgentList({ machine, open, onClose }: { machine: string; open: s
       data-needs-you={a.turn === 'waiting' ? 'true' : undefined}
       onClick={() => pick(a.agent)}
     >
-      <span class="agents-dot" aria-hidden="true">●</span>
+      <span class="agents-dot" aria-hidden="true">{a.turn === 'waiting' && a.running ? '■' : a.running ? '●' : '□'}</span>
       <span class="agents-name">{named ? `${a.project} · ${a.harness}` : a.harness}</span>
       <span class="agents-turn">{turnWord(a.turn)}</span>
       {!named && a.agent === open && <span class="agents-shown">✓</span>}

@@ -58,7 +58,7 @@ test('M11.2 D11.2: a work\'s Details hold its Ask only, under where it stands; P
     // M11.2: ASKED at the right edge; its session a row.
     await expect(view.locator('.detail-section-head')).toHaveText('AskASKED');
     await expect(view.locator('.detail-line')).toHaveText(lines);
-    await expect(itsSession(page)).toHaveText('Its session● claude · 11:29›');
+    await expect(itsSession(page)).toHaveText('Its session■ claude · 11:29›');
   }
   // No chips, no Eval or Seal sections: those are their own Details.
   await expect(view.locator('.chip')).toHaveCount(0);
@@ -276,12 +276,12 @@ test('M11.5 D11.5: an ended session\'s Details; Resume starts exactly its id at 
   if (wideOf(page)) {
     // D11.5: harness › state, the state large, its facts as labelled lines; an Ask with its Seal.
     await expect(crumbs(page)).toHaveText('claude›ended 09:12');
-    await expect(view.locator('.summary-head')).toHaveText('○ ended 09:12');
+    await expect(view.locator('.summary-head')).toHaveText('□ ended 09:12');
     expect(await grid(page)).toEqual([['Harness', 'claude'], ['Started', '2026-10-08 08:47'], ['ended', '2026-10-08 09:12'], ['Session', '3f9c2b71'], ['Project', 'weft']]);
     expect(await asks(page)).toEqual([['readme fix', 'SEALED · Seal 4']]);
     await expect(view.getByText('Resume starts claude again on session 3f9c2b71 in a new agent.')).toBeVisible();
   } else {
-    await expect(crumbs(page)).toHaveText('○claudeENDED');
+    await expect(crumbs(page)).toHaveText('□claudeENDED');
     await expect(view.getByText('ended 2026-10-08 09:12 · 1 Ask made in it')).toBeVisible();
     expect(await facts(page)).toEqual([['State', 'ended 09:12'], ['Started', '2026-10-08 08:47'], ['Session', '3f9c2b71…a21e'], ['Project', 'weft']]);
     expect(await asks(page)).toEqual([['readme fix', 'SEALED']]);

@@ -107,8 +107,8 @@ test.describe('phone', () => {
     await name(page).click();
     const list = page.getByRole('dialog', { name: 'Agents' });
     await expect(list.getByRole('heading')).toHaveText(['Agents', 'NEEDS YOU', 'WEFT', 'DOCS']);
-    await expect(list.getByRole('region', { name: 'NEEDS YOU' }).getByRole('button')).toHaveText(['●weft · claudeneeds you']);
-    await expect(list.getByRole('region', { name: 'weft' }).getByRole('button')).toHaveText(['●claudeneeds you', '●codexturn ended✓', '●codexworking']);
+    await expect(list.getByRole('region', { name: 'NEEDS YOU' }).getByRole('button')).toHaveText(['■weft · claudeneeds you']);
+    await expect(list.getByRole('region', { name: 'weft' }).getByRole('button')).toHaveText(['■claudeneeds you', '●codexturn ended✓', '●codexworking']);
     await expect(list.getByRole('region', { name: 'weft' }).getByRole('button').nth(1)).toHaveAttribute('aria-current', 'true');
     await list.getByRole('region', { name: 'docs' }).getByRole('button').click();
     await expect(list).toHaveCount(0);

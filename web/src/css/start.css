@@ -2,7 +2,7 @@
 /* Their buttons, as the cards draw them: filled blue with white words, or the
    surface with a line; full width on a phone where the card stretches them. */
 .start-button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; align-self: flex-start; box-sizing: border-box; padding: 11px 16px; border: 1px solid var(--fab7-line); background: var(--fab7-surface); color: var(--fab7-text); font: 600 14px var(--font-sans); text-decoration: none; cursor: pointer; border-radius: var(--weft-radius-control); }
-.start-button--go { border: 0; background: var(--fab7-button); color: var(--fab7-on-button); }
+.start-button--go { border: 1px solid var(--fab7-accent); background: var(--fab7-button); color: var(--fab7-on-button); box-shadow: var(--weft-bevel-primary); }
 .start-button--go:hover { background: var(--fab7-accent); }
 .start-button--plain:hover { border-color: var(--fab7-accent); }
 @media (max-width: 767px) { .start-button--wide { align-self: stretch; } }

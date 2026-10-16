@@ -23,7 +23,7 @@ test('M1.6 D1.6: a machine is removed from the account, and stays removed', asyn
   if (info.project.name !== 'desktop') await expect(laptop.getByRole('button', { name: 'Remove' })).toHaveCount(0);
   await remove();
   await expect(sure).toBeVisible();
-  await expect(sure).toContainText('laptop leaves this list. Weft on laptop is not touched; it joins again with W → R.');
+  await expect(sure).toContainText('laptop leaves this list. Weft on laptop is not touched; it joins again from ☰ › Remote… there.');
   await sure.getByRole('button', { name: 'Cancel' }).click();
   await expect(sure).toHaveCount(0);
   if (info.project.name === 'desktop') {

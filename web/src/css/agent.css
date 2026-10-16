@@ -70,7 +70,7 @@
 /* An ended agent (M3.7, D3.7). */
 .ended { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; align-items: flex-start; padding: 24px 20px; }
 .agent--wide .ended { padding: 20px; }
-.ended-said { margin: 0; align-self: stretch; font-size: 15px; color: var(--fab7-amber-text); }
+.ended-said { margin: 0; align-self: stretch; font-size: 15px; color: var(--fab7-muted); }
 .ended .tree-act { flex: none; padding: 11px 16px; border: 1px solid var(--fab7-line); }
 
 /* A key, as the cards draw every key: a bevelled cap, the full width of its row's share. */
@@ -94,7 +94,7 @@
 /* A phone zooms into a box under 16 px when it takes the focus: the words
    typed are drawn at 16, the placeholder at the card's 13. */
 @media (pointer: coarse) { .message-input { font-size: 16px; } .message-input::placeholder { font-size: 13px; } }
-.send-key { flex: none; display: inline-flex; align-items: center; justify-content: center; padding: 8px 13px; border: 0; background: var(--fab7-button); color: var(--fab7-on-button); font: 400 13px var(--font-sans); cursor: pointer; border-radius: var(--weft-radius-control); }
+.send-key { flex: none; display: inline-flex; align-items: center; justify-content: center; padding: 8px 13px; border: 1px solid var(--fab7-accent); background: var(--fab7-button); color: var(--fab7-on-button); box-shadow: var(--weft-bevel-primary); font: 400 13px var(--font-sans); cursor: pointer; border-radius: var(--weft-radius-control); }
 .send-key:hover { background: var(--fab7-accent); }
 .agent--wide .message-foot { gap: 0; padding: 0; }
 .agent--wide .message-foot .message-said { padding: 8px 14px; }
@@ -141,7 +141,7 @@
 
 /* Split: one bar above the panes, then the panes edge to edge. */
 .split-bar { flex: none; display: flex; align-items: center; gap: 8px; height: 36px; box-sizing: border-box; padding: 0 12px; background: var(--fab7-panel); border-bottom: 1px solid var(--fab7-line); }
-.split-said { flex: 1; min-width: 0; font: 400 11px var(--font-mono); color: var(--fab7-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.split-said { flex: 1; min-width: 0; font: 600 11px var(--font-mono); letter-spacing: 0.08em; color: var(--fab7-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .split-focused { font-weight: 600; color: var(--fab7-accent); }
 .split-bar .view-switch--wide { margin-left: 0; }
 .panes-grid { flex: 1; min-height: 0; display: flex; }

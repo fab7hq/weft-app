@@ -24,12 +24,12 @@ main:has(> .ask-panel--docked) > :not(.ask-panel) { flex: 1; min-height: 0; heig
 .ask-to:focus-visible { outline: none; border-color: var(--fab7-accent); }
 .ask-to-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ask-to-arrow { font-size: 13px; color: var(--fab7-muted); }
-.ask-to--open { flex-direction: column; align-items: stretch; gap: 0; padding: 4px 0; list-style: none; border-color: var(--fab7-accent); outline: none; cursor: default; }
+.ask-to--open { flex-direction: column; align-items: stretch; gap: 0; padding: 4px 0 6px; border-radius: var(--weft-radius-panel); list-style: none; border-color: var(--fab7-accent); outline: none; cursor: default; }
 .ask-to-option { display: flex; align-items: center; gap: 8px; padding: 10px 12px; cursor: pointer; }
 .ask-to-option--active { background: var(--fab7-selected); color: var(--fab7-accent); }
 .ask-to-option[aria-selected="true"]::after { content: '✓'; content: '✓' / ''; margin-left: auto; font-size: 13px; color: var(--fab7-accent); }
 /* START AN AGENT, between the agents and the new ones; "wrote it" beside the agent that wrote it. */
-.ask-to-heading { padding: 10px 12px 4px; border-top: 1px solid var(--fab7-line); font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: var(--fab7-muted); }
+.ask-to-heading { padding: 10px 12px 4px; border-top: 1px solid var(--fab7-line); font: 600 11px var(--font-mono); letter-spacing: 0.08em; color: var(--fab7-muted); }
 .ask-to-wrote { font-size: 13px; color: var(--fab7-muted); }
 .ask-to-option .ask-to-name { flex: 1; }
 .ask-row .ask-to { width: 220px; box-sizing: content-box; flex: none; gap: 10px; padding: 9px 12px; }

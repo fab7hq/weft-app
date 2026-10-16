@@ -18,14 +18,15 @@ body { font-family: var(--font-sans); color: var(--fab7-text); }
 .list-toggle { flex: none; display: flex; align-items: center; padding: 6px 8px; border: 1px solid var(--fab7-line); background: var(--fab7-surface); color: var(--fab7-muted); cursor: pointer; border-radius: var(--weft-radius-control); }
 .list-toggle--on { border-color: var(--fab7-accent); background: var(--fab7-selected); color: var(--fab7-accent); }
 /* The header's pills (M1.7, M2.6, M2.9): filled, sentence case, at the right. */
-.link-pill { padding: 3px 10px; background: var(--fab7-surface); color: var(--fab7-muted); font-size: 12px; white-space: nowrap; border-radius: var(--weft-radius-control); }
+.link-pill { padding: 3px 10px; background: var(--fab7-surface); color: var(--fab7-muted); font: 400 11px var(--font-mono); white-space: nowrap; border-radius: var(--weft-radius-control); }
 .spacer { flex: 1; }
 .back { color: var(--fab7-accent); font: inherit; font-size: 15px; background: none; border: 0; padding: 0; min-height: 44px; cursor: pointer; }
 .page { flex: 1; display: flex; flex-direction: column; gap: 16px; padding: 24px 20px; overflow: auto; }
 .page h2 { margin: 0; font-size: 19px; line-height: normal; font-weight: 600; }
 .lede { margin: 0; font-size: 15px; line-height: normal; color: var(--fab7-muted); }
 .note { margin: 0; font-size: 13px; line-height: normal; color: var(--fab7-muted); }
-.label { margin: 0; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fab7-muted); }
+.as-spelled { text-transform: none; }
+.label { margin: 0; font: 600 11px var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--fab7-faint); }
 a { color: var(--fab7-accent); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 .sheet-backdrop { position: fixed; inset: 0; z-index: 10; display: flex; flex-direction: column; justify-content: flex-end; background: rgba(9, 13, 22, 0.7); padding-bottom: env(safe-area-inset-bottom, 0px); }

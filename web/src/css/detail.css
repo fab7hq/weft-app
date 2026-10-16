@@ -2,13 +2,13 @@
 .detail { display: flex; flex-direction: column; gap: 10px; }
 .page .detail h2 { font-size: 19px; font-weight: 700; letter-spacing: 0; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.chip { padding: 3px 9px; background: var(--fab7-surface); color: var(--fab7-muted); font-size: 12px; text-transform: uppercase; border-radius: var(--weft-radius-control); }
+.chip { padding: 3px 9px; background: var(--fab7-surface); color: var(--fab7-muted); font: 400 11px var(--font-mono); text-transform: uppercase; border-radius: var(--weft-radius-control); }
 .chip--needs { background: var(--fab7-amber-bg); color: var(--fab7-amber-text); }
-.chip--good { background: #0c2f2a; color: var(--fab7-teal); }
+.chip--good { background: var(--fab7-teal-bg); color: var(--fab7-teal); }
 .detail-section { border-top: 1px solid var(--fab7-line); padding-top: 10px; display: flex; flex-direction: column; gap: 4px; }
 .detail-head { display: flex; align-items: baseline; gap: 8px; width: 100%; padding: 4px 0; background: none; border: 0; color: var(--fab7-text); font: inherit; cursor: pointer; text-align: left; }
 .detail-name { font-size: 15px; font-weight: 700; }
-.detail-aside { font-size: 12px; color: var(--fab7-muted); }
+.detail-aside { font: 400 11px var(--font-mono); color: var(--fab7-muted); }
 .detail-line { margin: 0; font-size: 13px; line-height: 1.45; overflow-wrap: anywhere; }
 .detail-line.dim, .dim { color: var(--fab7-muted); }
 .detail-under { padding-left: 1.5em; }
@@ -31,7 +31,7 @@
 .detail-harness { font-size: 13px; color: var(--fab7-muted); }
 .detail-chips { display: flex; align-items: center; gap: 6px; }
 .detail-chips .chip { min-width: 0; padding: 3px 10px; }
-.detail-chips .chip--good { background: #0f2f2d; }
+.detail-chips .chip--good { background: var(--fab7-teal-bg); }
 .detail-prov { margin: 0; font-size: 12px; color: var(--fab7-muted); overflow-wrap: anywhere; }
 .detail-work .detail-section { gap: 6px; padding: 10px 0 4px; }
 .detail-work .detail-head { align-items: center; padding: 0; }
@@ -57,7 +57,7 @@
 .crumb--link { padding: 0; border: 0; background: none; color: var(--fab7-accent); font-family: inherit; cursor: pointer; }
 .crumb-sep { font-size: 16px; font-weight: 600; color: var(--fab7-faint); }
 .crumb-dot { font-size: 14px; font-weight: 400; }
-.detail-chip { align-self: center; padding: 3px 10px; font-size: 12px; font-weight: 400; }
+.detail-chip { align-self: center; padding: 3px 10px; font: 400 11px var(--font-mono); }
 .detail-top .crumb { font-size: 14px; }
 .detail-top .crumb--first { font-size: 16px; }
 .detail-top .crumb-sep { font-size: 14px; }
@@ -79,8 +79,8 @@
 .fact--session { padding: 12px 0; border-top: 1px solid var(--fab7-line); }
 .fact--session .fact-value { font-size: 12px; }
 .detail-head-row { display: flex; align-items: center; gap: 10px; padding: 8px 0 0; }
-.detail-label { flex: 1; font-size: 11px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; color: var(--fab7-faint); }
-.detail-count { font-size: 12px; color: var(--fab7-faint); }
+.detail-label { flex: 1; font: 600 11px var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--fab7-faint); }
+.detail-count { font: 400 11px var(--font-mono); color: var(--fab7-faint); }
 .detail-ask { display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 16px; border: 0; border-bottom: 1px solid var(--fab7-line); background: none; color: var(--fab7-text); font: inherit; text-align: left; cursor: pointer; }
 .detail-asks .detail-ask:first-child { border-top: 1px solid var(--fab7-line); }
 .detail-pane .detail-ask { padding: 0 20px; }
@@ -107,7 +107,7 @@
 .detail-block { display: flex; flex-direction: column; gap: 10px; padding: 12px 0; border-top: 1px solid var(--fab7-line); border-bottom: 1px solid var(--fab7-line); }
 .detail-grid { display: flex; flex-direction: column; gap: 10px; }
 .grid-row { display: grid; grid-template-columns: 132px 1fr; align-items: baseline; }
-.grid-label { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fab7-faint); }
+.grid-label { font: 600 11px var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--fab7-faint); }
 .grid-value { font-size: 13px; color: var(--fab7-text); }
 .grid-value .detail-link { display: inline; }
 .detail-head-row--inline { justify-content: flex-start; gap: 6px; }

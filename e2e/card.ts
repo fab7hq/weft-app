@@ -29,15 +29,22 @@ export async function card(page: Page, title: string): Promise<string> {
       if (tag === 'script' || tag === 'style' || tag === 'link' || tag === 'iframe' || tag === 'noscript') return '';
       // A card runs nothing: a field or a button is drawn as a box, so its
       // styles are written against a bare box, the element the card holds.
-      const name = ['body', 'html', 'input', 'textarea', 'select', 'button'].includes(tag) ? 'div' : tag;
+      const name = ['body', 'html', 'input', 'textarea', 'select', 'button', 'p'].includes(tag) ? 'div' : tag;
       const base = defaults(name);
+      const plain = defaults('div');
       const decl: string[] = [];
       for (let i = 0; i < cs.length; i++) {
         const p = cs[i];
         if (p.startsWith('--') || p.startsWith('-webkit-') || p === 'transition' || p.startsWith('transition-') || p.startsWith('animation')) continue;
         const v = cs.getPropertyValue(p);
-        if (INHERITED.has(p) ? parent !== null && parent.getPropertyValue(p) === v : base.getPropertyValue(p) === v) continue;
+        // An inherited value is written where it changes from the parent's,
+        // or where this tag's own default (a heading's size) would differ.
+        const own = base.getPropertyValue(p) !== plain.getPropertyValue(p);
+        if (INHERITED.has(p) ? parent !== null && parent.getPropertyValue(p) === v && !own : base.getPropertyValue(p) === v) continue;
         decl.push(`${p}:${v}`);
+        // A side's line is its style and its width together: a style alone draws 3 px.
+        const side = p.match(/^border-(top|right|bottom|left)-style$/);
+        if (side && v !== 'none') decl.push(`border-${side[1]}-width:${cs.getPropertyValue(`border-${side[1]}-width`)}`);
       }
       // A button centres what it holds by itself; the box that draws it must say so.
       if (tag === 'button' && !/flex|grid/.test(cs.display)) decl.push('display:inline-flex', 'align-items:center', `justify-content:${cs.textAlign === 'left' || cs.textAlign === 'start' ? 'flex-start' : 'center'}`);

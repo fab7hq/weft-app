@@ -57,7 +57,7 @@ export function SessionDetails({ machine, project, session, wide = false }: { ma
       crumbs={wide ? [{ text: d.harness }, { text: state, tone: 'dim' }] : [{
         text: (
           <>
-            <span class={live && d.turn === 'waiting' ? 'needs crumb-dot' : live ? 'good crumb-dot' : 'dim crumb-dot'}>{live ? '●' : '○'}</span>
+            <span class={live && d.turn === 'waiting' ? 'needs crumb-dot' : live ? 'good crumb-dot' : 'dim crumb-dot'}>{live && d.turn === 'waiting' ? '■' : live ? '●' : '□'}</span>
             {d.harness}
             <span class="chip detail-chip">{chip}</span>
           </>
@@ -79,7 +79,7 @@ export function SessionDetails({ machine, project, session, wide = false }: { ma
         // D11.5: its state large, then its facts as labelled lines.
         <>
           <p class="summary-head">
-            <span class={live && d.turn === 'waiting' ? 'needs' : live ? 'good' : 'dim'}>{live ? '● ' : '○ '}</span>
+            <span class={live && d.turn === 'waiting' ? 'needs' : live ? 'good' : 'dim'}>{live && d.turn === 'waiting' ? '■ ' : live ? '● ' : '□ '}</span>
             {reopened ? fill('web.reopened.ended', { time: clock(d.last), machine: machine.name }) : state}
           </p>
           <div class="detail-block">

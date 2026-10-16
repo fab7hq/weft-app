@@ -291,7 +291,7 @@ export function Details({ machine, project, unit, wide = false }: { machine: Mac
         <button class="fact fact--link fact--session" type="button" onClick={toSession}>
           <span class="fact-label">{w('web.detail.its_session')}</span>
           <span class="fact-value">
-            <span class={waiting ? 'needs' : s.state === 'running' ? 'good' : 'dim'}>{s.state === 'running' ? '● ' : '○ '}</span>
+            <span class={waiting ? 'needs' : s.state === 'running' ? 'good' : 'dim'}>{waiting ? '■ ' : s.state === 'running' ? '● ' : '□ '}</span>
             {`${s.harness} · ${s.state === 'running' ? clock(s.at) : stateOf(s)}`}
           </span>
           <span class="tree-more" aria-hidden="true">›</span>

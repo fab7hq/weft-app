@@ -18,7 +18,7 @@
 .eval-text { flex: 1; min-width: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
 /* The marks fall back as the cards' do: past Sora to the system's ✓ ✗, not the UI font's. */
 .eval-mark { font-family: 'Sora', sans-serif; }
-.eval-aside { flex: none; max-width: 50%; font-size: 12px; color: var(--fab7-muted); text-align: right; }
+.eval-aside { flex: none; max-width: 50%; font: 400 11px var(--font-mono); color: var(--fab7-muted); text-align: right; }
 .eval-more { flex: none; font-size: 16px; font-weight: 600; color: var(--fab7-faint); }
 
 /* A step: what it asks, what was found, the readings, evenly spaced. */

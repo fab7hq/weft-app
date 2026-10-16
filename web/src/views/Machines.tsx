@@ -1,6 +1,6 @@
 // Your machines (M1.6, D1.6): open one, or remove one from the account; on a
 // desktop with Remove, on a phone by swiping the row left, then Proceed in the
-// confirmation over the page. Weft on the machine is not touched: it joins again with W → R.
+// confirmation over the page. Weft on the machine is not touched: it joins again from ☰ › Remote… there.
 import { useRef, useState } from 'preact/hooks';
 import * as api from '../api';
 import * as machine from '../machine';

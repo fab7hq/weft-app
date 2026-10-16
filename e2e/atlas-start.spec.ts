@@ -24,7 +24,7 @@ test('M2.1 D2.1 → M9.7 D9.7: start an agent from the empty tree; it opens', as
   await page.getByRole('button', { name: 'Start an agent' }).click();
   await expect(page.getByText('It runs on studio, with your own settings.')).toBeVisible();
   const list = page.getByRole('radiogroup', { name: 'Start an agent' });
-  await expect(list.getByRole('radio')).toHaveText(['◉claude · start fresh', '○codex · start fresh']);
+  await expect(list.getByRole('radio')).toHaveText(['claude · start fresh', 'codex · start fresh']);
   await list.getByRole('radio', { name: /codex/ }).click();
   await page.getByRole('button', { name: 'Start', exact: true }).click();
   await expect.poll(() => machine.of('start')).toEqual([expect.objectContaining({ project: 'weft', harness: 'codex' })]);
@@ -81,7 +81,7 @@ test('M9.8 D9.8: choose the project, then the harness; a project with nothing in
   await expect(projects.getByRole('radio', { name: /web/ })).toContainText('nothing yet');
   await projects.getByRole('radio', { name: /web/ }).click();
   const harnesses = page.getByRole('radiogroup', { name: 'Start an agent' });
-  await expect(harnesses.getByRole('radio')).toHaveText(['◉claude · start fresh', '○codex · start fresh']);
+  await expect(harnesses.getByRole('radio')).toHaveText(['claude · start fresh', 'codex · start fresh']);
   await harnesses.getByRole('radio', { name: /codex/ }).click();
   await page.getByRole('button', { name: 'Start', exact: true }).click();
   await expect.poll(() => machine.of('start')).toEqual([expect.objectContaining({ project: 'web', harness: 'codex' })]);

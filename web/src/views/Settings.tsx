@@ -268,7 +268,12 @@ export function Settings({ login, wide }: { login: string; wide: boolean }) {
             <MachineRows />
           </>
         )}
-        <div class="fab7-group settings-group">{fill('web.settings.account', { login })}</div>
+        {/* The login as it is spelled, in an eyebrow that is otherwise upper case. */}
+        <div class="fab7-group settings-group">
+          {w('web.settings.account').split('{login}')[0]}
+          <span class="as-spelled">{login}</span>
+          {w('web.settings.account').split('{login}')[1] ?? ''}
+        </div>
         {leaving('out', 'web.settings.sign_out')}
         {leaving('everywhere', 'web.settings.sign_out_everywhere')}
         {leaving('forget', 'web.settings.forget', 'leave--warn')}

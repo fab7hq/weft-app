@@ -47,7 +47,7 @@ export function StartPanel({ machine, harness, project: chosen, phone = false }:
             <div class="start-list" role="radiogroup" aria-label={w('web.start.project')}>
               {projects.map((p) => (
                 <button key={p.project} type="button" role="radio" aria-checked={p.project === at} class="start-option" onClick={() => (setAt(p.project), setPick(0))}>
-                  <span class={p.project === at ? 'start-radio' : 'start-radio start-radio--off'}>{p.project === at ? '◉' : '○'}</span>
+                  <span class="start-radio" aria-hidden="true" />
                   <span class="start-name">{p.project}</span>
                   <span class="start-aside">{p.open === 0 && p.agents.rows.length === 0 ? w('web.start.nothing_yet') : `${p.open} ${w('title.open')}`}</span>
                 </button>
@@ -63,7 +63,7 @@ export function StartPanel({ machine, harness, project: chosen, phone = false }:
             <div class="start-list" role="radiogroup" aria-label={w('start.title')}>
               {starts.map((s, i) => (
                 <button key={s.harness} type="button" role="radio" aria-checked={i === pick} class="start-option" onClick={() => setPick(i)}>
-                  <span class={i === pick ? 'start-radio' : 'start-radio start-radio--off'}>{i === pick ? '◉' : '○'}</span>
+                  <span class="start-radio" aria-hidden="true" />
                   {fill('start.fresh', { harness: s.harness })}
                 </button>
               ))}

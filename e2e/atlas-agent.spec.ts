@@ -122,7 +122,7 @@ test('M3.8: a harness not set up for RingFrame: ⚠ on its tab, and why under th
     const tabs = page.getByRole('navigation', { name: 'Tabs' });
     await expect(tabs.getByRole('button')).toHaveText(['weft · claude ■', 'weft · codex ⚠', 'weft · codex ⚠', 'docs · claude']);
   } else await expect(page.locator('.agent-name')).toHaveAccessibleName('weft · codex ⚠');
-  await expect(page.getByText('codex is not set up for RingFrame. Set it up on studio: ☰ › Updates….')).toBeVisible();
+  await expect(page.getByText('codex is not set up for RingFrame. Set it up on studio from ☰ › Updates…')).toBeVisible();
   await machine.close();
 });
 

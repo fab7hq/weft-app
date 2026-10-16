@@ -40,7 +40,7 @@ test('M10.1 D10.1: Open that cannot be judged says why, and nothing is sent', as
   const machine = await opened(page, context, sample);
   await work(page, 'Open').click();
   await button(page, 'Eval').click();
-  await expect(page.getByRole('status')).toHaveText('codex is not set up for RingFrame. Set it up on studio: ☰ › Updates….');
+  await expect(page.getByRole('status')).toHaveText('codex is not set up for RingFrame. Set it up on studio from ☰ › Updates…');
   expect(machine.of('act')).toHaveLength(0);
   await machine.close();
 });

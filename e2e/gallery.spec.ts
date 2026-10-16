@@ -1,6 +1,7 @@
-// The gallery (`npm run gallery`): every web screen of the Atlas by its ID, at
-// its frame less the card's status or browser bar (390×803 for M, 1280×754 for D), drawn against the fake machine
-// and written to gallery/<ID>.png. A screen the browser cannot draw (a
+// The gallery (`npm run gallery`): every web screen by its number, at its
+// frame (390×803 for a phone's M, 1280×754 for a desktop's D), drawn against
+// the fake machine and written to gallery/<ID>.png; Toile's `weft` holds each
+// as phone/<n> or desktop/<n>. A screen the browser cannot draw (a
 // notification the system shows) is written as gallery/<ID>.txt, saying why.
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { card } from './card';

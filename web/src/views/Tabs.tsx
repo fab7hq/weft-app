@@ -18,9 +18,12 @@ export const notSetUp = (a: m.Agent) =>
 export function TabName({ a }: { a: m.Agent }) {
   return (
     <>
+      {/* Every tab leads with its agent's status: ● running, ■ needs you, □ ended. */}
+      <span class={a.turn === 'waiting' && a.running ? 'tab-shape needs' : a.running ? 'tab-shape good' : 'tab-shape'} aria-hidden="true">
+        {a.turn === 'waiting' && a.running ? '■' : a.running ? '●' : '□'}
+      </span>
       {`${a.project} · ${a.harness}${notSetUp(a) ? ' ⚠' : ''}`}
       {m.tree.value.some((p) => p.project === a.project && p.turbo) && <span class="tab-turbo"> ⚡</span>}
-      {a.turn === 'waiting' && <span class="tab-needs"> ■</span>}
     </>
   );
 }

@@ -147,7 +147,7 @@ test('step 50: the open agents as tabs, or dots and a list on a phone; the one t
     return;
   }
   const tabs = page.getByRole('navigation', { name: 'Tabs' });
-  await expect(tabs.getByRole('button')).toHaveText(['weft · claude-code', 'docs · codex ■']);
+  await expect(tabs.getByRole('button')).toHaveText(['●weft · claude-code', '■docs · codex']);
   const first = tabs.getByRole('button', { name: /^weft / });
   const second = tabs.getByRole('button', { name: /^docs / });
   await expect(first).toHaveAttribute('aria-current', 'page');

@@ -55,8 +55,8 @@ test.describe('desktop', () => {
     await expect(right).toHaveClass(/pane-box--current/);
     // The pane it left shows its neighbour, and keeps the other tabs.
     const left = boxes(page).first();
-    await expect(left.getByRole('navigation', { name: 'Tabs' }).getByRole('button')).toHaveText(['weft · claude ■', 'weft · codex', 'weft · codex']);
-    await expect(right.getByRole('navigation', { name: 'Tabs' }).getByRole('button')).toHaveText(['docs · claude']);
+    await expect(left.getByRole('navigation', { name: 'Tabs' }).getByRole('button')).toHaveText(['■weft · claude', '●weft · codex', '●weft · codex']);
+    await expect(right.getByRole('navigation', { name: 'Tabs' }).getByRole('button')).toHaveText(['●docs · claude']);
     expect((await left.boundingBox())!.x).toBeLessThan((await right.boundingBox())!.x);
     // One watch for both, each with this device's size for it.
     await expect.poll(() => watched(machine.of('watch').at(-1))).toEqual([CODEX_NEW, DOCS_CLAUDE].sort());
@@ -95,7 +95,7 @@ test.describe('desktop', () => {
     await layout(page, 'Join all panes');
     await expect(boxes(page)).toHaveCount(1);
     await expect(tab(page, 'docs · claude')).toBeVisible();
-    await expect(page.getByRole('navigation', { name: 'Tabs' }).getByRole('button')).toHaveText(['weft · claude ■', 'weft · codex', 'weft · codex', 'docs · claude']);
+    await expect(page.getByRole('navigation', { name: 'Tabs' }).getByRole('button')).toHaveText(['■weft · claude', '●weft · codex', '●weft · codex', '●docs · claude']);
     await machine.close();
   });
 
@@ -111,7 +111,7 @@ test.describe('desktop', () => {
     await expect(boxes(page)).toHaveCount(2);
 
     const left = boxes(page).first();
-    await tab(left, 'weft · claude ■').click();
+    await tab(left, 'weft · claude').click();
     await layout(left, 'Split down');
     await expect(boxes(page)).toHaveCount(3);
     for (const name of ['docs · claude', 'docs · codex']) {
@@ -148,7 +148,7 @@ test.describe('desktop', () => {
     await page.setViewportSize({ width: 900, height: 720 });
     await expect(boxes(page)).toHaveCount(1);
     await expect(pane(page, 'docs · claude')).toBeVisible();
-    await expect(page.getByRole('navigation', { name: 'Tabs' }).getByRole('button')).toHaveText(['docs · claude']);
+    await expect(page.getByRole('navigation', { name: 'Tabs' }).getByRole('button')).toHaveText(['●docs · claude']);
     await page.setViewportSize({ width: 1280, height: 720 });
     await expect(boxes(page)).toHaveCount(2);
 
@@ -163,8 +163,8 @@ test.describe('desktop', () => {
     const machine = await opened(page, context);
     const bar = () => page.getByRole('navigation', { name: 'Tabs' }).first();
     // Along its bar: before the first.
-    await tab(page, 'docs · claude').dragTo(tab(page, 'weft · claude ■'), { targetPosition: { x: 4, y: 10 } });
-    await expect(bar().getByRole('button')).toHaveText(['docs · claude', 'weft · claude ■', 'weft · codex', 'weft · codex']);
+    await tab(page, 'docs · claude').dragTo(tab(page, 'weft · claude'), { targetPosition: { x: 4, y: 10 } });
+    await expect(bar().getByRole('button')).toHaveText(['●docs · claude', '■weft · claude', '●weft · codex', '●weft · codex']);
     // The pane's right fifth: a pane on the right.
     const one = boxes(page).first();
     const box = (await one.boundingBox())!;
@@ -174,18 +174,18 @@ test.describe('desktop', () => {
     // Into the right pane's middle.
     const right = pane(page, 'docs · claude');
     const r = (await right.boundingBox())!;
-    await tab(page, 'weft · claude ■').dragTo(right, { targetPosition: { x: r.width / 2, y: r.height / 2 } });
-    await expect(boxes(page).nth(1).getByRole('navigation', { name: 'Tabs' }).getByRole('button')).toHaveText(['docs · claude', 'weft · claude ■']);
+    await tab(page, 'weft · claude').dragTo(right, { targetPosition: { x: r.width / 2, y: r.height / 2 } });
+    await expect(boxes(page).nth(1).getByRole('navigation', { name: 'Tabs' }).getByRole('button')).toHaveText(['●docs · claude', '■weft · claude']);
     // Onto the left bar, after its tabs; the right pane keeps one.
     // Past its last tab's middle (the switch beside it leaves the bar narrower than the pane).
     const last = bar().getByRole('button').last();
     const b = (await last.boundingBox())!;
     await tab(page, 'docs · claude').dragTo(last, { targetPosition: { x: b.width - 4, y: b.height / 2 } });
-    await expect(bar().getByRole('button')).toHaveText(['weft · codex', 'weft · codex', 'docs · claude']);
+    await expect(bar().getByRole('button')).toHaveText(['●weft · codex', '●weft · codex', '●docs · claude']);
     // The last tab out of a pane: it closes.
     const left = boxes(page).first();
     const l = (await left.boundingBox())!;
-    await tab(page, 'weft · claude ■').dragTo(left, { targetPosition: { x: l.width / 2, y: l.height / 2 } });
+    await tab(page, 'weft · claude').dragTo(left, { targetPosition: { x: l.width / 2, y: l.height / 2 } });
     await expect(boxes(page)).toHaveCount(1);
     await machine.close();
   });

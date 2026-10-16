@@ -27,7 +27,7 @@ test.describe('desktop', () => {
 
   test('every open project\'s agents are tabs, in the tree\'s order; another project\'s opens without swapping them', async ({ page, context }) => {
     const machine = await opened(page, context);
-    const names = ['weft · claude ■', 'weft · codex', 'weft · codex', 'docs · claude'];
+    const names = ['■weft · claude', '●weft · codex', '●weft · codex', '●docs · claude'];
     await expect(tabs(page).getByRole('button')).toHaveText(names);
     await expect(tabs(page).getByRole('button').nth(1)).toHaveAttribute('aria-current', 'page');
     await tabs(page).getByRole('button', { name: 'docs · claude' }).click();

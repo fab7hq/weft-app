@@ -16,7 +16,9 @@
 .panes--many .tab { padding: 0 12px; font-size: 12px; }
 .tab-row .tabs { flex: 1; min-width: 0; border-bottom: none; }
 .tab-row--drop { background: var(--fab7-selected); }
-.tab-needs { font: 400 11px var(--font-mono); color: var(--fab7-amber-text); }
+.tab-shape { font: 400 10px var(--font-mono); color: var(--fab7-faint); }
+.tab-shape.good { color: var(--fab7-teal); }
+.tab-shape.needs { color: var(--fab7-amber-text); }
 .tab-turbo { font-size: 11px; color: var(--fab7-amber-text); }
 /* The layout button, a four-pane icon with ▾, and its menu. */
 .layout-at { position: relative; flex: none; margin-left: auto; }

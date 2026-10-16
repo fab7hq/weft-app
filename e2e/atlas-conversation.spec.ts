@@ -155,7 +155,7 @@ test('D12.1 in two panes: each pane in Conversation is followed, and one leaving
   test.skip(isMobile, 'a desktop');
   const machine = await opened(page, context, 'codex · health endpoint');
   const bar = (where: Page | ReturnType<Page['locator']>) => where.getByRole('navigation', { name: 'Tabs' });
-  await bar(page).getByRole('button', { name: 'weft · claude ●', exact: true }).click();
+  await bar(page).getByRole('button', { name: 'weft · claude ■', exact: true }).click();
   await page.getByRole('button', { name: 'Layout', exact: true }).first().click();
   await page.getByRole('menuitem', { name: 'Split right', exact: true }).click();
   const [left, right] = [page.locator('.pane-box').first(), page.getByRole('region', { name: 'weft · claude', exact: true })];

@@ -32,7 +32,7 @@ test('M11.5 D11.5: of two ended claude sessions, Resume on the older starts exac
   await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
   await page.goto('/');
   const name = 'claude · no Ask yet';
-  await expect(row(page, name).locator('.agent-dot')).toHaveText('○');
+  await expect(row(page, name).locator('.agent-dot')).toHaveText('□');
   if (wideOf(page)) await row(page, name).click();
   else await row(page, name).getByRole('button', { name: `Details of ${name}` }).click();
   await page.getByRole('button', { name: 'Resume', exact: true }).click();
@@ -42,7 +42,6 @@ test('M11.5 D11.5: of two ended claude sessions, Resume on the older starts exac
   await expect.poll(() => machine.of('watch').at(-1)?.agent).toBe('3f9a1c07b2de-9');
   if (!wideOf(page)) await page.goto('/');
   await expect(row(page, name).locator('.agent-dot')).toHaveText('●');
-  await expect(row(page, 'claude · readme fix').locator('.agent-dot')).toHaveText('○');
-  await expect(page.getByText('4 running · 14 ended')).toBeVisible();
+  await expect(row(page, 'claude · readme fix').locator('.agent-dot')).toHaveText('□');
   await machine.close();
 });

@@ -1,19 +1,19 @@
 /* tree: its own rules, moved from app.css in their order. */
 /* The cards draw in Sora alone, so a symbol (▾ ● ✓ ✗ ⚠ ⚡) comes from the
    browser's own fallback, not the system UI font, and text is not thinned. */
-.tree { flex: 1; overflow: auto; padding: 8px 0; }
-.tree-side { flex: 0 0 381px; width: 381px; box-sizing: border-box; border-right: 1px solid var(--fab7-line); display: flex; flex-direction: column; min-height: 0; }
-.tree-row { display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 16px; box-sizing: border-box; cursor: pointer; }
+.tree { flex: 1; overflow: auto; padding: 0; }
+.tree-side { flex: 0 0 341px; width: 341px; box-sizing: border-box; border-right: 1px solid var(--fab7-line); display: flex; flex-direction: column; min-height: 0; }
+.tree-row { display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 16px; box-sizing: border-box; border-bottom: 1px solid var(--fab7-line); cursor: pointer; }
 .tree-row--harness { padding-left: 32px; }
 .tree-row--work { padding-left: 50px; }
-.tree-row[aria-selected="true"] { background: var(--fab7-selected); border-left: 3px solid var(--fab7-accent); }
-.tree-fold { font-family: inherit; font-size: 13px; line-height: normal; color: var(--fab7-muted); background: none; border: 0; padding: 0; cursor: pointer; }
-.tree-name { flex: 1; min-width: 0; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tree-row[aria-selected="true"] { background: var(--fab7-selected); box-shadow: inset 3px 0 0 var(--fab7-accent); }
+.tree-fold { font-family: inherit; font-size: 12px; line-height: normal; color: var(--fab7-muted); background: none; border: 0; padding: 0; cursor: pointer; }
+.tree-name { flex: 1; min-width: 0; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tree-row--project .tree-name { font-weight: 600; }
-.tree-plus { flex: none; padding: 4px 8px; border: 0; background: none; color: var(--fab7-muted); font: 400 16px var(--font-sans); cursor: pointer; }
+.tree-plus { flex: none; padding: 2px 7px; border: 1px solid var(--fab7-line); background: var(--fab7-surface); color: var(--fab7-muted); font: 400 13px var(--font-mono); cursor: pointer; border-radius: var(--weft-radius-control); }
 .tree-plus:hover { color: var(--fab7-accent); }
 .tree-name--off { color: var(--fab7-muted); }
-.tree-aside { font-size: 12px; color: var(--fab7-muted); white-space: nowrap; }
+.tree-aside { font: 400 11px var(--font-mono); color: var(--fab7-muted); white-space: nowrap; }
 .tree-aside.needs { color: var(--fab7-amber-text); }
 .tree-more { font: 600 16px var(--font-sans); color: var(--fab7-faint); background: none; border: 0; padding: 0 0 0 10px; margin-left: -10px; min-height: 44px; cursor: pointer; }
 /* The empty tree (M2.1, D2.1) and a harness not set up (M2.3, D2.3), under the tree's 8 px. */
@@ -37,21 +37,24 @@
 .tree-bar { flex: none; background: var(--fab7-panel); border-top: 1px solid var(--fab7-line); }
 .tree-said { margin: 0; padding: 10px 16px; font-size: 13px; color: var(--fab7-amber-text); border-bottom: 1px solid var(--fab7-line); }
 .tree-acts { display: flex; align-items: center; gap: 10px; padding: 10px 16px 30px; }
-.tree-act { flex: 1; min-width: 0; padding: 11px 16px; border: 1px solid var(--fab7-line); background: var(--fab7-surface); color: var(--fab7-text); font: 600 14px var(--font-sans); cursor: pointer; }
+.tree-act { flex: 1; min-width: 0; padding: 11px 16px; border: 1px solid var(--fab7-line); background: var(--fab7-surface); color: var(--fab7-text); font: 600 14px var(--font-sans); cursor: pointer; box-shadow: var(--weft-bevel); border-radius: var(--weft-radius-control); }
 /* Sent, and the machine has not answered yet: the act works, a light passing across it; a second press does nothing. */
 .tree-act[aria-busy="true"] { position: relative; overflow: hidden; pointer-events: none; }
 .tree-act[aria-busy="true"]::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.22), transparent); transform: translateX(-100%); animation: working 1s ease-in-out infinite; }
 @keyframes working { to { transform: translateX(100%); } }
-.tree-bar--wide .tree-acts { padding: 10px 20px; }
-.tree-bar--wide .tree-act { flex: none; padding: 9px 18px; border: 1px solid var(--fab7-line); }
+/* Room from the browser window's rounded bottom corners. */
+.tree-bar--wide .tree-acts { height: 56px; box-sizing: border-box; padding: 0 20px; }
+.tree-bar--wide .tree-act { flex: none; padding: 7px 18px; border: 1px solid var(--fab7-line); font-size: 13px; }
 /* The why above the acts: one panel with them on a phone (M10.1), a line between them on a desktop (D10.1). */
 .tree-bar .tree-said { border-bottom: 0; }
 .tree-bar--wide .tree-said { padding: 8px 20px; border-bottom: 1px solid var(--fab7-line); }
 .tree-act.tree-act--go { border: 0; background: var(--fab7-button); color: var(--fab7-on-button); }
 .tree-act--start { flex: none; border: 1px solid var(--fab7-line); }
-.woven { flex: 1; display: flex; flex-direction: column; gap: 24px; align-items: center; justify-content: center; }
-.woven .tree-act--start { padding: 9px 18px; }
-.woven-mark { margin: 0; font: 700 22px/26px var(--font-mono); color: var(--fab7-teal); }
+.woven { flex: 1; display: flex; flex-direction: column; gap: 16px; align-items: center; justify-content: center; background-color: var(--fab7-void); }
+.woven .tree-act--start { flex: none; padding: 7px 18px; font-size: 13px; }
+.woven-mark { display: flex; flex-direction: column; gap: 6px; font: 700 12px/14px var(--font-mono); color: var(--fab7-teal); }
+.woven-row { display: flex; gap: 6px; }
+.woven-row--in { padding-left: 7px; }
 .tree-skeleton { display: flex; flex-direction: column; gap: 4px; padding: 12px 0; }
 .tree-side .tree-skeleton { gap: 0; padding: 8px 0; }
 .tree-skeleton .tree-row { flex: none; }
@@ -59,67 +62,59 @@
 .woven--weaving .woven-mark { animation: weave 1.6s ease-in-out infinite alternate; }
 @keyframes weave { from { opacity: 0.35; letter-spacing: 0; } to { opacity: 1; letter-spacing: 1px; } }
 @media (prefers-reduced-motion: reduce) { .woven--weaving .woven-mark { animation: none; } }
-/* AGENTS and WORK (M11.1, D11.1): the sections' heads, a session's two lines,
-   the rounds and their Asks, Sealed's Seals; the acts a desktop row carries. */
-.tree-section { display: flex; align-items: center; gap: 10px; padding: 8px 16px 6px 32px; }
-.tree-section--work { margin-top: 0; padding-top: 12px; border-top: 1px solid var(--fab7-line); }
-.tree-section-name { flex: 1; min-width: 0; font-size: 11px; font-weight: 600; letter-spacing: 1.2px; color: var(--fab7-faint); }
-.tree-section-aside { font-size: 12px; color: var(--fab7-faint); white-space: nowrap; }
-.tree-row--agent { height: 58px; padding: 0 16px 0 32px; }
-.agent-lines { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
-.agent-top { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
-.agent-dot { flex: none; width: 12px; font-size: 12px; color: var(--fab7-faint); }
+/* AGENTS and WORK: the sections' heads, one line per session, the rounds
+   and their Asks, Sealed's Seals. */
+.tree-section { display: flex; align-items: center; height: 24px; box-sizing: border-box; padding: 0 16px 0 32px; background: var(--fab7-panel); border-bottom: 1px solid var(--fab7-line); }
+.tree-section-name { flex: 1; min-width: 0; font: 600 11px var(--font-mono); letter-spacing: 0.08em; color: var(--fab7-faint); }
+.tree-row--agent { padding: 0 16px 0 32px; gap: 8px; }
+.agent-dot { flex: none; width: 12px; font: 400 11px var(--font-mono); color: var(--fab7-faint); }
 .agent-dot.good { color: var(--fab7-teal); }
 .agent-dot.needs { color: var(--fab7-amber-text); }
-.agent-harness { font-size: 15px; white-space: nowrap; }
-.agent-harness--off { color: var(--fab7-muted); }
-.agent-state { flex: 1; min-width: 0; font-size: 12px; color: var(--fab7-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.agent-state.needs { color: var(--fab7-amber-text); }
-.agent-state--off { color: var(--fab7-faint); }
-.agent-at { flex: none; font-size: 12px; color: var(--fab7-faint); white-space: nowrap; }
-.agent-title { padding-left: 20px; font-size: 13px; color: var(--fab7-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.agent-title--none { color: var(--fab7-faint); }
-.tree-row--earlier { padding-left: 32px; }
-.tree-row--earlier .tree-name { font-size: 13px; color: var(--fab7-muted); }
-.tree-row--past { padding-left: 50px; }
-.tree-row--group { padding: 0 16px 0 32px; }
-.group-name { flex: 1; min-width: 0; display: flex; align-items: baseline; overflow: hidden; white-space: pre; }
-.group-title { font-size: 15px; }
-.group-aside { font-size: 13px; color: var(--fab7-muted); }
+.agent-line { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px; overflow: hidden; white-space: nowrap; }
+.agent-harness { flex: none; font-size: 14px; font-weight: 500; }
+.agent-harness--off { color: var(--fab7-muted); font-weight: 400; }
+.agent-turbo { flex: none; font-size: 11px; color: var(--fab7-amber-text); }
+.agent-sep { flex: none; color: var(--fab7-faint); }
+.agent-title { min-width: 0; font-size: 13px; color: var(--fab7-muted); overflow: hidden; text-overflow: ellipsis; }
+.agent-title--off { color: var(--fab7-faint); }
+.tree-row[aria-selected="true"] .agent-harness { font-weight: 600; }
+.agent-at { flex: none; font: 400 11px var(--font-mono); color: var(--fab7-faint); white-space: nowrap; }
+.tree-row--earlier { height: 36px; padding-left: 32px; }
+.tree-row--earlier .tree-name { font-size: 12px; color: var(--fab7-accent); }
+.tree-row--earlier .tree-fold { display: none; }
+.tree-row--past { padding-left: 48px; }
+.tree-row--group { height: 38px; padding: 0 16px 0 32px; gap: 10px; }
+.group-name { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px; overflow: hidden; white-space: pre; }
+.group-title { font-size: 14px; font-weight: 600; }
+.group-aside { font-size: 12px; color: var(--fab7-muted); }
 .group-aside .good, .group-aside .needs { white-space: pre; }
-.group-count { min-width: 16px; text-align: right; font-size: 12px; color: var(--fab7-muted); }
-.tree-row--seal { padding-left: 50px; }
+.group-count { min-width: 16px; text-align: right; font: 400 12px var(--font-mono); color: var(--fab7-muted); }
+.tree-row--work, .tree-row--seal { height: 38px; padding-left: 48px; }
+.tree-row--work .tree-name, .tree-row--seal .tree-name { font-size: 13px; }
 .seal-lines { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 8px; }
 .seal-lines .tree-name { flex: none; }
-.tree-more-rows { height: 1px; flex: none; }
-.row-act { flex: none; padding: 4px 10px; border: 1px solid var(--fab7-line); background: var(--fab7-surface); color: var(--fab7-text); font: 600 12px var(--font-sans); cursor: pointer; }
+.tree-more-rows { height: 1px; flex: none; border: 0; }
 .tree-selected { font-size: 12px; color: var(--fab7-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* The search (M11.8, D11.8): a pill above the tree, blue once it holds text. */
-.tree-search { flex: none; display: flex; align-items: center; gap: 8px; margin: 10px 16px 2px; padding: 8px 14px; border: 1px solid var(--fab7-line); background: var(--fab7-surface); }
-.tree-search:focus-within, .tree-search--on { border-color: var(--fab7-accent); }
-.tree-glass { font-size: 15px; color: var(--fab7-faint); }
+.tree-search { flex: none; display: flex; align-items: center; gap: 8px; height: 38px; box-sizing: border-box; padding: 0 16px; border-bottom: 1px solid var(--fab7-line); background: var(--fab7-panel); }
+.tree-search:focus-within, .tree-search--on { border-bottom-color: var(--fab7-accent); }
+.tree-glass { font: 400 13px var(--font-mono); color: var(--fab7-muted); }
 .tree-field { flex: 1; min-width: 0; padding: 0; border: 0; background: none; color: var(--fab7-text); font: 400 16px var(--font-sans); outline: none; -webkit-appearance: none; appearance: none; }
 .tree-field::placeholder { color: var(--fab7-faint); }
 .tree-field::-webkit-search-cancel-button { display: none; }
 .tree-clear { flex: none; padding: 0 2px; border: 0; background: none; color: var(--fab7-faint); font: 400 14px var(--font-sans); cursor: pointer; }
-/* The desktop's tree (D11.1): a session on one row, its title under its harness, the time at its end. */
-.tree-side .tree-section { height: 20px; padding: 0 16px 0 32px; align-items: flex-end; border-top: 0; }
-.tree-side .tree-section-name { flex: none; letter-spacing: 0.08em; }
-.tree-side .tree-section-aside { margin-left: auto; }
-.tree-side .tree-row--agent { height: 46px; }
+/* The desktop's tree: the same rows, a little denser. */
+.tree-side .tree-section { height: 22px; }
+.tree-side .tree-section-name { font-size: 10px; }
+.tree-side .tree-row--agent { height: 36px; }
 .tree-side .agent-dot { width: 10px; }
-.tree-side .agent-lines { gap: 1px; }
-.tree-side .agent-state { flex: none; }
-.tree-side .agent-title { padding-left: 0; font-size: 12px; }
-.tree-side .tree-row--earlier { height: 28px; }
-.tree-side .tree-row--past { padding-left: 52px; }
-.tree-side .tree-row--earlier .tree-name { color: var(--fab7-accent); }
-.tree-side .tree-row--group { gap: 8px; }
-.tree-side .group-name { gap: 6px; }
-.tree-side .group-title { font-size: 14px; font-weight: 600; }
-.tree-side .group-aside { font-size: 12px; }
-.tree-side .tree-row--work, .tree-side .tree-row--seal { padding-left: 52px; }
+.tree-side .agent-harness { font-size: 13px; }
+.tree-side .tree-row--earlier { height: 30px; }
+.tree-side .tree-row--group { height: 36px; gap: 8px; }
+.tree-side .group-title { font-size: 13px; }
+.tree-side .tree-row--work, .tree-side .tree-row--seal { height: 34px; }
+.tree-side .group-count { font-size: 11px; }
 /* A project reopened after Weft on the machine ended uncleanly (M13.5). */
-.reopened { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin: 0 16px 6px 32px; padding: 12px 14px; background: var(--fab7-surface); border: 1px solid var(--fab7-line); }
+.reopened { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin: 0 16px 6px 32px; padding: 12px 14px; background: var(--fab7-surface); border: 1px solid var(--fab7-line); border-radius: var(--weft-radius-control); }
 .reopened-notice { margin: 0; font-size: 13px; line-height: 19px; color: var(--fab7-text); }
 .reopened-dismiss { padding: 7px 14px; font-size: 13px; }

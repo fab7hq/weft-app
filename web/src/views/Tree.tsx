@@ -170,7 +170,7 @@ const isOpen = (key: string, first = true) => first !== folded.value.includes(ke
 export function Mark() {
   return (
     <span class="mark" aria-label="Weft">
-      <span class="mark-weave">╸┃╺</span>
+      <span class="mark-weave">╸<span class="mark-warp">┃</span>╺</span>
       <span class="mark-word">WEFT</span>
     </span>
   );
@@ -188,7 +188,7 @@ export function NeedsYouPill({ machine }: { machine: Machine }) {
   };
   return (
     <button class="needs-pill" type="button" onClick={next}>
-      {`${w('title.needs_you').toUpperCase()} ${n}`}
+      {`■ ${w('title.needs_you').toUpperCase()} ${n}`}
     </button>
   );
 }
@@ -397,16 +397,11 @@ function ProjectRows({ p, moves, hit }: { p: m.Project; moves: Moves; hit?: { n:
       <div class="tree-row tree-row--project" role="treeitem" aria-label={p.project} aria-expanded={open} onClick={() => !moves.searching && fold(p.project)}>
         <span class="tree-fold">{open ? '▾' : '▸'}</span>
         <span class="tree-name">{p.project}</span>
-        {/* Its Open Asks and the agents that need you; reopened, in their place (M13.5). */}
-        <span class="tree-aside">
-          {hit ? fill('tree.match', { n: String(hit.n) }) : p.reopened ? w('web.reopened') : `${p.open} ${w('title.open')}`}
-          {!p.reopened && p.needs > 0 && (
-            <>
-              {' · '}
-              <span class="needs" data-needs-you="true">{`${p.needs} ●`}</span>
-            </>
-          )}
-        </span>
+        {/* What a search found, or a project reopened (M13.5); folded, what waits in it. */}
+        {(hit || p.reopened) && <span class="tree-aside">{hit ? fill('tree.match', { n: String(hit.n) }) : w('web.reopened')}</span>}
+        {!open && !hit && !p.reopened && p.needs > 0 && (
+          <span class="tree-aside needs" data-needs-you="true">{`■ ${p.needs}`}</span>
+        )}
         {/* Start an agent in this project (M9.8): the project is already chosen. */}
         <button
           class="tree-plus"
@@ -424,7 +419,6 @@ function ProjectRows({ p, moves, hit }: { p: m.Project; moves: Moves; hit?: { n:
           {(!hit || p.agents.rows.length > 0 || p.agents.earlier > 0) && (
             <div class="tree-section" role="none">
               <span class="tree-section-name">{w('tree.agents')}</span>
-              {!hit && <span class="tree-section-aside">{fill('tree.counts', { n: String(p.agents.running), m: String(p.agents.ended) })}</span>}
             </div>
           )}
           {p.agents.rows.map((s) => <AgentRow key={rowKey(s)} p={p} s={s} moves={moves} />)}
@@ -487,38 +481,27 @@ function AgentRow({ p, s, moves, later }: { p: m.Project; s: m.Session; moves: M
     else session();
   };
   const name = sessionName(s);
-  const dot = <span class={`agent-dot${waiting ? ' needs' : running ? ' good' : ''}`} data-needs-you={waiting ? 'true' : undefined}>{running ? '●' : '○'}</span>;
-  const harness = (
-    <span class={running ? 'agent-harness' : 'agent-harness agent-harness--off'}>
-      {s.harness}
-      {unready(p, s.harness) && ' ⚠'}
+  // The status is a shape and a colour: a circle while it runs, a square while
+  // it waits for you, a hollow square once it has ended.
+  const shape = (
+    <span class={`agent-dot${waiting ? ' needs' : running ? ' good' : ''}`} data-needs-you={waiting ? 'true' : undefined} aria-label={stateOf(s)}>
+      {waiting ? '■' : running ? '●' : '□'}
     </span>
   );
-  const state = <span class={`agent-state${waiting ? ' needs' : ''}${!running && !wide ? ' agent-state--off' : ''}`}>{stateOf(s)}</span>;
-  const title = <span class={`agent-title${s.title && (running || wide) ? '' : ' agent-title--none'}`}>{s.title ?? w('tree.no_ask')}</span>;
-  const time = <span class="agent-at">{later ?? clock(s.at)}</span>;
   return (
     <div class={later ? 'tree-row tree-row--agent tree-row--past' : 'tree-row tree-row--agent'} role="treeitem" aria-label={name} aria-selected={on} onClick={tap} onDblClick={session}>
-      {wide ? (
-        <>
-          {dot}
-          <span class="agent-lines">
-            <span class="agent-top">{harness}{state}</span>
-            {title}
-          </span>
-          {/* Ask sits on the selected agent while it runs (D11.1, D11.5). */}
-          {on && running && <button class="row-act" type="button" aria-label={`${w('act.ask')} ${name}`} onClick={(e) => (e.stopPropagation(), askOn())}>{w('act.ask')}</button>}
-          {time}
-        </>
-      ) : (
-        <>
-          <span class="agent-lines">
-            <span class="agent-top">{dot}{harness}{state}{time}</span>
-            {title}
-          </span>
-          <button class="tree-more" type="button" aria-label={`Details of ${name}`} onClick={(e) => (e.stopPropagation(), session())}>›</button>
-        </>
-      )}
+      {shape}
+      <span class="agent-line">
+        <span class={running ? 'agent-harness' : 'agent-harness agent-harness--off'}>
+          {s.harness}
+          {unready(p, s.harness) && ' ⚠'}
+        </span>
+        {running && p.turbo && <span class="agent-turbo">⚡</span>}
+        {s.title && <span class="agent-sep">·</span>}
+        {s.title && <span class={running ? 'agent-title' : 'agent-title agent-title--off'}>{s.title}</span>}
+      </span>
+      <span class="agent-at">{later ?? clock(s.at)}</span>
+      {!wide && <button class="tree-more" type="button" aria-label={`Details of ${name}`} onClick={(e) => (e.stopPropagation(), session())}>›</button>}
     </div>
   );
 }
@@ -535,7 +518,6 @@ function Work({ p, moves }: { p: m.Project; moves: Moves }) {
     <>
       <div class="tree-section tree-section--work" role="none">
         <span class="tree-section-name">{w('tree.work')}</span>
-        {!searching && <span class="tree-section-aside">{w('tree.by_round')}</span>}
       </div>
       {/* M2.5: nothing asked yet. A harness not set up says so by its ⚠ instead (M7.1). */}
       {nothing && !p.agents.rows.some((s) => unready(p, s.harness)) && <p class="tree-next">{w('web.tree.ask_for_something')}</p>}
@@ -560,16 +542,13 @@ function OpenRows({ p, moves }: { p: m.Project; moves: Moves }) {
   const key = `${p.project}/open`;
   const open = moves.searching || isOpen(key);
   const me: Selected = { kind: 'open', project: p.project };
-  const since = p.work.open.since;
   return (
     <>
       <div class="tree-row tree-row--group" role="treeitem" aria-label={w('tree.open')} aria-expanded={open} aria-selected={isSelected(me)} onClick={() => (selected.value = me)}>
         <Fold open={open} name={w('tree.open')} onFold={() => fold(key)} />
         <span class="group-name">
           <span class="group-title">{w('tree.open')}</span>
-          {since !== null && <span class="group-aside">{` · ${fill('tree.since', { n: String(since) })}`}</span>}
         </span>
-        {moves.wide && <button class="row-act" type="button" aria-label={`${w('act.eval')} ${w('tree.open')}`} onClick={(e) => (e.stopPropagation(), (selected.value = me), void evalOn())}>{w('act.eval')}</button>}
         <span class="group-count">{p.work.open.asks.length}</span>
       </div>
       {open && p.work.open.asks.map((a) => <AskRow key={a.unit} p={p} ask={a} moves={moves} />)}
@@ -605,15 +584,12 @@ function RoundRows({ p, round, moves }: { p: m.Project; round: m.Round; moves: M
             <span class="group-aside">{` · ${w('tree.judging')}`}</span>
           ) : (
             <span class="group-aside">
-              {' · '}
+              {round.verdict && ' · '}
               <Verdict verdict={round.verdict} />
-              {round.agreement && ` · ${round.agreement}`}
-              {' · '}
-              <span class={wide ? 'needs' : undefined}>{w('tree.not_sealed')}</span>
+              {round.agreement && ` ${round.agreement}`}
             </span>
           )}
         </span>
-        {wide && !round.judging && <button class="row-act" type="button" aria-label={`${w('act.seal')} ${name}`} onClick={(e) => (e.stopPropagation(), (selected.value = me), void sealOn())}>{w('act.seal')}</button>}
         <span class="group-count">{round.asks.length}</span>
         {!wide && <button class="tree-more" type="button" aria-label={`Details of ${name}`} onClick={(e) => (e.stopPropagation(), (selected.value = me), details())}>›</button>}
       </div>
@@ -633,7 +609,7 @@ function AskRow({ p, ask, moves }: { p: m.Project; ask: m.Ask; moves: Moves }) {
   return (
     <div class="tree-row tree-row--work" role="treeitem" aria-label={ask.title} aria-selected={isSelected(me)} onClick={() => (selected.value = me)} onDblClick={details}>
       <span class="tree-name">{ask.title}</span>
-      <span class="tree-aside">{ask.word ? `${ask.harness} · ${stateWord(ask.word)}` : ask.harness}</span>
+      <span class="tree-aside">{ask.word ? `${stateWord(ask.word)} · ${ask.harness}` : ask.harness}</span>
       <button class="tree-more" type="button" aria-label={`Details of ${ask.title}`} onClick={(e) => (e.stopPropagation(), details())}>›</button>
     </div>
   );
@@ -676,7 +652,6 @@ function SealedRows({ p, moves }: { p: m.Project; moves: Moves }) {
         <span class="tree-fold">{open ? '▾' : '▸'}</span>
         <span class="group-name">
           <span class="group-title">{name}</span>
-          <span class="group-aside">{` · ${count === 1 ? w('tree.seals_one') : fill('tree.seals', { n: String(count) })}`}</span>
         </span>
         <span class="group-count">{p.work.sealed.asks}</span>
       </div>

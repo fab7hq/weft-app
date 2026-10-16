@@ -25,35 +25,43 @@ const said = (page: Page) => page.locator('.tree-bar .tree-said');
 const empty = (ask: Project['ask'], setup: Project['setup'] = null): Project[] => [{ ...project('weft', []), ask, setup }];
 const noneDisabled = (page: Page) => expect(page.locator('button:disabled, input:disabled, textarea:disabled, select:disabled')).toHaveCount(0);
 
-test('M11.1 D11.1: AGENTS and WORK, as the cards draw them, amber only for an agent that needs you', async ({ page, context }) => {
+test('M11.1 D11.1: AGENTS and WORK, as the cards draw them: one line a row, the status a shape, amber only for an agent that needs you', async ({ page, context }) => {
   const machine = await opened(page, context);
-  await expect(row(page, 'weft')).toContainText('2 open · 1 ●');
-  await expect(page.locator('.tree-section')).toHaveText(['AGENTS3 running · 15 ended', 'WORKby Eval round', 'AGENTS1 running · 0 ended', 'WORKby Eval round']);
+  // Open, a project says nothing more of itself; its rows say it.
+  await expect(row(page, 'weft')).toHaveText('▾weft+');
+  await expect(page.locator('.tree-section')).toHaveText(['AGENTS', 'WORK', 'AGENTS', 'WORK']);
   const agents = page.locator('.tree-row--agent');
   await expect(agents).toHaveCount(7);
-  const read = (i: number) => Promise.all(['.agent-harness', '.agent-state', '.agent-at', '.agent-title'].map((c) => agents.nth(i).locator(c).textContent()));
-  expect(await read(0)).toEqual(['codex', 'working', '11:31', 'no Ask yet']);
-  expect(await read(1)).toEqual(['claude', 'needs you', '11:29', 'fix login']);
-  expect(await read(2)).toEqual(['codex', 'turn ended', '10:52', 'health endpoint']);
-  expect(await read(3)).toEqual(['claude', 'ended', '09:12', 'readme fix']);
-  expect(await read(4)).toEqual(['codex', 'ended', '08:30', 'lint pass']);
-  expect(await read(5)).toEqual(['claude', 'ended', '08:02', 'no Ask yet']);
-  await expect(agents.nth(0).locator('.agent-dot')).toHaveText('●');
-  await expect(agents.nth(3).locator('.agent-dot')).toHaveText('○');
+  const read = (i: number) => agents.nth(i).evaluate((e) => ['.agent-dot', '.agent-harness', '.agent-title', '.agent-at'].map((c) => e.querySelector(c)?.textContent ?? null));
+  const state = (i: number) => agents.nth(i).locator('.agent-dot').getAttribute('aria-label');
+  expect(await read(0)).toEqual(['●', 'codex', null, '11:31']);
+  expect(await state(0)).toBe('working');
+  expect(await read(1)).toEqual(['■', 'claude', 'fix login', '11:29']);
+  expect(await state(1)).toBe('needs you');
+  expect(await read(2)).toEqual(['●', 'codex', 'health endpoint', '10:52']);
+  expect(await state(2)).toBe('turn ended');
+  expect(await read(3)).toEqual(['□', 'claude', 'readme fix', '09:12']);
+  expect(await read(4)).toEqual(['□', 'codex', 'lint pass', '08:30']);
+  expect(await read(5)).toEqual(['□', 'claude', null, '08:02']);
+  expect(await state(5)).toBe('ended');
+  // No state in words on a row.
+  for (const word of ['working', 'needs you', 'turn ended', 'no Ask yet']) await expect(page.locator('.tree').getByText(word, { exact: true })).toHaveCount(0);
   await expect(row(page, '12 earlier sessions')).toBeVisible();
-  await expect(row(page, 'Open')).toHaveText(/^▾Open · since Eval 3(Eval)?2$/);
-  await expect(row(page, 'fix login')).toContainText('claude · ASKED');
-  await expect(row(page, 'telemetry')).toContainText('claude · ASKING');
-  await expect(row(page, 'Eval 3')).toContainText('Eval 3 · aligned · 0.67 · not sealed');
+  await expect(row(page, 'Open')).toHaveText(/^▾Open2$/);
+  await expect(row(page, 'fix login')).toContainText('ASKED · claude');
+  await expect(row(page, 'telemetry')).toContainText('ASKING · claude');
+  await expect(row(page, 'Eval 3')).toContainText('Eval 3 · aligned 0.67');
   // Under a round, title and harness only: the round says their state.
   await expect(row(page, 'health endpoint').locator('.tree-aside')).toHaveText('codex');
   await expect(row(page, 'build number').locator('.tree-aside')).toHaveText('codex');
-  await expect(row(page, 'Sealed')).toHaveText(/^▸Sealed · 4 seals31$/);
-  await expect(row(page, 'docs')).toContainText('0 open');
-  await expect(page.getByText('NEEDS YOU 1')).toBeVisible();
-  // Only an agent that waits for you is amber: its project's count, its dot.
-  await expect(page.locator('[data-needs-you]')).toHaveText(['1 ●', '●']);
-  await expect(agents.nth(1).locator('.agent-state')).toHaveClass(/needs/);
+  await expect(row(page, 'Sealed')).toHaveText(/^▸Sealed31$/);
+  await expect(page.getByText('■ NEEDS YOU 1')).toBeVisible();
+  // Only an agent that waits for you is amber: its square.
+  await expect(page.locator('[data-needs-you]')).toHaveText(['■']);
+  await expect(agents.nth(1).locator('.agent-dot')).toHaveClass(/needs/);
+  // Folded, a project says what waits in it.
+  await row(page, 'weft').click();
+  await expect(row(page, 'weft')).toHaveText('▸weft■ 1+');
   for (const outside of ['in Weft', 'outside']) await expect(page.getByText(outside)).toHaveCount(0);
   await machine.close();
 });
@@ -127,31 +135,27 @@ test('M11.1 D11.1: a session run by another program reads the same; Ask on it sa
   // codex no Ask yet runs in a terminal: no pane holds it.
   Object.assign(sample.tree[0].agents.rows[0], { agent: null });
   const machine = await opened(page, context, sample);
-  await expect(row(page, 'codex · no Ask yet').locator('.agent-state')).toHaveText('working');
+  await expect(row(page, 'codex · no Ask yet').locator('.agent-dot')).toHaveAttribute('aria-label', 'working');
   await row(page, 'codex · no Ask yet').click();
   await bar(page, 'Ask').click();
   await expect(said(page)).toHaveText("codex runs in another program: Weft can't show it or type into it.");
   await machine.close();
 });
 
-test('D11.1: the bar names the selection, and Ask, Eval and Seal sit on their rows', async ({ page, context }, info) => {
+test('D11.1: the bar names the selection; Ask, Eval and Seal are in the bar only, never on a row', async ({ page, context }, info) => {
   test.skip(info.project.name !== 'desktop', 'a desktop');
   const machine = await opened(page, context);
   await expect(page.locator('.tree-selected')).toHaveCount(0);
+  await expect(page.locator('.tree-row button.row-act, .tree-row .row-act')).toHaveCount(0);
   await row(page, 'claude · fix login').click();
   await expect(page.locator('.tree-selected')).toHaveText('selected: claude · 11:29');
-  // Ask on the selected agent only.
-  await expect(page.locator('.tree-row--agent .row-act')).toHaveCount(1);
-  await row(page, 'claude · fix login').getByRole('button', { name: 'Ask claude · fix login', exact: true }).click();
+  await bar(page, 'Ask').click();
   await expect(page.getByRole('dialog', { name: 'What do you want done?' }).getByRole('button', { name: /^SEND TO/ })).toHaveAccessibleName('SEND TO weft · claude');
   await page.getByRole('dialog', { name: 'What do you want done?' }).getByRole('button', { name: 'Cancel', exact: true }).click();
-  await row(page, 'Open').getByRole('button', { name: 'Eval Open', exact: true }).click();
-  await expect.poll(() => machine.of('act')).toEqual([expect.objectContaining({ act: 'eval', project: 'weft' })]);
+  await row(page, 'Open').click();
   await expect(page.locator('.tree-selected')).toHaveText('selected: Open round');
-  await page.getByRole('dialog', { name: 'Eval this work?' }).getByRole('button', { name: 'Cancel', exact: true }).click();
-  await row(page, 'Eval 3').getByRole('button', { name: 'Seal Eval 3', exact: true }).click();
-  await expect.poll(() => machine.of('act').at(-1)).toEqual(expect.objectContaining({ act: 'seal', project: 'weft', eval: 'evl_3' }));
-  await expect(page.locator('.tree-selected')).toHaveText('selected: Eval 3');
+  await bar(page, 'Eval').click();
+  await expect.poll(() => machine.of('act')).toEqual([expect.objectContaining({ act: 'eval', project: 'weft' })]);
   await page.getByRole('dialog', { name: 'Eval this work?' }).getByRole('button', { name: 'Cancel', exact: true }).click();
   await row(page, 'fix login').click();
   await expect(page.locator('.tree-selected')).toHaveText('selected: fix login · Open round');
@@ -186,7 +190,8 @@ test('M11.1 D11.1: Sealed unfolds a page at a time from read sealed, the next as
   sample.agents = [];
   sample.reads.sealed = { weft: big.sealed };
   const machine = await opened(page, context, sample);
-  await expect(row(page, 'Sealed')).toContainText('120 seals');
+  // Folded, Sealed is its count of Asks.
+  await expect(row(page, 'Sealed')).toHaveText('▸Sealed400');
   expect(machine.of('read')).toHaveLength(0);
   await row(page, 'Sealed').click();
   await expect(row(page, 'Seal 120')).toBeVisible();
@@ -207,7 +212,7 @@ test('M11.1 D11.1: Sealed unfolds a page at a time from read sealed, the next as
 test('M11.1 D11.1: the tree follows the machine', async ({ page, context }) => {
   const sample = atlas();
   const machine = await opened(page, context, sample);
-  await expect(page.getByText('NEEDS YOU 1')).toBeVisible();
+  await expect(page.getByText('■ NEEDS YOU 1')).toBeVisible();
   const t = sample.tree;
   Object.assign(t[0], { needs: 0, open: 3 });
   Object.assign(t[0].agents.rows[1], { turn: 'working' });
@@ -215,9 +220,9 @@ test('M11.1 D11.1: the tree follows the machine', async ({ page, context }) => {
   machine.agents = sample.agents.map((a, i) => (i === 0 ? { ...a, turn: 'working' } : a));
   machine.send({ type: 'agents', agents: machine.agents });
   machine.send({ type: 'tree', tree: t });
-  await expect(row(page, 'new work')).toContainText('codex · ASKING');
-  await expect(row(page, 'claude · fix login').locator('.agent-state')).toHaveText('working');
-  await expect(page.getByText('NEEDS YOU 1')).toHaveCount(0);
+  await expect(row(page, 'new work')).toContainText('ASKING · codex');
+  await expect(row(page, 'claude · fix login').locator('.agent-dot')).toHaveText('●');
+  await expect(page.getByText('■ NEEDS YOU 1')).toHaveCount(0);
   await expect(page.locator('[data-needs-you]')).toHaveCount(0);
   await machine.close();
 });
@@ -278,7 +283,6 @@ function oneClaude(ask: Project['ask'] = null) {
 
 test('M2.5: an agent with nothing asked of it says to ask', async ({ page, context }) => {
   const machine = await opened(page, context, oneClaude());
-  await expect(row(page, 'weft')).toContainText('0 open');
   await expect(page.getByText('Ask for something and Weft writes it down.')).toBeVisible();
   await machine.close();
 });
@@ -314,9 +318,9 @@ test('an agent whose harness has named no session yet is under AGENTS, and Ask g
   const rows: Session[] = agents.map((a) => ({ ...sessionOf(a), session: '', turn: null }));
   const machine = await opened(page, context, { agents, tree: [project('weft', rows)] });
   const wide = wideOf(page);
-  await expect(page.locator('.tree-section').first()).toHaveText('AGENTS2 running · 0 ended');
+  await expect(page.locator('.tree-section').first()).toHaveText('AGENTS');
   const codex = row(page, 'codex · no Ask yet');
-  await expect(codex).toContainText('running');
+  await expect(codex.locator('.agent-dot')).toHaveText('●');
   await codex.click();
   await expect(codex).toHaveAttribute('aria-selected', 'true');
   await expect(row(page, 'antigravity · no Ask yet')).toHaveAttribute('aria-selected', 'false');

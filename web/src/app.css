@@ -11,15 +11,14 @@ body { font-family: var(--font-sans); color: var(--fab7-text); }
 /* With the keyboard up, the key bar sits on it: no home bar's room between. */
 [data-keyboard] .app { padding-bottom: 0; }
 [data-keyboard] .sheet-backdrop { padding-bottom: 0; }
-.appbar { display: flex; align-items: center; gap: 10px; height: 52px; padding: 8px 16px; box-sizing: content-box; border-bottom: 1px solid var(--fab7-line); flex: none; }
+.appbar { display: flex; align-items: center; gap: 10px; height: 48px; padding: 0 16px; box-sizing: border-box; border-bottom: 1px solid var(--fab7-line); flex: none; }
 .appbar h1 { margin: 0; font-size: 15px; font-weight: 600; white-space: nowrap; }
-@media (min-width: 768px) { .appbar { gap: 12px; padding: 8px 20px; } }
+@media (min-width: 768px) { .appbar { gap: 12px; } }
 /* The list's toggle (D15.1, D15.7): lit while the list is shown. */
-.list-toggle { flex: none; display: flex; align-items: center; padding: 6px 8px; border: 1px solid var(--fab7-line); background: var(--fab7-surface); color: var(--fab7-muted); cursor: pointer; }
+.list-toggle { flex: none; display: flex; align-items: center; padding: 6px 8px; border: 1px solid var(--fab7-line); background: var(--fab7-surface); color: var(--fab7-muted); cursor: pointer; border-radius: var(--weft-radius-control); }
 .list-toggle--on { border-color: var(--fab7-accent); background: var(--fab7-selected); color: var(--fab7-accent); }
 /* The header's pills (M1.7, M2.6, M2.9): filled, sentence case, at the right. */
-.link-pill { padding: 3px 10px; background: var(--fab7-surface); color: var(--fab7-muted); font-size: 12px; white-space: nowrap; }
-.turbo-pill { padding: 3px 10px; background: var(--fab7-selected); color: var(--fab7-accent); font-size: 12px; white-space: nowrap; }
+.link-pill { padding: 3px 10px; background: var(--fab7-surface); color: var(--fab7-muted); font-size: 12px; white-space: nowrap; border-radius: var(--weft-radius-control); }
 .spacer { flex: 1; }
 .back { color: var(--fab7-accent); font: inherit; font-size: 15px; background: none; border: 0; padding: 0; min-height: 44px; cursor: pointer; }
 .page { flex: 1; display: flex; flex-direction: column; gap: 16px; padding: 24px 20px; overflow: auto; }
@@ -32,16 +31,17 @@ a { color: var(--fab7-accent); }
 .sheet-backdrop { position: fixed; inset: 0; z-index: 10; display: flex; flex-direction: column; justify-content: flex-end; background: rgba(9, 13, 22, 0.7); padding-bottom: env(safe-area-inset-bottom, 0px); }
 .sheet-backdrop .fab7-sheet { max-width: 640px; width: 100%; margin: 0 auto; box-sizing: border-box; }
 /* 16 px, not the cards' 15: iOS zooms the page into a smaller field on focus. */
-.field { box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--fab7-line); background: var(--fab7-surface); color: var(--fab7-text); font: 400 16px var(--font-sans); }
+.field { box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--fab7-line); background: var(--fab7-surface); color: var(--fab7-text); font: 400 16px var(--font-sans); border-radius: var(--weft-radius-control); }
 .mark { display: inline-flex; align-items: center; gap: 8px; color: var(--fab7-teal); }
 .mark-weave { font: 700 12px/18px var(--font-mono); }
-.mark-word { font-size: 15px; font-weight: 600; }
-.menu { display: flex; align-items: center; justify-content: flex-end; background: none; border: 0; padding: 0; color: var(--fab7-text); font: 600 19px var(--font-sans); cursor: pointer; }
+.mark-warp { color: var(--fab7-accent); }
+.mark-word { font-size: 15px; font-weight: 700; letter-spacing: 0.04em; }
+.menu { display: flex; align-items: center; justify-content: flex-end; background: none; border: 0; padding: 0; color: var(--fab7-text); font: 600 18px var(--font-sans); cursor: pointer; }
 /* ☰ takes the glyph's room, as the cards draw it; its press reaches 8 px around. */
 .menu { padding: 8px; margin: -8px; }
-.needs-pill { padding: 3px 10px; background: #3a2c0c; color: var(--fab7-amber-text); font-size: 12px; white-space: nowrap; }
+.needs-pill { padding: 4px 10px; border: 1px solid var(--fab7-amber); background: var(--fab7-amber-bg); color: var(--fab7-amber-text); font: 400 12px var(--font-mono); white-space: nowrap; border-radius: var(--weft-radius-control); }
 .needs { color: var(--fab7-amber-text); }
-.needs-pill { border: 0; cursor: pointer; font-family: inherit; }
+.needs-pill { cursor: pointer; }
 .loading { flex: 1; display: flex; align-items: center; justify-content: center; }
 @media (min-width: 768px) { .phone-only { display: none; } }
 /* Details (M5.x, D5.x): chips, provenance, sections that fold, the acts under them. */

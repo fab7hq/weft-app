@@ -19,7 +19,8 @@ export function TabName({ a }: { a: m.Agent }) {
   return (
     <>
       {`${a.project} · ${a.harness}${notSetUp(a) ? ' ⚠' : ''}`}
-      {a.turn === 'waiting' && <span class="tab-needs"> ●</span>}
+      {m.tree.value.some((p) => p.project === a.project && p.turbo) && <span class="tab-turbo"> ⚡</span>}
+      {a.turn === 'waiting' && <span class="tab-needs"> ■</span>}
     </>
   );
 }
@@ -47,7 +48,7 @@ const Icon = () => (
 );
 
 /** The layout button and its menu: an item that cannot apply says why above the bar. */
-function LayoutMenu({ machine, pane }: { machine: string; pane: number }) {
+export function LayoutMenu({ machine, pane }: { machine: string; pane: number }) {
   const [open, setOpen] = useState(false);
   useEffect(() => {
     if (!open) return;
@@ -80,7 +81,7 @@ function LayoutMenu({ machine, pane }: { machine: string; pane: number }) {
 }
 
 /** A pane's tab bar: its tabs, then the layout button. `current`: the pane you are in. */
-export function Tabs({ machine, pane, current }: { machine: string; pane: L.Pane; current: boolean }) {
+export function Tabs({ machine, pane, current, controls = true }: { machine: string; pane: L.Pane; current: boolean; controls?: boolean }) {
   const bar = over.value && 'bar' in over.value && over.value.bar === pane.id;
   // Where along the bar a held tab would go: before the first tab whose middle is past the pointer.
   const along = (e: DragEvent) => {
@@ -123,8 +124,9 @@ export function Tabs({ machine, pane, current }: { machine: string; pane: L.Pane
           );
         })}
       </nav>
-      <ViewSwitch wide />
-      <LayoutMenu machine={machine} pane={pane.id} />
+      {/* Split, the view switch and the layout are once above the panes. */}
+      {controls && <ViewSwitch wide />}
+      {controls && <LayoutMenu machine={machine} pane={pane.id} />}
     </div>
   );
 }

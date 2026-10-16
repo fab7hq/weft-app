@@ -115,7 +115,7 @@ test('M13.5 D13.5: a project reopened after a restart says so, its agents ended;
   await expect(row).toContainText('reopened');
   const notice = page.getByRole('note');
   await expect(notice).toContainText('Weft started again on studio at 07:58, and these agents ended. Resume one, or dismiss this project.');
-  await expect(page.getByRole('treeitem', { name: 'claude-code · fix login', exact: true })).toContainText('ended');
+  await expect(page.getByRole('treeitem', { name: 'claude-code · fix login', exact: true }).locator('.agent-dot')).toHaveText('□');
   if (info.project.name.startsWith('desktop')) {
     // D13.5: the ended session says it ended when Weft stopped, and offers Resume.
     const last = Date.UTC(2026, 9, 11, 7, 41);

@@ -336,7 +336,8 @@ test('M11.5: a quiet session: its last active time on the row and in its Details
   const sample = atlas();
   Object.assign(sample.tree[0].agents.rows[4], { state: 'quiet', ask: { key: 'why.quiet', harness: 'codex' } });
   const machine = await opened(page, context, sample);
-  await expect(row(page, 'codex · lint pass').locator('.agent-state')).toHaveText('last active 08:30');
+  // On the row the status is its shape, the words its name.
+  await expect(row(page, 'codex · lint pass').locator('.agent-dot')).toHaveAttribute('aria-label', 'last active 08:30');
   await details(page, 'codex · lint pass');
   await expect(region(page, /^codex · 0199c0a8/).getByText('last active 08:30').first()).toBeVisible();
   await act(page, 'Resume').click();
@@ -358,13 +359,13 @@ test('M11.7 D11.7: n earlier sessions unfolds in the tree, newest first; a tap f
   const reads = () => machine.of('read').filter((r) => r.what === 'sessions');
   expect(reads()).toEqual([expect.objectContaining({ project: 'weft' })]);
   expect(reads()[0]).not.toHaveProperty('q');
-  // Newest first, as the agents above: harness, ended, the title, the time.
+  // Newest first, as the agents above: the ended shape, harness, the title, the time.
   const first = past.first();
   await expect(first).toContainText('codex');
   await expect(first).toContainText('flaky test');
   await expect(first).toContainText('07:40');
   await expect(row(page, 'claude · turn-state map')).toContainText('Tue 18:22');
-  await expect(row(page, 'claude · turn-state map')).toContainText('ended');
+  await expect(row(page, 'claude · turn-state map').locator('.agent-dot')).toHaveText('□');
   await more.click();
   await expect(more).toHaveText('▸12 earlier sessions');
   await expect(past).toHaveCount(0);

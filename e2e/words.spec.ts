@@ -11,8 +11,9 @@ test('a replaced words.json shows its word after a reload', async ({ page, conte
   Object.assign(machine, atlas());
   await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
   await page.goto('/');
-  const fix = page.getByRole('treeitem', { name: 'claude · fix login', exact: true });
-  await expect(fix).toContainText('needs you');
+  // The row's state is its shape; its words are the shape's name.
+  const fix = page.getByRole('treeitem', { name: 'claude · fix login', exact: true }).locator('.agent-dot');
+  await expect(fix).toHaveAttribute('aria-label', 'needs you');
 
   const kept = readFileSync(served, 'utf8');
   try {
@@ -20,7 +21,7 @@ test('a replaced words.json shows its word after a reload', async ({ page, conte
     // The dev server notices the file within a moment, as a deploy would replace it.
     await expect.poll(async () => (await (await page.request.get('/words.json')).json())['turn.waiting']).toBe('waiting on you');
     await page.reload();
-    await expect(fix).toContainText('waiting on you');
+    await expect(fix).toHaveAttribute('aria-label', 'waiting on you');
   } finally {
     writeFileSync(served, kept);
     await machine.close();

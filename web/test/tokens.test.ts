@@ -22,7 +22,8 @@ const values = (css: string, prop: string) =>
 describe('the tokens', () => {
   it('are the guideline’s', () => {
     expect(tokens).toContain('--fab7-canvas: #090d16;');
-    expect(tokens).toContain('--weft-radius: 0px;');
+    expect(tokens).toContain('--weft-radius-control: 4px;');
+    expect(tokens).toContain('--weft-radius-panel: 6px;');
     expect(colours.size).toBeGreaterThan(15);
   });
 
@@ -33,9 +34,11 @@ describe('the tokens', () => {
     }
   });
 
-  it('draw no rounded corner and no drop shadow', () => {
+  it('round a corner only by the two radii, and cast no drop shadow', () => {
+    const radius = /^(0|var\(--weft-radius-(control|panel)\))$/;
     for (const { name, css } of sheets) {
-      expect(values(css, 'border-radius').filter((v) => v !== '0'), name).toEqual([]);
+      const corners = values(css, 'border-radius').flatMap((v) => v.split(/\s+(?![^(]*\))/));
+      expect(corners.filter((c) => !radius.test(c)), name).toEqual([]);
       const shadows = values(css, 'box-shadow').filter((v) => v !== 'none' && !v.startsWith('inset') && !v.startsWith('var(--weft-bevel'));
       expect(shadows, name).toEqual([]);
     }

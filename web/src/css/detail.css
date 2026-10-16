@@ -2,7 +2,7 @@
 .detail { display: flex; flex-direction: column; gap: 10px; }
 .page .detail h2 { font-size: 19px; font-weight: 700; letter-spacing: 0; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.chip { padding: 3px 9px; background: var(--fab7-surface); color: var(--fab7-muted); font-size: 12px; text-transform: uppercase; }
+.chip { padding: 3px 9px; background: var(--fab7-surface); color: var(--fab7-muted); font-size: 12px; text-transform: uppercase; border-radius: var(--weft-radius-control); }
 .chip--needs { background: var(--fab7-amber-bg); color: var(--fab7-amber-text); }
 .chip--good { background: #0c2f2a; color: var(--fab7-teal); }
 .detail-section { border-top: 1px solid var(--fab7-line); padding-top: 10px; display: flex; flex-direction: column; gap: 4px; }

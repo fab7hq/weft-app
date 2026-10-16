@@ -4,12 +4,12 @@
 /* Ask: a sheet over the backdrop on a phone, a panel docked under the main column's view on a desktop. */
 .ask-backdrop { background: rgba(0, 0, 0, 0.55); }
 .ask-panel { display: flex; flex-direction: column; gap: 12px; background: var(--fab7-panel); box-sizing: border-box; }
-.ask-sheet { padding: 18px 16px calc(30px + env(safe-area-inset-bottom, 0px)); border: 0; box-shadow: none; }
+.ask-sheet { padding: 18px 16px calc(30px + env(safe-area-inset-bottom, 0px)); border: 0; box-shadow: none; border-radius: var(--weft-radius-panel) var(--weft-radius-panel) 0 0; }
 .sheet-backdrop.ask-backdrop { padding-bottom: 0; }
 .ask-panel--docked { flex: none; padding: 16px; border-top: 2px solid var(--fab7-accent); }
 .ask-title { font-size: 16px; font-weight: 600; }
 .ask-eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: var(--fab7-muted); }
-.ask-text { height: 110px; box-sizing: content-box; padding: 12px; border: 1px solid var(--fab7-line); background: var(--fab7-surface); color: var(--fab7-text); font: 400 15px var(--font-sans); resize: none; outline: none; }
+.ask-text { height: 110px; box-sizing: content-box; padding: 12px; border: 1px solid var(--fab7-line); background: var(--fab7-surface); color: var(--fab7-text); font: 400 15px var(--font-sans); resize: none; outline: none; border-radius: var(--weft-radius-control); }
 .ask-text:focus, .ask-text--said { border-color: var(--fab7-accent); }
 .ask-panel--docked .ask-text { height: 84px; }
 .ask-acts { display: flex; gap: 10px; }
@@ -20,7 +20,7 @@ main:has(> .ask-panel--docked) .message-row { display: none; }
 main:has(> .ask-panel--docked) > :not(.ask-panel) { flex: 1; min-height: 0; height: auto !important; }
 
 /* SEND TO: the picked agent and ▾; open, the list in its place with the picked one ✓ (M4.3, D4.3). */
-.ask-to { display: flex; align-items: center; gap: 8px; box-sizing: border-box; margin: 0; padding: 11px 12px; border: 1px solid var(--fab7-line); background: var(--fab7-surface); color: var(--fab7-text); font: 400 15px var(--font-sans); text-align: left; cursor: pointer; }
+.ask-to { display: flex; align-items: center; gap: 8px; box-sizing: border-box; margin: 0; padding: 11px 12px; border: 1px solid var(--fab7-line); background: var(--fab7-surface); color: var(--fab7-text); font: 400 15px var(--font-sans); text-align: left; cursor: pointer; border-radius: var(--weft-radius-control); }
 .ask-to:focus-visible { outline: none; border-color: var(--fab7-accent); }
 .ask-to-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ask-to-arrow { font-size: 13px; color: var(--fab7-muted); }
@@ -47,7 +47,7 @@ main:has(> .ask-panel--docked) > :not(.ask-panel) { flex: 1; min-height: 0; heig
 .pending-head .pending-what { flex: 1; min-width: 0; }
 .pending-into, .pending-why { font-size: 13px; color: var(--fab7-muted); }
 .pending-why { margin: 0; }
-.pending-text { margin: 0; padding: 10px; border: 1px solid var(--fab7-line); background: var(--fab7-void); font: 400 12px/18px var(--font-mono); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 30vh; overflow: auto; }
+.pending-text { margin: 0; padding: 10px; border: 1px solid var(--fab7-line); background: var(--fab7-void); font: 400 12px/18px var(--font-mono); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 30vh; overflow: auto; border-radius: var(--weft-radius-control); }
 .pending-acts { display: flex; gap: 10px; align-items: center; }
 .pending-acts .spacer { display: none; }
 .pending-acts .tree-act { flex: 1; }

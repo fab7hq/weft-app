@@ -33,7 +33,7 @@ test('M11.8 D11.8: the box is at the top of the tree; with text it has a ✕ tha
   await expect(box(page)).toHaveValue('');
   await expect(clear(page)).toHaveCount(0);
   await expect(row(page, 'docs')).toBeVisible();
-  await expect(row(page, 'weft')).toContainText('2 open');
+  await expect(row(page, 'weft')).toHaveAttribute('aria-expanded', 'true');
   await expect(row(page, '12 earlier sessions')).toBeVisible();
   await expect(row(page, 'Sealed')).toBeVisible();
   // An emptied box restores it as well.

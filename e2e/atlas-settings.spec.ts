@@ -46,12 +46,12 @@ test('D9.1 D9.2: ☰ at the top right opens the menu under it; a click outside c
   await open.click();
   const menu = page.getByRole('menu', { name: 'Weft' });
   await expect(menu).toBeVisible();
-  // It drops down from ☰, at the right, over the header's line as D9.1 draws it.
+  // It drops down from ☰, at the right, just under the header, as ADE 05 draws it.
   const header = (await page.locator('.appbar').boundingBox())!;
   const box = (await menu.boundingBox())!;
   const at = (await open.boundingBox())!;
   expect(box.y).toBeGreaterThan(at.y + at.height);
-  expect(Math.abs(box.y - (header.y + header.height - 5))).toBeLessThanOrEqual(1);
+  expect(Math.abs(box.y - (header.y + header.height + 6))).toBeLessThanOrEqual(1);
   expect(Math.abs(box.x + box.width - (at.x + at.width))).toBeLessThan(24);
   await expect(menu.getByRole('button', { name: 'Start an agent' })).toBeVisible();
   await expect(menu.locator('.fab7-group')).toHaveText(['This device', 'Machines']);

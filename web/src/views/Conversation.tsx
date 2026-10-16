@@ -73,37 +73,36 @@ function Steps({ steps, wide }: { steps: Step[]; wide: boolean }) {
       <button type="button" class="convo-steps-head" aria-expanded="true" onClick={() => setOpen(false)}>{`▾ ${count}`}</button>
       {steps.map((s, n) => (
         <div key={n} class="convo-step" data-state={s.state}>
+          {s.state === 'running' ? <span class="convo-running">{w('web.step.running')}</span> : <span class="convo-mark">{MARK[s.state]}</span>}
           <span class="convo-step-tool">{s.tool}</span>
           <span class="convo-step-arg">{s.arg}</span>
-          {s.state === 'running' ? <span class="convo-running">{w('web.step.running')}</span> : <span class="convo-mark">{MARK[s.state]}</span>}
         </div>
       ))}
     </div>
   );
 }
 
-function Message({ row, harness, wide }: { row: Extract<Row, { kind: 'person' | 'agent' }>; harness: string; wide: boolean }) {
+function Message({ row, harness, waiting }: { row: Extract<Row, { kind: 'person' | 'agent' }>; harness: string; waiting: boolean }) {
   const at = row.at === null ? null : clock(row.at);
   if (row.kind === 'person') {
     return (
       <div class="convo-you">
-        <div class="convo-bubble"><Said text={row.text} /></div>
-        {at && <div class="convo-time">{at}</div>}
+        <div class="convo-who">
+          <span class="convo-you-name">YOU</span>
+          {at && <span class="convo-time">{at}</span>}
+        </div>
+        <div class="convo-text"><Said text={row.text} /></div>
       </div>
     );
   }
+  // The last thing the agent said leads with its state: the square while it waits for you.
   return (
     <div class="convo-agent">
-      {wide ? (
-        <div class="convo-who">
-          <span>{harness}</span>
-          {at && <span class="convo-time">{at}</span>}
-        </div>
-      ) : (
-        <div class="convo-who">{harness}</div>
-      )}
+      <div class="convo-who">
+        <span class={waiting ? 'convo-name needs' : 'convo-name good'}>{`${waiting ? '■' : '●'} ${harness}`}</span>
+        {at && <span class="convo-time">{at}</span>}
+      </div>
       <div class="convo-text"><Said text={row.text} /></div>
-      {!wide && at && <div class="convo-time">{at}</div>}
     </div>
   );
 }
@@ -208,17 +207,19 @@ export function Conversation({ agent, wide }: { agent: string; wide: boolean }) 
     );
   }
   const waiting = a?.running && a.turn === 'waiting';
+  const all = rows(items);
+  const lastAgent = all.filter((r) => r.kind === 'agent').at(-1)?.id;
   return (
     <div class={wide ? 'convo convo--wide' : 'convo'}>
       <div class="convo-scroll" ref={box} onScroll={measure}>
         <div class="convo-column">
-          {rows(items).map((row) =>
-            row.kind === 'steps' ? <Steps key={row.id} steps={row.steps} wide={wide} /> : <Message key={row.id} row={row} harness={harness} wide={wide} />,
+          {all.map((row) =>
+            row.kind === 'steps' ? <Steps key={row.id} steps={row.steps} wide={wide} /> : <Message key={row.id} row={row} harness={harness} waiting={Boolean(waiting) && row.id === lastAgent} />,
           )}
           {waiting && (
             // While the agent waits, its questions are answered in Terminal (M12.4).
             <p class="convo-waiting">
-              {fill('web.waiting.for_you', { harness })}
+              <span>{fill('web.waiting.for_you', { harness })}</span>
               <button type="button" class="convo-answer" onClick={() => choose('terminal')}>{w('web.waiting.answer')}</button>
             </p>
           )}

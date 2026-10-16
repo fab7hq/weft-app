@@ -1,6 +1,6 @@
 /* The design guideline's tokens, as Toile's `weft` project holds them
-   (tokens.css), without its web-font import (the fonts are bundled, fab7.css)
-   and its card-board body. */
+   (tokens.css), without its web-font import (the fonts are bundled, fab7.css),
+   its card-board body and its rules for the cards' own markup. */
 :root {
   color-scheme: dark;
 
@@ -39,7 +39,8 @@
   --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
 
   /* 8-Bit Structural Geometry (bytebitlabs.com) */
-  --weft-radius: 0px;            /* Zero border radius across all UI primitives */
+  --weft-radius-control: 4px;    /* Buttons, inputs, tags, keycaps, segments */
+  --weft-radius-panel: 6px;      /* Menus, popovers, sheets */
   --weft-bevel: inset 0 -2px 0 rgba(37, 53, 80, 0.75);
   --weft-bevel-primary: inset 0 -2px 0 rgba(9, 13, 22, 0.45);
   --weft-step-ease: 100ms steps(2, end);
@@ -47,7 +48,6 @@
 
 * {
   box-sizing: border-box;
-  border-radius: 0 !important;
   -webkit-font-smoothing: antialiased;
 }
 

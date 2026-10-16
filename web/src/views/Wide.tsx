@@ -21,7 +21,8 @@ import { StartPanel } from './Start';
 import { HeaderPills, Strips } from './Status';
 import { TreeBar } from './Bar';
 import { MenuButton } from './Settings';
-import { TabName, Tabs, dropped } from './Tabs';
+import { LayoutMenu, TabName, Tabs, dropped } from './Tabs';
+import { ViewSwitch } from './Conversation';
 
 /** Whether the list of agents and works is shown (D15.1) or hidden (D15.7): kept per browser. */
 const LIST = 'weft.list';
@@ -63,8 +64,17 @@ function Woven({ machine }: { machine: Machine }) {
   // set up, leaves the right side empty until an agent runs (D2.3, D2.4).
   if (!weaving && m.tree.value.some((p) => p.agents.rows.length > 0 || p.setup || (p.ask && p.ask.key !== 'why.start_an_agent'))) return null;
   return (
-    <div class={weaving ? 'woven woven--weaving' : 'woven'}>
-      <pre class="woven-mark">{'╸┃╺╸┃╺╸┃╺╸┃╺\n┃╺╸┃╺╸┃╺╸┃╺╸\n╺╸┃╺╸┃╺╸┃╺╸┃\n╸┃╺╸┃╺╸┃╺╸┃╺\n┃╺╸┃╺╸┃╺╸┃╺╸\n╺╸┃╺╸┃╺╸┃╺╸┃\n╸┃╺╸┃╺╸┃╺╸┃╺'}</pre>
+    // The blueprint grid, and the mark woven three rows deep.
+    <div class={weaving ? 'woven hairline-grid woven--weaving' : 'woven hairline-grid'}>
+      <div class="woven-mark" aria-hidden="true">
+        {[0, 1, 2].map((row) => (
+          <span key={row} class={row === 1 ? 'woven-row woven-row--in' : 'woven-row'}>
+            {[0, 1, 2, 3].map((i) => (
+              <span key={i}>╸<span class="mark-warp">┃</span>╺</span>
+            ))}
+          </span>
+        ))}
+      </div>
       {!weaving && <StartButton machine={machine} />}
     </div>
   );
@@ -86,7 +96,7 @@ function PaneBox({ machine, pane, many, open }: { machine: Machine; pane: L.Pane
     const r = (e.currentTarget as Element).getBoundingClientRect();
     over.value = L.zone(pane.id, (e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height);
   };
-  const head = <Tabs machine={machine.id} pane={pane} current={current || !many} />;
+  const head = <Tabs machine={machine.id} pane={pane} current={current || !many} controls={!many} />;
   return (
     <section
       class={current && many ? 'pane-box pane-box--current' : 'pane-box'}
@@ -133,9 +143,23 @@ function Agents({ machine, open }: { machine: Machine; open: string }) {
   }, []);
   const l = layout.value;
   const many = L.count(l) > 1 && L.count(l) <= most.value && L.fits(l, room.value);
+  const active = L.active(l);
+  const focused = m.agents.value.find((x) => x.agent === L.showing(active));
+  const turbo = focused && m.tree.value.some((p) => p.project === focused.project && p.turbo);
   return (
     <div class={many ? 'panes panes--many' : 'panes'} ref={box} onDragLeave={(e) => !box.current?.contains(e.relatedTarget as Node | null) && (over.value = null)}>
-      {many ? <Level machine={machine} node={l.root} open={open} /> : <PaneBox machine={machine} pane={L.active(l)} many={false} open={open} />}
+      {many && (
+        // Split, one bar above the panes: how many, the one you are in, and its view and layout.
+        <div class="split-bar">
+          <span class="split-said">
+            {`${L.count(l)} PANES`}
+            {focused && <> · FOCUSED: <span class="split-focused">{`${focused.project} · ${focused.harness}${turbo ? ' ⚡' : ''}`}</span></>}
+          </span>
+          <ViewSwitch wide />
+          <LayoutMenu machine={machine.id} pane={active.id} />
+        </div>
+      )}
+      {many ? <div class="panes-grid"><Level machine={machine} node={l.root} open={open} /></div> : <PaneBox machine={machine} pane={active} many={false} open={open} />}
     </div>
   );
 }

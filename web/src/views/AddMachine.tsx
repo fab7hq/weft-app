@@ -14,9 +14,9 @@ export function AddMachine({ login, wide, onJoined }: { login: string; wide: boo
     return () => clearInterval(t);
   }, [onJoined]);
   const steps: [string, string][] = [
-    ['W', w('web.add.menu')],
-    ['R', w('web.add.remote')],
-    ['⏎', w('web.add.code')],
+    ['1', w('web.add.menu')],
+    ['2', w('web.add.remote')],
+    ['3', w('web.add.code')],
   ];
   return (
     <div class="app">

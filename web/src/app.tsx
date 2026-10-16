@@ -96,8 +96,6 @@ export function NoConnection() {
 /** Allowing this device (M8.1, D8.1): the machine asks, and only it can answer. */
 function Asking({ name }: { name: string }) {
   const where = wide.value ? 'browser' : 'phone';
-  // The key the machine waits for, drawn as a key.
-  const [before, after] = fill('web.allow.go', { machine: name }).split('{key}');
   return (
     <div class="app">
       <div class="appbar">
@@ -109,9 +107,7 @@ function Asking({ name }: { name: string }) {
       <div class="page allow">
         <h2>{w(`web.allow.${where}`)}</h2>
         <p class="lede">
-          {before}
-          <span class="allow-key">Y</span>
-          {after}
+          {fill('web.allow.go', { machine: name })}
         </p>
         <p class="allow-waits">{w(`web.allow.waits_${where}`)}</p>
       </div>

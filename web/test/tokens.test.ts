@@ -34,12 +34,13 @@ describe('the tokens', () => {
     }
   });
 
-  it('round a corner only by the two radii, and cast no drop shadow', () => {
+  it('round a corner only by the two radii, and cast no drop shadow and no bevel: buttons are flat', () => {
     const radius = /^(0|var\(--weft-radius-(control|panel)\))$/;
     for (const { name, css } of sheets) {
       const corners = values(css, 'border-radius').flatMap((v) => v.split(/\s+(?![^(]*\))/));
       expect(corners.filter((c) => !radius.test(c)), name).toEqual([]);
-      const shadows = values(css, 'box-shadow').filter((v) => v !== 'none' && !v.startsWith('inset') && !v.startsWith('var(--weft-bevel'));
+      // An inset bar along a side (a selection, a split's frame) is drawn; a bevel along the bottom is not.
+      const shadows = values(css, 'box-shadow').filter((v) => v !== 'none' && (!v.startsWith('inset') || /inset 0 -\d/.test(v)));
       expect(shadows, name).toEqual([]);
     }
   });

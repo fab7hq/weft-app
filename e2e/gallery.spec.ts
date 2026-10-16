@@ -3,6 +3,7 @@
 // and written to gallery/<ID>.png. A screen the browser cannot draw (a
 // notification the system shows) is written as gallery/<ID>.txt, saying why.
 import { mkdirSync, writeFileSync } from 'node:fs';
+import { card } from './card';
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import { FakeMachine, atlas, project, sessionOf, type Agent, type Detail, type Project } from './fake-machine';
 import { pull, swipeLeft } from './touch';
@@ -291,7 +292,9 @@ function withDocs(): ReturnType<typeof atlas> {
 const tab = (at: At, name: string) => at.page.getByRole('navigation', { name: 'Tabs' }).getByRole('button', { name: new RegExp(`^${name}`) });
 /** Pick an item of the layout menu of the pane holding that tab. */
 async function layout(at: At, item: string, holding: string) {
-  await at.page.locator('.pane-box').filter({ has: tab(at, holding) }).getByRole('button', { name: 'Layout', exact: true }).click();
+  // Split, the layout is for the pane you are in, from the bar above the panes.
+  await tab(at, holding).click();
+  await at.page.getByRole('button', { name: 'Layout', exact: true }).first().click();
   await at.page.getByRole('menuitem', { name: item, exact: true }).click();
 }
 /** The pane you are in, active, as the cards draw it: the bar reads Ask · Keys. */
@@ -960,6 +963,11 @@ for (const s of SCREENS) {
         await s.run!(at);
         await page.waitForTimeout(400);
         await page.screenshot({ path: `${OUT}/${id}.png` });
+        // `CARDS=1 npm run gallery`: each screen as a Toile card too.
+        if (process.env.CARDS) {
+          mkdirSync(`${OUT}/cards`, { recursive: true });
+          writeFileSync(`${OUT}/cards/${id}.html`, await card(page, id));
+        }
       } finally {
         await machine.close();
       }

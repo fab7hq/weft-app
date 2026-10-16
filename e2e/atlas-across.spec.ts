@@ -48,7 +48,7 @@ test.describe('phone', () => {
 
   test('the header names the agent by project; the dots say where it is; no tabs, no split', async ({ page, context }) => {
     const machine = await opened(page, context);
-    await expect(name(page)).toHaveText('weft · codex▾');
+    await expect(name(page)).toHaveText('●weft · codex▾');
     await expect(name(page)).toHaveAccessibleName('weft · codex');
     await expect(tabs(page)).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Layout', exact: true })).toHaveCount(0);

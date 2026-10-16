@@ -41,7 +41,13 @@ export function useSwipe(machine: string, open: string) {
 export function AgentName({ agent, onOpen }: { agent: m.Agent | undefined; onOpen: () => void }) {
   return (
     <button class="agent-name" type="button" aria-haspopup="dialog" onClick={onOpen}>
+      {agent && (
+        <span class={agent.turn === 'waiting' ? 'agent-name-shape needs' : agent.running ? 'agent-name-shape good' : 'agent-name-shape'} aria-hidden="true">
+          {agent.turn === 'waiting' && agent.running ? '■' : agent.running ? '●' : '□'}
+        </span>
+      )}
       <span class="agent-name-text">{agent ? `${agent.project} · ${agent.harness}${notSetUp(agent) ? ' ⚠' : ''}` : ''}</span>
+      {agent?.running && m.tree.value.some((p) => p.project === agent.project && p.turbo) && <span class="agent-name-turbo" aria-hidden="true">⚡</span>}
       <span class="agent-name-more" aria-hidden="true">▾</span>
     </button>
   );

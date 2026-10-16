@@ -1,11 +1,14 @@
 /* conversation: an agent's two views, Terminal and Conversation (M12.1–M12.4, D12.1–D12.3), drawn to the cards. */
 
-/* Terminal | Conversation. A phone: full width, two halves in one frame. */
-.view-switch { flex: none; align-self: stretch; display: flex; gap: 3px; padding: 3px; background: var(--fab7-surface); border: 1px solid var(--fab7-line); border-radius: var(--weft-radius-control); }
-.view-seg { flex: 1 1 0; min-width: 0; padding: 6px 0; border: 1px solid transparent; background: transparent; color: var(--fab7-muted); font: 400 13px var(--font-sans); cursor: pointer; }
-.view-seg[aria-selected="true"] { background: var(--fab7-selected); border-color: var(--fab7-accent); color: var(--fab7-accent); }
+/* Terminal | Conversation. A phone: a flush bar of two halves, the one shown underlined. */
+.view-switch { flex: none; align-self: stretch; display: flex; background: var(--fab7-panel); border-bottom: 1px solid var(--fab7-line); }
+.view-seg { flex: 1 1 0; min-width: 0; padding: 8px 0; border: 0; background: transparent; color: var(--fab7-muted); font: 400 13px var(--font-sans); cursor: pointer; }
+.view-seg:first-child { border-right: 1px solid var(--fab7-line); }
+.view-seg[aria-selected="true"] { background: var(--fab7-selected); color: var(--fab7-accent); font-weight: 600; box-shadow: inset 0 -2px 0 var(--fab7-accent); }
 /* A desktop: two joined pills at the tab strip's right, before the layout button. */
 .view-switch--wide { align-self: center; gap: 0; padding: 0; margin-left: auto; background: none; border: 0; }
+.view-switch--wide .view-seg:first-child { border-right: 0; }
+.view-switch--wide .view-seg[aria-selected="true"] { box-shadow: none; }
 .view-switch--wide .view-seg { flex: none; padding: 4px 12px; background: var(--fab7-surface); border: 1px solid var(--fab7-line); color: var(--fab7-muted); font-size: 12px; }
 .view-switch--wide .view-seg:first-child { border-right-width: 0; border-radius: var(--weft-radius-control) 0 0 var(--weft-radius-control); }
 .view-switch--wide .view-seg:last-child { border-left-width: 0; border-radius: 0 var(--weft-radius-control) var(--weft-radius-control) 0; }
@@ -13,7 +16,7 @@
 .tab-row .view-switch--wide + .layout-at { margin-left: 8px; }
 
 /* An ended agent's switch, on a phone (M3.7). */
-.ended-switch { flex: none; display: flex; flex-direction: column; padding: 10px 12px 0; }
+.ended-switch { flex: none; display: flex; flex-direction: column; }
 
 /* The chat. A phone: on the canvas, its own scroll bar at the right (M3.14). */
 .convo { position: relative; flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }

@@ -187,7 +187,7 @@ export function NeedsYouPill({ machine }: { machine: Machine }) {
     go({ name: 'agent', machine: machine.id, agent: asking[(at + 1) % asking.length].agent });
   };
   return (
-    <button class="needs-pill" type="button" onClick={next}>
+    <button class="needs-pill" type="button" aria-label={`${w('title.needs_you').toUpperCase()} ${n}`} onClick={next}>
       {`■ ${w('title.needs_you').toUpperCase()} ${n}`}
     </button>
   );

@@ -1,0 +1,68 @@
+// A screen as a Toile card: the page as drawn, each element with the styles
+// it was drawn in, so a card is what the app builds. Only what differs from
+// a bare element of the same tag is written, and an inherited value only
+// where it changes from the parent's. A canvas is kept as its picture.
+import type { Page } from '@playwright/test';
+
+/** The card of what `page` shows now, at its viewport's size, named `title`. */
+export async function card(page: Page, title: string): Promise<string> {
+  const body = await page.evaluate(() => {
+    const INHERITED = new Set(['color', 'font-family', 'font-size', 'font-weight', 'font-style', 'line-height', 'letter-spacing', 'text-align', 'white-space', 'visibility', 'cursor', 'text-transform', 'word-break', 'overflow-wrap']);
+    const sandbox = document.createElement('iframe');
+    sandbox.style.cssText = 'position:absolute;width:0;height:0;border:0;visibility:hidden';
+    document.body.appendChild(sandbox);
+    const bare = new Map<string, CSSStyleDeclaration>();
+    const defaults = (tag: string) => {
+      if (!bare.has(tag)) {
+        const el = sandbox.contentDocument!.createElement(tag);
+        sandbox.contentDocument!.body.appendChild(el);
+        bare.set(tag, sandbox.contentWindow!.getComputedStyle(el));
+      }
+      return bare.get(tag)!;
+    };
+    const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const attr = (s: string) => esc(s).replace(/"/g, '&quot;');
+    const walk = (el: Element, parent: CSSStyleDeclaration | null): string => {
+      const cs = getComputedStyle(el);
+      if (cs.display === 'none') return '';
+      const tag = el.tagName.toLowerCase();
+      if (tag === 'script' || tag === 'style' || tag === 'link' || tag === 'iframe' || tag === 'noscript') return '';
+      const base = defaults(tag);
+      const decl: string[] = [];
+      for (let i = 0; i < cs.length; i++) {
+        const p = cs[i];
+        if (p.startsWith('--') || p.startsWith('-webkit-') || p === 'transition' || p.startsWith('transition-') || p.startsWith('animation')) continue;
+        const v = cs.getPropertyValue(p);
+        if (INHERITED.has(p) ? parent !== null && parent.getPropertyValue(p) === v : base.getPropertyValue(p) === v) continue;
+        decl.push(`${p}:${v}`);
+      }
+      // Its box as drawn, so a card keeps the app's geometry.
+      const r = el.getBoundingClientRect();
+      if (tag === 'canvas') {
+        const src = (el as HTMLCanvasElement).toDataURL('image/png');
+        return `<img src="${src}" style="${attr(decl.join(';'))};width:${r.width}px;height:${r.height}px">`;
+      }
+      let inner = '';
+      for (const n of el.childNodes) {
+        if (n.nodeType === Node.TEXT_NODE) inner += esc(n.textContent ?? '');
+        else if (n.nodeType === Node.ELEMENT_NODE) inner += walk(n as Element, cs);
+      }
+      // A card runs nothing: a field or a button is drawn as a box.
+      const name = ['body', 'html', 'input', 'textarea', 'select', 'button'].includes(tag) ? 'div' : tag;
+      if (tag === 'input' || tag === 'textarea') {
+        const f = el as HTMLInputElement;
+        inner = esc(f.value || f.placeholder || '');
+        if (!f.value) decl.push('color:var(--fab7-faint)');
+      }
+      const keep = el.namespaceURI === 'http://www.w3.org/2000/svg' ? [...el.attributes].filter((a) => a.name !== 'class' && a.name !== 'style').map((a) => ` ${a.name}="${attr(a.value)}"`).join('') : '';
+      const label = el.getAttribute('aria-label');
+      return `<${name}${keep}${label ? ` layer-name="${attr(label)}"` : ''} style="${attr(decl.join(';'))}">${inner}</${name}>`;
+    };
+    const root = document.getElementById('app') ?? document.body;
+    const out = walk(root, null);
+    sandbox.remove();
+    return out;
+  });
+  const { width, height } = page.viewportSize()!;
+  return `<div data-title="${title}" style="width:${width}px;height:${height}px;overflow:hidden;position:relative;background:var(--fab7-canvas);font-family:var(--font-sans);color:var(--fab7-text)">${body}</div>\n`;
+}

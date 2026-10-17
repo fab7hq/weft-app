@@ -33,10 +33,7 @@ a { color: var(--fab7-accent); }
 .sheet-backdrop .fab7-sheet { max-width: 640px; width: 100%; margin: 0 auto; box-sizing: border-box; }
 /* 16 px, not the cards' 15: iOS zooms the page into a smaller field on focus. */
 .field { box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--fab7-line); background: var(--fab7-surface); color: var(--fab7-text); font: 400 16px var(--font-sans); border-radius: var(--weft-radius-control); }
-.mark { display: inline-flex; align-items: center; gap: 8px; color: var(--fab7-teal); }
-.mark-weave { font: 700 12px/18px var(--font-mono); }
-.mark-warp { color: var(--fab7-accent); }
-.mark-word { font-size: 15px; font-weight: 700; letter-spacing: 0.04em; }
+.mark { display: block; flex: none; height: 24px; width: auto; }
 .menu { display: flex; align-items: center; justify-content: flex-end; background: none; border: 0; padding: 0; color: var(--fab7-text); font: 600 18px var(--font-sans); cursor: pointer; }
 /* ☰ takes the glyph's room, as the cards draw it; its press reaches 8 px around. */
 .menu { padding: 8px; margin: -8px; }
@@ -45,6 +42,7 @@ a { color: var(--fab7-accent); }
 .bad { color: var(--fab7-danger); }
 .needs-pill { cursor: pointer; }
 .loading { flex: 1; display: flex; align-items: center; justify-content: center; }
+.loading .mark { height: 60px; }
 @media (min-width: 768px) { .phone-only { display: none; } }
 /* Details (M5.x, D5.x): chips, provenance, sections that fold, the acts under them. */
 /* The Eval view (M6.x, D6.x): pages of rows you drill into. */

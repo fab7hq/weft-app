@@ -56,15 +56,13 @@
 .tree-act--start { flex: none; border: 1px solid var(--fab7-line); }
 .woven { flex: 1; display: flex; flex-direction: column; gap: 16px; align-items: center; justify-content: center; background-color: var(--fab7-void); }
 .woven-said { margin: 0; font-size: 13px; color: var(--fab7-muted); }
-.woven-mark { display: flex; flex-direction: column; gap: 6px; font: 700 12px/14px var(--font-mono); color: var(--fab7-teal); }
-.woven-row { display: flex; gap: 6px; }
-.woven-row--in { padding-left: 7px; }
+.woven-mark { display: block; height: 60px; width: auto; }
 .tree-skeleton { display: flex; flex-direction: column; gap: 4px; padding: 12px 0; }
 .tree-side .tree-skeleton { gap: 0; padding: 8px 0; }
 .tree-skeleton .tree-row { flex: none; }
 .skeleton-bar { display: block; height: 12px; background: var(--fab7-surface); }
 .woven--weaving .woven-mark { animation: weave 1.6s ease-in-out infinite alternate; }
-@keyframes weave { from { opacity: 0.35; letter-spacing: 0; } to { opacity: 1; letter-spacing: 1px; } }
+@keyframes weave { from { opacity: 0.35; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .woven--weaving .woven-mark { animation: none; } }
 /* AGENTS and WORK: the sections' heads, one line per session, the rounds
    and their Asks, Sealed's Seals. */

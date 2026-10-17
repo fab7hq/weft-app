@@ -2,7 +2,7 @@
 // opens with no network, and show pushes (§8). It never caches the account
 // service's answers, and nothing from a machine passes through here.
 const SHELL = 'weft-shell-v2';
-const PRECACHE = ['/', '/manifest.webmanifest', '/fonts/sora-latin.woff2', '/fonts/jetbrains-mono-latin.woff2', '/icons/icon-192.png', '/icons/apple-touch-icon.png'];
+const PRECACHE = ['/', '/manifest.webmanifest', '/fonts/sora-latin.woff2', '/fonts/jetbrains-mono-latin.woff2', '/icons/icon-192.png', '/icons/apple-touch-icon.png', '/icons/weft-banner-dark.svg'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(SHELL).then((c) => c.addAll(PRECACHE)).then(() => self.skipWaiting()));

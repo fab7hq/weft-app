@@ -56,7 +56,7 @@ function ListToggle() {
   );
 }
 
-/** The empty right pane (D2.1): the woven mark, and the way to start an agent. */
+/** The empty right pane (D2.1): Weft's banner, and the way to start an agent. */
 function Woven({ machine }: { machine: Machine }) {
   // While it connects the threads weave (D1.7), with nothing to start yet.
   const weaving = !m.welcomed.value;
@@ -64,17 +64,9 @@ function Woven({ machine }: { machine: Machine }) {
   // set up, leaves the right side empty until an agent runs (D2.3, D2.4).
   if (!weaving && m.tree.value.some((p) => p.agents.rows.length > 0 || p.setup || (p.ask && p.ask.key !== 'why.start_an_agent'))) return null;
   return (
-    // The blueprint grid, and the mark woven three rows deep.
+    // The blueprint grid, and Weft's banner on it.
     <div class={weaving ? 'woven hairline-grid woven--weaving' : 'woven hairline-grid'}>
-      <div class="woven-mark" aria-hidden="true">
-        {[0, 1, 2].map((row) => (
-          <span key={row} class={row === 1 ? 'woven-row woven-row--in' : 'woven-row'}>
-            {[0, 1, 2, 3].map((i) => (
-              <span key={i}>╸<span class="mark-warp">┃</span>╺</span>
-            ))}
-          </span>
-        ))}
-      </div>
+      <img class="woven-mark" src="/icons/weft-banner-dark.svg" alt="" aria-hidden="true" />
       {!weaving && <p class="woven-said">{w('workspace.empty')}</p>}
     </div>
   );

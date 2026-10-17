@@ -166,14 +166,9 @@ function fold(key: string): void {
 /** Whether a row is open: as drawn first (Sealed folded, the rest open), unless this browser turned it. */
 const isOpen = (key: string, first = true) => first !== folded.value.includes(key);
 
-/** The window's mark and name, as the TUI's title bar draws them. */
+/** Weft's banner: its woven mark and its name, as the desktop draws them. */
 export function Mark() {
-  return (
-    <span class="mark" aria-label="Weft">
-      <span class="mark-weave">╸<span class="mark-warp">┃</span>╺</span>
-      <span class="mark-word">WEFT</span>
-    </span>
-  );
+  return <img class="mark" src="/icons/weft-banner-dark.svg" alt="Weft" />;
 }
 
 /** NEEDS YOU and how many, while an agent asks for input: a tap opens the next one. */

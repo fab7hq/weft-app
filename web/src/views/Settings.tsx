@@ -192,7 +192,7 @@ export function MenuButton({ login }: { login: string }) {
   const [out, setOut] = useState(false);
   return (
     <>
-      <button class="menu" type="button" aria-label="Menu" aria-expanded={open} onClick={() => setOpen(!open)}>☰</button>
+      <button class="menu" type="button" aria-label={w('menu')} aria-expanded={open} onClick={() => setOpen(!open)}>☰</button>
       {open && <Menu onClose={() => setOpen(false)} onSignOut={() => setOut(true)} />}
       {out && <Leaving how="out" login={login} onClose={() => setOut(false)} />}
     </>

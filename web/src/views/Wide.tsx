@@ -16,7 +16,7 @@ import { SessionDetails } from './Session';
 import { EvalView } from './EvalView';
 import { Mark, TreeList, selectAgent } from './Tree';
 import { MessageRow } from './Message';
-import { w } from '../words';
+import { fill, w } from '../words';
 import { StartPanel } from './Start';
 import { HeaderPills, Strips } from './Status';
 import { TreeBar } from './Bar';
@@ -144,8 +144,8 @@ function Agents({ machine, open }: { machine: Machine; open: string }) {
         // Split, one bar above the panes: how many, the one you are in, and its view and layout.
         <div class="split-bar">
           <span class="split-said">
-            {`${L.count(l)} PANES`}
-            {focused && <> · FOCUSED: <span class="split-focused">{`${focused.project} · ${focused.harness}${turbo ? ' ⚡' : ''}`}</span></>}
+            {fill('panes.n', { n: String(L.count(l)) })}
+            {focused && <> {w('panes.focused')} <span class="split-focused">{`${focused.project} · ${focused.harness}${turbo ? ' ⚡' : ''}`}</span></>}
           </span>
           <ViewSwitch wide />
           <LayoutMenu machine={machine.id} pane={active.id} />

@@ -5,9 +5,10 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import kept from '../src/text-keys.json';
-import { edit, own } from '../src/textkeys';
+import { edit, own, system, type System } from '../src/textkeys';
 
-const table: Record<string, string> = kept;
+const tables: Record<System, Record<string, string>> = kept;
+const systems: System[] = ['macos', 'linux'];
 const source = join(import.meta.dirname, '../../../weft/crates/weft-core/text_keys.json');
 
 /** A key event as a browser sends it for a chord the table names. */
@@ -21,19 +22,31 @@ function press(chord: string) {
 describe('the text key table', () => {
   it('is the copy of weft-core\'s', () => {
     if (!existsSync(source)) return;
-    expect(table).toEqual(JSON.parse(readFileSync(source, 'utf8')));
+    expect(tables).toEqual(JSON.parse(readFileSync(source, 'utf8')));
   });
 
-  it('names what each key does, from the key as the browser sends it', () => {
-    for (const [chord, name] of Object.entries(table)) expect(edit(press(chord)), chord).toBe(name);
-    expect(edit({ key: 'a', ctrlKey: false, altKey: false, shiftKey: false, metaKey: false })).toBeNull();
+  it('names what each key does on each system, from the key as the browser sends it', () => {
+    for (const on of systems) {
+      for (const [chord, name] of Object.entries(tables[on])) expect(edit(press(chord), on), `${on} ${chord}`).toBe(name);
+      expect(edit({ key: 'a', ctrlKey: false, altKey: false, shiftKey: false, metaKey: false }, on)).toBeNull();
+    }
     // A letter is the same key with Shift held: the browser sends it upper case.
-    expect(edit({ key: 'Z', ctrlKey: false, altKey: false, shiftKey: true, metaKey: true })).toBe('redo');
+    expect(edit({ key: 'Z', ctrlKey: false, altKey: false, shiftKey: true, metaKey: true }, 'macos')).toBe('redo');
+    expect(edit({ key: 'Z', ctrlKey: true, altKey: false, shiftKey: true, metaKey: false }, 'linux')).toBe('redo');
+    expect(edit(press('cmd-c'), 'linux')).toBeNull();
+  });
+
+  it('takes the system from the browser', () => {
+    expect(system('MacIntel')).toBe('macos');
+    expect(system('iPhone')).toBe('macos');
+    expect(system('Linux x86_64')).toBe('linux');
   });
 
   it('leaves every edit but sending and the suggestion to the browser field', () => {
-    const mine = Object.entries(table).filter(([chord]) => own(press(chord)) !== null).map(([, name]) => name);
-    expect(new Set(mine)).toEqual(new Set(['send', 'take', 'drop']));
-    expect(own(press('shift-enter'))).toBeNull();
+    for (const on of systems) {
+      const mine = Object.entries(tables[on]).filter(([chord]) => own(press(chord), on) !== null).map(([, name]) => name);
+      expect(new Set(mine)).toEqual(new Set(['send', 'take', 'drop']));
+      expect(own(press('shift-enter'), on)).toBeNull();
+    }
   });
 });

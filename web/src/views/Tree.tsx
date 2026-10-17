@@ -686,7 +686,7 @@ export function TreePage({ machine }: { machine: Machine }) {
         <h1>{machine.name}</h1>
         <span class="spacer" />
         <HeaderPills machine={machine} />
-        <button class="menu" type="button" aria-label="Menu" onClick={() => go({ name: 'settings' })}>☰</button>
+        <button class="menu" type="button" aria-label={w('menu')} onClick={() => go({ name: 'settings' })}>☰</button>
       </div>
       <Strips machine={machine} />
       <TreeList machine={machine} onAgent={(agent) => go({ name: 'agent', machine: machine.id, agent })} />

@@ -23,14 +23,20 @@ export function notLive(a: m.Agent | undefined): string {
   return a && !a.running ? fill('agent.ended', { harness: a.harness }) : w('web.why.not_connected');
 }
 
+/** What each agent's message field holds, by agent, for this visit. */
+const drafts = new Map<string, string>();
+
+/** What each agent's field could show after its draft, by agent: kept, as the drafts are. */
+const ghosts = new Map<string, { draft: string; text: string }>();
+
+/** How long a draft stays the same before it is asked about. */
+const SETTLED = 100;
+
 /**
  * `said`: a why from elsewhere (a key, an act), shown above the row and
  * cleared by `clear` on the next use. `onTyping`: whether the box has focus,
  * for the phone's key bar.
  */
-/** What each agent's message field holds, by agent, for this visit. */
-const drafts = new Map<string, string>();
-
 export function MessageRow({ agent, wide, said, clear, onTyping, keys = false }: { agent: string; wide: boolean; said?: string | null; clear?: () => void; onTyping?: (on: boolean) => void; keys?: boolean }) {
   const a = m.agents.value.find((x) => x.agent === agent);
   const live = m.link.value === 'connected' && Boolean(a?.running);
@@ -40,6 +46,37 @@ export function MessageRow({ agent, wide, said, clear, onTyping, keys = false }:
   useEffect(() => setDraft(drafts.get(agent) ?? ''), [agent]);
   const [mine, setMine] = useState<string | null>(null);
   const field = useRef<HTMLTextAreaElement>(null);
+  // A suggestion for this agent's draft, shown dim after the caret; one for
+  // another agent or an older draft is never shown.
+  const [, redraw] = useState(0);
+  const ghost = ghosts.get(agent);
+  const setGhost = (g: { draft: string; text: string } | null, of = agent) => (g ? ghosts.set(of, g) : ghosts.delete(of), redraw((n) => n + 1));
+  const asked = useRef('');
+  useEffect(() => {
+    if (ghost && ghost.draft !== message) setGhost(null);
+    // An empty field follows the agent's last reply: once its turn has ended, again after each turn.
+    const ended = Boolean(a?.running) && a?.turn === 'ended';
+    if (!message && !ended) return;
+    const which = `${agent}\n${message}\n${message ? '' : a?.since ?? 0}`;
+    const t = setTimeout(() => {
+      if (asked.current === which) return;
+      asked.current = which;
+      const [forAgent, forDraft] = [agent, message];
+      void m.request({ type: 'suggest', agent, draft: message })?.then((r) => {
+        const text = r?.type === 'ok' && typeof r.text === 'string' ? r.text : '';
+        if (text && drafts.get(forAgent) === (forDraft || undefined)) setGhost({ draft: forDraft, text }, forAgent);
+      });
+    }, SETTLED);
+    return () => clearTimeout(t);
+  }, [agent, message, a?.turn, a?.since]);
+  const atEnd = !field.current || field.current.selectionStart === message.length;
+  const shown = ghost && ghost.draft === message && atEnd ? ghost.text : null;
+  const take = () => {
+    if (!shown) return;
+    setMessage(message + shown);
+    setGhost(null);
+    field.current?.focus();
+  };
   const why = mine ?? said ?? null;
   const fresh = () => (setMine(null), clear?.());
   const key = (bytes: number[]) => {
@@ -68,7 +105,13 @@ export function MessageRow({ agent, wide, said, clear, onTyping, keys = false }:
   // Enter sends where a keyboard is attached and adds a line on a touch screen;
   // Shift+Enter adds a line everywhere (D3.13). Composing, Enter is the input method's.
   const enter = (e: KeyboardEvent) => {
-    if (e.isComposing || own(e) !== 'send') return;
+    if (e.isComposing) return;
+    // Tab takes the suggestion shown, Escape drops it; with none shown each is the browser's.
+    if (shown && (own(e) === 'take' || own(e) === 'drop')) {
+      e.preventDefault();
+      return own(e) === 'take' ? take() : setGhost(null);
+    }
+    if (own(e) !== 'send') return;
     if (matchMedia('(pointer: coarse)').matches) return;
     send(e);
   };
@@ -77,6 +120,7 @@ export function MessageRow({ agent, wide, said, clear, onTyping, keys = false }:
       {why && <p class="tree-said message-said" role="status">{why}</p>}
       <form class="message-row" onSubmit={send}>
         <label for="message-box" style={{ position: 'absolute', left: '-9999px' }}>{w('web.agent.message_box')}</label>
+        <div class="message-field">
         <textarea
           id="message-box"
           ref={field}
@@ -97,6 +141,15 @@ export function MessageRow({ agent, wide, said, clear, onTyping, keys = false }:
           }}
           placeholder={a?.running ? fill('web.agent.message', { harness: wide ? `${a.project} · ${a.harness}` : a.harness }) : w('web.agent.message_box')}
         />
+        {shown && (
+          // The words again, unseen, so the suggestion lands just after them.
+          <div class="message-input message-mirror" aria-hidden="true" style={{ height: field.current?.style.height }}>
+            <span class="message-typed">{message}</span>
+            <span class="message-ghost">{shown}</span>
+          </div>
+        )}
+        {shown && <button class="message-take" type="button" onMouseDown={(e) => e.preventDefault()} onClick={take}>{w('suggest.take')}</button>}
+        </div>
         {/* After a refusal, on a phone, the box stands without ▶ until it is used again (M10.2). */}
         {!(why && !wide) && <button class="send-key" type="submit" aria-label={w('act.send')} onMouseDown={(e) => e.preventDefault()}>▶</button>}
       </form>

@@ -306,3 +306,64 @@ test('each agent keeps its own draft: switching agents brings it back and never 
   expect(machine.of('text')).toHaveLength(0);
   await machine.close();
 });
+
+test('M16.1 D16.1: the rest of a draft shows dim after the caret; Tab or its tag takes it, Esc drops it, and a late answer shows nothing', async ({ page, context }, info) => {
+  const machine = await opened(page, context);
+  let hold = false;
+  machine.onSuggest = (m) => (hold ? null : m.draft === 'run the' ? ' login tests' : m.draft === 'fix' ? ' the lint' : null);
+  const box = page.getByLabel('Message');
+  const ghost = page.locator('.message-ghost');
+  await box.click();
+  await box.pressSequentially('run the');
+  await expect(ghost).toHaveText(' login tests');
+  await expect(page.getByRole('button', { name: 'Tab', exact: true })).toBeVisible();
+  // Asked once the draft settled, not for each key (the empty field asked for the next prompt: codex's turn has ended).
+  expect(machine.of('suggest').map((s) => s.draft).filter(Boolean)).toEqual(['run the']);
+  if (info.project.name === 'desktop') await box.press('Tab');
+  else await page.getByRole('button', { name: 'Tab', exact: true }).tap();
+  await expect(box).toHaveValue('run the login tests');
+  await expect(ghost).toHaveCount(0);
+  await box.fill('fix');
+  await expect(ghost).toHaveText(' the lint');
+  if (info.project.name === 'desktop') {
+    await box.press('Escape');
+    await expect(ghost).toHaveCount(0);
+    await expect(box).toBeFocused();
+  }
+  // Typing on: the shown one goes at once, and what comes for an older draft is dropped.
+  hold = true;
+  await box.pressSequentially(' now');
+  await expect(ghost).toHaveCount(0);
+  expect(machine.of('text')).toHaveLength(0);
+  await machine.close();
+});
+
+test('M16.2 D16.2: once an agent\'s turn has ended its empty field shows the next prompt; another agent never shows it', async ({ page, context }, info) => {
+  const machine = await opened(page, context);
+  // codex's turn has ended (the sample); claude waits on its person.
+  machine.onSuggest = (m) => (m.draft === '' && m.agent === '3f9a1c07b2de-1' ? 'commit these changes' : null);
+  const box = page.getByLabel('Message');
+  const ghost = page.locator('.message-ghost');
+  await expect(ghost).toHaveText('commit these changes');
+  const phone = info.project.name !== 'desktop';
+  if (phone) {
+    await page.locator('.agent-name').click();
+    await page.getByRole('dialog').getByRole('button', { name: /claude/ }).first().click();
+  } else await openAgent(page, 'claude · fix login');
+  await expect.poll(() => machine.of('watch').at(-1)?.agent).toBe('3f9a1c07b2de-0');
+  await expect(ghost).toHaveCount(0);
+  if (phone) {
+    // The list names agents by harness: try each codex until the one watched is codex · health endpoint.
+    for (let n = 0; machine.of('watch').at(-1)?.agent !== '3f9a1c07b2de-1'; n++) {
+      const before = machine.of('watch').length;
+      await page.locator('.agent-name').click();
+      await page.getByRole('dialog').getByRole('button', { name: /codex/ }).nth(n).click();
+      await expect.poll(() => machine.of('watch').length).toBeGreaterThan(before);
+    }
+  } else await openAgent(page, 'codex · health endpoint');
+  await expect(ghost).toHaveText('commit these changes');
+  await page.getByRole('button', { name: 'Tab', exact: true }).click();
+  await expect(box).toHaveValue('commit these changes');
+  expect(machine.of('text')).toHaveLength(0);
+  await machine.close();
+});

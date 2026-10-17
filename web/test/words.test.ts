@@ -1,4 +1,4 @@
-// The words the app shares with Weft's TUI come from words.json, never from
+// The words the app shares with Weft's desktop app come from words.json, never from
 // the app's own source.
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';

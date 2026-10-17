@@ -1,4 +1,4 @@
-// The TUI's tree (M11.1, D11.1): each project's AGENTS, every
+// The desktop app's tree (M11.1, D11.1): each project's AGENTS, every
 // session weftd holds, newest first, and its WORK by Eval round, with the
 // machine's words. Amber only for an agent that waits for you. A tap selects
 // a row, and the bar's acts follow the selection; › opens its Details. Sealed

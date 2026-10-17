@@ -20,11 +20,11 @@ export const shown = signal<string | null>(null);
  * button shows it is working, and a second press does nothing. */
 export const acting = signal<string | null>(null);
 
-/** The views a Send closes, as the TUI closes its detail view. */
+/** The views a Send closes, as the desktop app closes its detail view. */
 const CLOSED_BY_SEND: View['name'][] = ['detail', 'round', 'seal', 'session', 'eval'];
 
 /** Once Weft types into an agent, the person goes where the keys went, as on
- * the TUI: into that agent, in place of a Details view. */
+ * the desktop app: into that agent, in place of a Details view. */
 function into(agent: string): void {
   const machine = m.current.value;
   const view = here();

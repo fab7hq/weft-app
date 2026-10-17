@@ -11,7 +11,7 @@ import { fill, w } from '../words';
 
 export const b64 = (bytes: number[]) => btoa(String.fromCharCode(...bytes));
 
-/** Why nothing went, as the TUI says it (M10.2). */
+/** Why nothing went, as the desktop app says it (M10.2). */
 export function refusal(answer: Record<string, unknown> | undefined): string | null {
   if (answer?.type !== 'error') return null;
   const key = `not_typed.${String(answer.code)}`;

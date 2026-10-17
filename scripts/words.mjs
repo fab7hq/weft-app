@@ -1,4 +1,4 @@
-// Copy words.json, the words Weft's TUI and this app share, from a weft
+// Copy words.json, the words Weft's desktop app and this app share, from a weft
 // checkout into the app's static files. WEFT names the checkout; ../weft by default.
 import { copyFileSync } from 'node:fs';
 import { resolve } from 'node:path';

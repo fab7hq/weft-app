@@ -18,18 +18,18 @@ export function why(text: string): string[] {
   return said.filter((s) => !s.startsWith(typing));
 }
 
-/** A time of day, as the TUI says one: HH:MM of the record's UTC day. */
+/** A time of day, as the desktop app says one: HH:MM of the record's UTC day. */
 export function clock(at: number): string {
   const minutes = Math.floor(at / 60_000) % (24 * 60);
   return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
 }
 
-/** At most `n` characters, ending in … when cut, as the TUI clips. */
+/** At most `n` characters, ending in … when cut, as the desktop app clips. */
 export function clip(s: string, n: number): string {
   return s.length <= n ? s : `${s.slice(0, n - 1)}…`;
 }
 
-/** A day and a time, as the TUI stamps one: `2026-10-08 11:29`, of the record's UTC day. */
+/** A day and a time, as the desktop app stamps one: `2026-10-08 11:29`, of the record's UTC day. */
 export function stamp(at: number): string {
   return `${new Date(at).toISOString().slice(0, 10)} ${clock(at)}`;
 }

@@ -1,4 +1,4 @@
-// The words this app shares with Weft's TUI, by key, from /words.json: its
+// The words this app shares with Weft's desktop app, by key, from /words.json: its
 // language pack, fetched at start and never cached, so a replaced file shows
 // on the next refresh. Words only the web app has stay where they are used.
 let table: Record<string, string> = {};

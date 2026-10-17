@@ -2,7 +2,7 @@
 // in the person's order, named `project · harness`. One that needs its
 // person carries an amber ●; one whose harness is not set up for RingFrame
 // carries ⚠. A click shows it; a drag moves it. The bar ends in the
-// layout button, the web's form of the TUI's layout bar.
+// layout button, the web's form of the desktop app's layout bar.
 import { useEffect, useState } from 'preact/hooks';
 import * as L from '../layout';
 import * as m from '../machine';

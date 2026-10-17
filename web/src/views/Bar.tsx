@@ -16,8 +16,8 @@ export const paneActive = signal(false);
 /** Where the open agent's keys go, for the desktop bar's Keys. */
 export const openKeys = signal<((bytes: number[]) => void) | null>(null);
 
-/** The TUI's notices, one line at the foot of the tree (M10.3): an agent that
- * has ended, in the TUI's words. The next tap clears it. */
+/** The desktop app's notices, one line at the foot of the tree (M10.3): an agent that
+ * has ended, in the desktop app's words. The next tap clears it. */
 export const notice = signal<{ agent: string; text: string } | null>(null);
 let running = new Set<string>();
 effect(() => {

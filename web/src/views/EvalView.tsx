@@ -1,5 +1,5 @@
-// The Eval view (M6.1–M6.7, D6.1–D6.7): the TUI's, read from the machine by
-// its Eval, as pages you drill into. Each fold of the TUI is a page; the crumb goes back.
+// The Eval view (M6.1–M6.7, D6.1–D6.7): the desktop app's, read from the machine by
+// its Eval, as pages you drill into. Each fold of the desktop app's is a page; the crumb goes back.
 // While the Eval runs the header counts the judges' stages, read again.
 import { useEffect, useState } from 'preact/hooks';
 import type { Machine } from '../api';

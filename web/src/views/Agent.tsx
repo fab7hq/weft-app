@@ -34,7 +34,7 @@ export function Agent({ machine, agent, embedded = false, current = true, onPick
   const [list, setList] = useState(false);
   const swipe = useSwipe(machine.id, agent);
 
-  // Why nothing went, as the TUI says it (M10.2); the next press clears it.
+  // Why nothing went, as the desktop app says it (M10.2); the next press clears it.
   const [mine, setSaid] = useState<string | null>(null);
   // An act's why, on a phone, where no tree bar is drawn to say it.
   const said = mine ?? (embedded ? null : actSaid.value);
@@ -98,7 +98,7 @@ export function Agent({ machine, agent, embedded = false, current = true, onPick
           {!wide && <ViewSwitch wide={false} />}
           <Screen agent={agent} current={current} bars={!embedded} history={history} onHistory={() => void showHistory()} onTop={() => setTop(true)} onLive={() => (setHistory(null), setTop(false))} onKey={key} box={box} />
           {history !== null && top && (
-            // The top of what Weft holds: whose history it is, as the TUI says it (M3.6).
+            // The top of what Weft holds: whose history it is, as the desktop app says it (M3.6).
             <p class="pane-said" role="status">
               {transcript ? fill('web.agent.own_history', { harness: a.harness, key: transcript }) : fill('web.agent.nothing_scrolled', { harness: a.harness })}
             </p>
@@ -109,7 +109,7 @@ export function Agent({ machine, agent, embedded = false, current = true, onPick
           )}
         </div>
       ) : (
-        // Its pane closed, as the TUI's does; its work stays on the tree,
+        // Its pane closed, as the desktop app's does; its work stays on the tree,
         // which a desktop has beside it (D3.7). Its Conversation is a switch away (M3.7).
         <>
         {!wide && <div class="ended-switch"><ViewSwitch wide={false} /></div>}

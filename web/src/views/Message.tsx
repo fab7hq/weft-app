@@ -139,7 +139,8 @@ export function MessageRow({ agent, wide, said, clear, onTyping, keys = false }:
             key(bytes);
             mods.value = sent(mods.value);
           }}
-          placeholder={a?.running ? fill('web.agent.message', { harness: wide ? `${a.project} · ${a.harness}` : a.harness }) : w('web.agent.message_box')}
+          // A suggestion in an empty field stands in the placeholder's place.
+          placeholder={shown ? '' : a?.running ? fill('web.agent.message', { harness: wide ? `${a.project} · ${a.harness}` : a.harness }) : w('web.agent.message_box')}
         />
         {shown && (
           // The words again, unseen, so the suggestion lands just after them.

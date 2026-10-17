@@ -231,6 +231,19 @@ const WORKING = {
   wide: ['● Read(src/login.rs)', '● Update(src/login.rs)', '  ⎿ Updated src/login.rs with 12 additions and 3 removals', '● Running cargo test…', '  test login::rejects_expired ... ok', '  test login::refreshes_token ... ok', '', '✻ Thinking… (esc to interrupt)', '', '❯'],
   phone: ['● Read(src/login.rs)', '● Update(src/login.rs)', '  ⎿ Updated src/login.rs with', '    12 additions and 3 removals', '● Running cargo test…', '  test login::rejects_expired ok', '  test login::refreshes_token ok', '', '✻ Thinking… (esc to interrupt)', '', '❯'],
 };
+/** claude's turn ended: the same work, its reply done. */
+const DONE = {
+  wide: ['● Read(src/login.rs)', '● Update(src/login.rs)', '  ⎿ Updated src/login.rs with 12 additions and 3 removals', '● Running cargo test…', '  test login::rejects_expired ... ok', '  test login::refreshes_token ... ok', '', '● Done. Both login tests pass.', '', '❯'],
+  phone: ['● Read(src/login.rs)', '● Update(src/login.rs)', '  ⎿ Updated src/login.rs with', '    12 additions and 3 removals', '● Running cargo test…', '  test login::rejects_expired ok', '  test login::refreshes_token ok', '', '● Done. Both login tests pass.', '', '❯'],
+};
+/** The agent cards' moment with claude's turn ended, its work going on to Eval. */
+const done = () => withTree((t, a) => {
+  a.splice(2);
+  a[0].turn = 'ended';
+  a[0].next = 'eval';
+  t[0].needs = 0;
+  t[0].agents.rows[1].turn = 'turn_ended';
+});
 const BLUE = (s: string) => `\x1b[38;2;88;166;255m${s}\x1b[0m`;
 const ASKING = {
   wide: ['● Write(src/login.rs)', 'Do you want to make this edit to login.rs?', BLUE('❯ 1. Yes'), "  2. Yes, and don't ask again this session (shift+tab)", '  3. No, and tell Claude what to do differently (esc)'],
@@ -421,6 +434,28 @@ const SCREENS: Screen[] = [
     await activate(at);
   } },
   { ids: ['M3.4', 'D3.4'], sample: () => ({ ...calm(), agents: atlas().agents.slice(0, 2) }), run: (at) => onClaude(at, ASKING) },
+
+  // 16 · Suggestions from the person's own words: the rest of a draft, the next prompt, the next act.
+  { ids: ['M16.1', 'D16.1'], sample: calm, run: async (at) => {
+    at.machine.onSuggest = (m) => (m.draft === 'run the login' ? ' tests and paste the failures' : null);
+    await onClaude(at);
+    await at.page.getByLabel('Message').fill('run the login');
+    await expect(at.page.locator('.message-ghost')).toHaveText(' tests and paste the failures');
+  } },
+  { ids: ['M16.2', 'D16.2'], sample: done, run: async (at) => {
+    at.machine.onSuggest = (m) => (m.draft === '' ? 'commit these changes' : null);
+    await onClaude(at, DONE);
+    await expect(at.page.locator('.message-ghost')).toHaveText('commit these changes');
+  } },
+  { ids: ['D16.3'], sample: done, run: async (at) => {
+    await onClaude(at, DONE);
+    await expect(at.page.locator('.tree-act--put-eval')).toBeVisible();
+  } },
+  { ids: ['M16.3'], sample: done, run: async (at) => {
+    await tree(at);
+    await item(at, 'claude · fix login').click();
+    await expect(at.page.locator('.tree-act--put-eval')).toBeVisible();
+  } },
   { ids: ['M3.5', 'D3.5'], sample: calm, run: async (at) => {
     at.machine.onRead = history(200);
     await onClaude(at);

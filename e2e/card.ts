@@ -1,12 +1,19 @@
 // A screen as a Toile card: the page as drawn, each element with the styles
 // it was drawn in, so a card is what the app builds. Only what differs from
 // a bare element of the same tag is written, and an inherited value only
-// where it changes from the parent's. A canvas is kept as its picture.
+// where it changes from the parent's. A canvas or an image is kept as its picture.
 import type { Page } from '@playwright/test';
 
 /** The card of what `page` shows now, at its viewport's size, named `title`. */
 export async function card(page: Page, title: string): Promise<string> {
-  const body = await page.evaluate(() => {
+  const body = await page.evaluate(async () => {
+    // Each image's picture, inline: a card reaches nothing by its path.
+    const pictures = new Map<Element, string>();
+    for (const im of Array.from(document.images)) {
+      const bytes = new Uint8Array(await (await fetch(im.currentSrc || im.src)).arrayBuffer());
+      const type = im.src.endsWith('.svg') ? 'image/svg+xml' : 'image/png';
+      pictures.set(im, `data:${type};base64,${btoa(String.fromCharCode(...bytes))}`);
+    }
     const INHERITED = new Set(['color', 'font-family', 'font-size', 'font-weight', 'font-style', 'line-height', 'letter-spacing', 'text-align', 'white-space', 'visibility', 'cursor', 'text-transform', 'word-break', 'overflow-wrap']);
     const sandbox = document.createElement('iframe');
     sandbox.style.cssText = 'position:absolute;width:0;height:0;border:0;visibility:hidden';
@@ -52,9 +59,10 @@ export async function card(page: Page, title: string): Promise<string> {
       if (tag === 'button' && !/flex|grid/.test(cs.display)) decl.push('display:inline-flex', 'align-items:center', `justify-content:${cs.textAlign === 'left' || cs.textAlign === 'start' ? 'flex-start' : 'center'}`);
       // Its box as drawn, so a card keeps the app's geometry.
       const r = el.getBoundingClientRect();
-      if (tag === 'canvas') {
-        const src = (el as HTMLCanvasElement).toDataURL('image/png');
-        return `<img src="${src}" style="${attr(decl.join(';'))};width:${r.width}px;height:${r.height}px">`;
+      if (tag === 'canvas' || pictures.has(el)) {
+        const src = pictures.get(el) ?? (el as HTMLCanvasElement).toDataURL('image/png');
+        const alt = el.getAttribute('alt');
+        return `<img src="${src}"${alt ? ` alt="${attr(alt)}"` : ''} style="${attr(decl.join(';'))};width:${r.width}px;height:${r.height}px">`;
       }
       // A ::before or ::after drawn by the app, as a span the card can hold.
       const pseudo = (where: '::before' | '::after') => {

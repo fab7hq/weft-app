@@ -115,13 +115,18 @@ export function TreeBar({ machine, wide }: { machine: Machine; wide: boolean }) 
   const view = here();
   const told = notice.value && !(view?.name === 'agent' && view.agent === notice.value.agent) ? notice.value.text : null;
   const s = wide ? chosen() : null;
+  // The act the selected agent, else the one open, has put forward: outlined, never pressed.
+  const picked = chosen();
+  const whose = picked?.kind === 'agent' ? picked.row.agent : view?.name === 'agent' ? view.agent : null;
+  const next = m.agents.value.find((a) => a.agent === whose)?.next;
+  const put = (act: 'eval' | 'seal') => (next === act ? ` tree-act--put-${act}` : '');
   return (
     <div class={wide ? 'tree-bar tree-bar--wide' : 'tree-bar'}>
       {said.value ? <p class="tree-said" role="status">{said.value}</p> : told && <p class="tree-said" role="status">{told}</p>}
       <div class="tree-acts" onPointerDown={(e) => inPane && e.preventDefault()}>
         <button class="tree-act" type="button" onClick={askOn}>{w('act.ask')}</button>
-        <button class="tree-act" type="button" aria-busy={acting.value === 'eval' || undefined} onClick={() => void evalOn()}>{w('act.eval')}</button>
-        <button class="tree-act" type="button" aria-busy={acting.value === 'seal' || undefined} onClick={() => void sealOn()}>{w('act.seal')}</button>
+        <button class={`tree-act${put('eval')}`} type="button" aria-busy={acting.value === 'eval' || undefined} onClick={() => void evalOn()}>{w('act.eval')}</button>
+        <button class={`tree-act${put('seal')}`} type="button" aria-busy={acting.value === 'seal' || undefined} onClick={() => void sealOn()}>{w('act.seal')}</button>
         {s && (
           <>
             <span class="spacer" />

@@ -40,6 +40,9 @@
 .tree-acts { display: flex; align-items: center; gap: 10px; padding: 10px 16px 30px; }
 .tree-act { flex: 1; min-width: 0; padding: 11px 16px; border: 1px solid var(--fab7-line); background: var(--fab7-surface); color: var(--fab7-text); font: 600 14px var(--font-sans); cursor: pointer; border-radius: var(--weft-radius-control); }
 /* Sent, and the machine has not answered yet: the act works, a light passing across it; a second press does nothing. */
+/* The act a finished turn puts forward: outlined in its colour, never pressed. */
+.tree-act--put-eval { border-color: var(--fab7-teal); color: var(--fab7-teal); }
+.tree-act--put-seal { border-color: var(--fab7-amber); color: var(--fab7-amber-text); }
 .tree-act[aria-busy="true"] { position: relative; overflow: hidden; pointer-events: none; }
 .tree-act[aria-busy="true"]::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.22), transparent); transform: translateX(-100%); animation: working 1s ease-in-out infinite; }
 @keyframes working { to { transform: translateX(100%); } }

@@ -71,3 +71,18 @@ test('D11.1: letters typed outside a focused pane do nothing', async ({ page, co
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await machine.close();
 });
+
+test('M16.3 D16.3: once an agent\'s turn has ended, the bar outlines the act its work needs next, never pressing it', async ({ page, context }) => {
+  const sample = atlas();
+  // codex's turn has ended on health endpoint, which nothing has judged.
+  sample.agents = sample.agents.map((a) => (a.agent === '3f9a1c07b2de-1' ? { ...a, next: 'eval' } : a));
+  const machine = await opened(page, context, sample);
+  const eval_ = page.locator('.tree-acts').getByRole('button', { name: 'Eval', exact: true });
+  await expect(eval_).not.toHaveClass(/put/);
+  // A tap selects it, on a phone too.
+  await work(page, 'codex · health endpoint').click();
+  await expect(eval_).toHaveClass(/tree-act--put-eval/);
+  await expect(page.locator('.tree-acts .tree-act--put-seal')).toHaveCount(0);
+  expect(machine.of('act')).toHaveLength(0);
+  await machine.close();
+});

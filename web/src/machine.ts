@@ -15,6 +15,8 @@ export interface Agent {
   /** The agent still runs: `ended` is then its turn, not the agent. */
   running: boolean;
   since: number;
+  /** Once its turn has really ended, the act its session's latest work needs next. */
+  next?: 'eval' | 'seal' | null;
 }
 
 /** Why an act cannot run: a words key, and the harness and work it names. */

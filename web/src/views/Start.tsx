@@ -47,7 +47,7 @@ export function StartPanel({ machine, harness, project: chosen, phone = false }:
               {starts.map((s, i) => (
                 <button key={s.harness} type="button" role="radio" aria-checked={i === pick} class="start-option" onClick={() => setPick(i)}>
                   <span class="start-radio" aria-hidden="true" />
-                  {fill('start.fresh', { harness: s.harness })}
+                  {s.harness}
                 </button>
               ))}
             </div>

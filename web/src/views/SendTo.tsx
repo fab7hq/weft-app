@@ -34,7 +34,7 @@ export function destinations(project: string | undefined, wrote?: string): Row[]
     dest: { agent: a.agent },
   }));
   for (const s of m.harnesses.value.filter((s) => here(s.project))) {
-    rows.push({ key: `start:${s.harness}`, label: fill('start.fresh', { harness: s.harness }), wrote: false, dest: { start: s.harness } });
+    rows.push({ key: `start:${s.harness}`, label: s.harness, wrote: false, dest: { start: s.harness } });
   }
   return rows;
 }

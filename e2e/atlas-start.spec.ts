@@ -24,7 +24,7 @@ test('M2.1 D2.1 → M9.7 D9.7: nothing asked yet, the project keeps its +; it st
   await page.getByRole('button', { name: 'Start an agent in weft' }).click();
   await expect(page.getByText('It runs on studio, with your own settings.')).toBeVisible();
   const list = page.getByRole('radiogroup', { name: 'Start an agent' });
-  await expect(list.getByRole('radio')).toHaveText(['claude · start fresh', 'codex · start fresh']);
+  await expect(list.getByRole('radio')).toHaveText(['claude', 'codex']);
   await list.getByRole('radio', { name: /codex/ }).click();
   await page.getByRole('button', { name: 'Start', exact: true }).click();
   await expect.poll(() => machine.of('start')).toEqual([expect.objectContaining({ project: 'weft', harness: 'codex' })]);
@@ -80,7 +80,7 @@ test('M9.8 D9.8: the + on a project row starts there, a project with nothing in 
   if (info.project.name === 'desktop') await expect(page.getByRole('heading', { name: 'Start an agent in web' })).toBeVisible();
   await expect(page.getByRole('radiogroup')).toHaveCount(1);
   const harnesses = page.getByRole('radiogroup', { name: 'Start an agent' });
-  await expect(harnesses.getByRole('radio')).toHaveText(['claude · start fresh', 'codex · start fresh']);
+  await expect(harnesses.getByRole('radio')).toHaveText(['claude', 'codex']);
   await page.getByRole('button', { name: 'Start', exact: true }).click();
   await expect.poll(() => machine.of('start')).toEqual([expect.objectContaining({ project: 'web', harness: 'claude' })]);
   await machine.close();

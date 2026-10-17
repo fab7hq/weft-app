@@ -55,7 +55,7 @@ for (const card of CARDS) {
 test('M4.6 D4.6: SEND TO on a send: the agent that wrote it on top and picked; another agent goes as `to`, a new one as `start`', async ({ page, context }) => {
   for (const [pick, where] of [
     ['weft · claude', { to: CLAUDE }],
-    ['claude · start fresh', { start: 'claude' }],
+    ['claude', { start: 'claude' }],
   ] as const) {
     const machine = await FakeMachine.start();
     Object.assign(machine, atlas());
@@ -71,7 +71,7 @@ test('M4.6 D4.6: SEND TO on a send: the agent that wrote it on top and picked; a
     await bar.getByRole('button', { name: /^SEND TO / }).click();
     const list = bar.getByRole('listbox', { name: 'SEND TO' });
     await expect(list.getByRole('option')).toHaveText([
-      'weft · codexwrote it', 'weft · claude', 'weft · codex', 'claude · start fresh', 'codex · start fresh',
+      'weft · codexwrote it', 'weft · claude', 'weft · codex', 'claude', 'codex',
     ]);
     await expect(list.getByRole('option', { selected: true })).toHaveText('weft · codexwrote it');
     await list.getByRole('option', { name: pick, exact: true }).click();

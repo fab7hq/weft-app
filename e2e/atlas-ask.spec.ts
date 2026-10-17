@@ -34,7 +34,7 @@ test('M4.1 M4.3 D4.1 D4.3: typing, picking codex, Ask sends act ask to codex', a
   // then a new one of each harness it starts.
   await to.click();
   const list = sheet.getByRole('listbox', { name: 'SEND TO' });
-  await expect(list.getByRole('option')).toHaveText(['weft · claude', 'weft · codex', 'weft · codex', 'claude · start fresh', 'codex · start fresh']);
+  await expect(list.getByRole('option')).toHaveText(['weft · claude', 'weft · codex', 'weft · codex', 'claude', 'codex']);
   await expect(list.getByText('START AN AGENT')).toBeVisible();
   await expect(list.getByRole('option', { selected: true })).toHaveText('weft · claude');
   await list.getByRole('option', { name: 'weft · codex', exact: true }).first().click();
@@ -88,8 +88,8 @@ test('M4.3 D4.3: a new agent under START AN AGENT: Ask sends act ask with the pr
   const sheet = page.getByRole('dialog', { name: 'What do you want done?' });
   await sheet.getByLabel('What do you want done?').fill('Ship the docs');
   await sheet.getByRole('button', { name: /^SEND TO / }).click();
-  await sheet.getByRole('option', { name: 'codex · start fresh' }).click();
-  await expect(sheet.getByRole('button', { name: /^SEND TO / })).toHaveAccessibleName('SEND TO codex · start fresh');
+  await sheet.getByRole('option', { name: 'codex', exact: true }).click();
+  await expect(sheet.getByRole('button', { name: /^SEND TO / })).toHaveAccessibleName('SEND TO codex');
   await sheet.getByRole('button', { name: 'Ask', exact: true }).click();
   await expect.poll(() => machine.of('act')).toEqual([
     expect.objectContaining({ act: 'ask', project: 'weft', start: 'codex', text: 'Ship the docs' }),

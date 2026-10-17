@@ -374,7 +374,7 @@ export function RoundDetails({ machine, project, eval: id, wide = false }: { mac
         !d.judging && (
           <div class="detail-note">
             <p class={wide ? 'detail-note-head needs' : 'detail-note-head'}>{w('tree.not_sealed')}</p>
-            <p class="detail-line dim">{fill('web.eval.seal_what', { n: String(d.asks.length) })}</p>
+            <p class="detail-line dim">{d.asks.length === 1 ? w('web.eval.seal_what_one') : fill('web.eval.seal_what', { n: String(d.asks.length) })}</p>
           </div>
         )
       )}

@@ -108,7 +108,7 @@ export function SessionDetails({ machine, project, session, wide = false }: { ma
         {/* A session's Asks keep their state word, a cancelled one too; a desktop adds its Seal or Eval. */}
         {d.asks.map((a) => {
           const where = wide && (a.seal !== null ? ` · ${sealName(a.seal)}` : a.eval !== null ? ` · ${fill('tree.eval', { n: String(a.eval) })}` : '');
-          return <AskLine key={a.unit} title={a.title} aside={`${stateWord(a.word)}${where || ''}`} onGo={() => to.work(a.unit)} />;
+          return <AskLine key={a.unit} title={a.title} aside={`${stateWord(a.word)}${where || ''}`} onGo={() => to.ask(a.unit)} />;
         })}
       </div>
       {wide && !live && <p class="detail-line dim detail-after">{fill('web.session.resume_how', { harness: d.harness, session: d.session.slice(0, 8) })}</p>}

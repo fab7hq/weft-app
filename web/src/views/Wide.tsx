@@ -11,7 +11,7 @@ import * as L from '../layout';
 import { focusPane, held, layout, most, over, room, show } from '../panes';
 import { Agent } from './Agent';
 import { AskDock } from './Ask';
-import { Details, RoundDetails, SealDetails } from './Details';
+import { Details, RoundDetails, SealDetails, UnitDetails } from './Details';
 import { SessionDetails } from './Session';
 import { EvalView } from './EvalView';
 import { Mark, TreeList, selectAgent } from './Tree';
@@ -163,7 +163,7 @@ function front(open: string): string {
 }
 
 export function Wide({ login, machine, agent, starting = null, view }: { login: string; machine: Machine; agent: string | null; starting?: string | null; view: View }) {
-  const agents = view.name !== 'eval' && view.name !== 'detail' && view.name !== 'round' && view.name !== 'seal' && view.name !== 'session' && starting === null && agent !== null;
+  const agents = view.name !== 'eval' && view.name !== 'work' && view.name !== 'detail' && view.name !== 'round' && view.name !== 'seal' && view.name !== 'session' && starting === null && agent !== null;
   const inFront = agents && agent ? front(agent) : null;
   // The agent in front is the one selected: its row, and the bar's text.
   useEffect(() => {
@@ -189,6 +189,7 @@ export function Wide({ login, machine, agent, starting = null, view }: { login: 
         )}
         <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
           {view.name === 'eval' ? <EvalView key={`${view.eval}${view.at}${view.files}`} machine={machine} project={view.project} eval={view.eval} at={view.at} files={view.files} wide />
+          : view.name === 'work' ? <UnitDetails key={view.unit} machine={machine} project={view.project} unit={view.unit} wide />
           : view.name === 'detail' ? <Details key={view.unit} machine={machine} project={view.project} unit={view.unit} wide />
           : view.name === 'round' ? <RoundDetails key={view.eval} machine={machine} project={view.project} eval={view.eval} wide />
           : view.name === 'seal' ? <SealDetails key={view.seal} machine={machine} project={view.project} seal={view.seal} wide />

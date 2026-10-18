@@ -52,14 +52,27 @@ export interface Session {
   ask: Why | null;
 }
 
-/** An Eval's round: being judged, or completed and not sealed yet. */
-export interface Round {
-  eval: string;
-  n: number;
-  judging: boolean;
-  verdict: 'aligned' | 'drifted' | 'incomplete' | null;
-  agreement: string | null;
-  asks: Ask[];
+/** A verdict, as the record writes it. */
+export type Verdict = 'aligned' | 'drifted' | 'incomplete';
+
+/** Where a unit of work stands, in one status. */
+export type Status =
+  | { state: 'asking' }
+  | { state: 'asked' }
+  | { state: 'judging' }
+  | { state: 'judged'; verdict: Verdict; agreement: number | null }
+  | { state: 'sealed'; decision: string };
+
+/** A unit of work: its root Ask's title and harness, and one status. */
+export interface WorkRow {
+  /** Its root Ask. */
+  unit: string;
+  title: string;
+  harness: string;
+  status: Status;
+  asks: number;
+  /** Why Eval cannot run on it, else null. */
+  eval: Why | null;
   /** Why Seal cannot run on it, else null. */
   seal: Why | null;
 }
@@ -85,12 +98,8 @@ export interface Project {
   reopened?: number | null;
   /** AGENTS: every running session, then the last 3 ended; `earlier` counts the rest. */
   agents: { running: number; ended: number; rows: Session[]; earlier: number };
-  /** WORK, by Eval round: Open, each Eval not sealed (one being judged first), and Sealed as counts. */
-  work: {
-    open: { since: number | null; asks: Ask[]; eval: Why | null };
-    evals: Round[];
-    sealed: { seals: number; asks: number };
-  };
+  /** WORK: a row per unit of work, open ones first, then the newest sealed; `earlier` counts the sealed past those. */
+  work: { units: WorkRow[]; earlier: number };
 }
 
 /** A harness a project can start. */

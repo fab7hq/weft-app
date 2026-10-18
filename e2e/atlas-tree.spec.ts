@@ -1,6 +1,7 @@
 // The tree (M11.1, D11.1; M2.1–M2.5, M2.8, M7.1, D2.x): AGENTS, every session
-// weftd holds, and WORK by Eval round; the bar's acts follow the selection;
-// Sealed unfolds a page at a time. On the phone and the desktop.
+// weftd holds, and WORK, a row per unit of work; the bar's acts follow the
+// selection; the earlier sealed units unfold a page at a time. On the phone
+// and the desktop.
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import { FakeMachine, agent, atlas, project, sessionOf, type Project, type Session } from './fake-machine';
 import { CLAUDE, README_SESSION, large } from './atlas-fixtures';
@@ -47,14 +48,16 @@ test('M11.1 D11.1: AGENTS and WORK, as the cards draw them: one line a row, the 
   // No state in words on a row.
   for (const word of ['working', 'needs you', 'turn ended', 'no Ask yet']) await expect(page.locator('.tree').getByText(word, { exact: true })).toHaveCount(0);
   await expect(row(page, '12 earlier sessions')).toBeVisible();
-  await expect(row(page, 'Open')).toHaveText(/^▾Open2$/);
-  await expect(row(page, 'fix login')).toContainText('ASKED · claude');
-  await expect(row(page, 'telemetry')).toContainText('ASKING · claude');
-  await expect(row(page, 'Eval 3')).toContainText('Eval 3 · aligned 0.67');
-  // Under a round, title and harness only: the round says their state.
-  await expect(row(page, 'health endpoint').locator('.tree-aside')).toHaveText('codex');
-  await expect(row(page, 'build number').locator('.tree-aside')).toHaveText('codex');
-  await expect(row(page, 'Sealed')).toHaveText(/^▸Sealed31$/);
+  // WORK: a row per unit, its title, its harness and one status; no rounds.
+  const status = (name: string) => row(page, name).locator('.work-status');
+  await expect(status('fix login')).toHaveText('asked');
+  await expect(status('health endpoint')).toHaveText('aligned · 0.67');
+  await expect(status('health endpoint')).toHaveClass(/good/);
+  await expect(status('telemetry')).toHaveText('asking');
+  await expect(status('readme fix')).toHaveText('sealed · accepted');
+  await expect(row(page, 'health endpoint').locator('.work-harness')).toHaveText('codex');
+  for (const round of ['Open', 'Eval 3', 'Sealed', 'build number']) await expect(row(page, round)).toHaveCount(0);
+  await expect(row(page, '4 sealed earlier')).toBeVisible();
   await expect(page.getByText('■ NEEDS YOU 1')).toBeVisible();
   // Only an agent that waits for you is amber: its square.
   await expect(page.locator('[data-needs-you]')).toHaveText(['■']);
@@ -75,40 +78,30 @@ test('M11.1 D11.1: the bar follows the selection; an act that does not apply say
   if (wide) await expect(page.getByLabel("The agent's screen")).toBeVisible();
   await expect(row(page, 'claude · fix login')).toHaveAttribute('aria-selected', 'true');
   await bar(page, 'Eval').click();
-  await expect(said(page)).toHaveText('Select Open to Eval its Asks.');
+  await expect(said(page)).toHaveText('Select a work to Eval it.');
   await bar(page, 'Seal').click();
-  await expect(said(page)).toHaveText('Select an Eval to Seal it.');
+  await expect(said(page)).toHaveText('Select a work to Seal it.');
   await bar(page, 'Ask').click();
   const sheet = page.getByRole('dialog', { name: 'What do you want done?' });
   await expect(sheet.getByRole('button', { name: /^SEND TO/ })).toHaveAccessibleName('SEND TO weft · claude');
   await sheet.getByRole('button', { name: 'Cancel', exact: true }).click();
   if (!wide) await expect(page.getByRole('tree')).toBeVisible();
 
-  // Open: Eval sends act eval on the project; Ask and Seal say what to select.
-  await row(page, 'Open').click();
-  await bar(page, 'Ask').click();
-  await expect(said(page)).toHaveText('Select an agent to Ask.');
+  // A unit of work: Eval names it; Seal says why until an Eval has judged it.
+  await row(page, 'fix login').click();
+  if (wide) await page.getByRole('region', { name: 'fix login' }).waitFor();
   await bar(page, 'Seal').click();
-  await expect(said(page)).toHaveText('Select an Eval to Seal it.');
+  await expect(said(page)).toHaveText('No Eval of this work yet: Eval starts one.');
   await bar(page, 'Eval').click();
-  await expect.poll(() => machine.of('act')).toEqual([expect.objectContaining({ act: 'eval', project: 'weft' })]);
-  expect(machine.of('act')[0]).not.toHaveProperty('unit');
+  await expect.poll(() => machine.of('act')).toEqual([expect.objectContaining({ act: 'eval', project: 'weft', unit: 'ask_1' })]);
   await page.getByRole('dialog', { name: 'Eval this work?' }).getByRole('button', { name: 'Cancel', exact: true }).click();
 
-  // An Eval: Seal sends act seal with its Eval.
-  await row(page, 'Eval 3').click();
-  if (wide) await page.getByRole('region', { name: 'Eval 3' }).waitFor();
-  await bar(page, 'Eval').click();
-  await expect(said(page)).toHaveText('Select Open to Eval its Asks.');
-  await bar(page, 'Seal').click();
-  await expect.poll(() => machine.of('act').at(-1)).toEqual(expect.objectContaining({ act: 'seal', project: 'weft', eval: 'evl_3' }));
-  await page.getByRole('dialog', { name: 'Eval this work?' }).getByRole('button', { name: 'Cancel', exact: true }).click();
-
-  // An Ask acts on its round: under Open, Eval; under Eval 3, Seal.
+  // A judged unit: Seal names it.
   await row(page, 'health endpoint').click();
+  if (wide) await page.getByRole('region', { name: 'health endpoint' }).waitFor();
   await bar(page, 'Seal').click();
-  await expect.poll(() => machine.of('act').length).toBe(3);
-  expect(machine.of('act')[2]).toMatchObject({ act: 'seal', eval: 'evl_3' });
+  await expect.poll(() => machine.of('act').length).toBe(2);
+  expect(machine.of('act')[1]).toMatchObject({ act: 'seal', project: 'weft', unit: 'ask_3' });
   await page.getByRole('dialog', { name: 'Eval this work?' }).getByRole('button', { name: 'Cancel', exact: true }).click();
 
   // An ended session: Ask says to resume it.
@@ -118,14 +111,11 @@ test('M11.1 D11.1: the bar follows the selection; an act that does not apply say
   await expect(said(page)).toHaveText('claude has ended: resume this session to Ask it.');
   await noneDisabled(page);
 
-  // A round the machine says cannot be sealed keeps its act, and says why.
-  const t = sample.tree;
-  t[0].work.evals[0].seal = { key: 'why.sealed_already', title: 'Eval 3' };
-  machine.send({ type: 'tree', tree: t });
-  await row(page, 'Eval 3').click();
+  // A unit the machine says cannot be sealed keeps its act, and says why.
+  await row(page, 'readme fix').click();
   await bar(page, 'Seal').click();
-  await expect(said(page)).toHaveText('Eval 3 is sealed already.');
-  expect(machine.of('act')).toHaveLength(3);
+  await expect(said(page)).toHaveText('readme fix is closed. Follow up asks again.');
+  expect(machine.of('act')).toHaveLength(2);
   await noneDisabled(page);
   await machine.close();
 });
@@ -152,19 +142,17 @@ test('D11.1: the bar names the selection; Ask, Eval and Seal are in the bar only
   await bar(page, 'Ask').click();
   await expect(page.getByRole('dialog', { name: 'What do you want done?' }).getByRole('button', { name: /^SEND TO/ })).toHaveAccessibleName('SEND TO weft · claude');
   await page.getByRole('dialog', { name: 'What do you want done?' }).getByRole('button', { name: 'Cancel', exact: true }).click();
-  await row(page, 'Open').click();
-  await expect(page.locator('.tree-selected')).toHaveText('selected: Open round');
-  await bar(page, 'Eval').click();
-  await expect.poll(() => machine.of('act')).toEqual([expect.objectContaining({ act: 'eval', project: 'weft' })]);
-  await page.getByRole('dialog', { name: 'Eval this work?' }).getByRole('button', { name: 'Cancel', exact: true }).click();
   await row(page, 'fix login').click();
-  await expect(page.locator('.tree-selected')).toHaveText('selected: fix login · Open round');
+  await expect(page.locator('.tree-selected')).toHaveText('selected: fix login');
+  await bar(page, 'Eval').click();
+  await expect.poll(() => machine.of('act')).toEqual([expect.objectContaining({ act: 'eval', project: 'weft', unit: 'ask_1' })]);
+  await page.getByRole('dialog', { name: 'Eval this work?' }).getByRole('button', { name: 'Cancel', exact: true }).click();
   await row(page, 'claude · readme fix').click();
   await expect(page.locator('.tree-selected')).toHaveText('selected: claude · ended 09:12');
   await machine.close();
 });
 
-test('M11.1 D11.1: › on a session, an Ask and an Eval open their Details', async ({ page, context }) => {
+test('M11.1 D11.1: › on a session and a unit of work open their Details', async ({ page, context }) => {
   const machine = await opened(page, context);
   const wide = wideOf(page);
   if (wide) await row(page, 'claude · readme fix').click();
@@ -172,38 +160,35 @@ test('M11.1 D11.1: › on a session, an Ask and an Eval open their Details', asy
   await expect(page.getByRole('region', { name: /^claude · 3f9c2b71…a21e$/ })).toBeVisible();
   await expect.poll(() => machine.of('read').at(-1)).toEqual(expect.objectContaining({ what: 'session', project: 'weft', session: README_SESSION }));
   if (!wide) await page.goBack();
-  await row(page, 'fix login').getByRole('button', { name: 'Details of fix login' }).click();
-  await expect(page.getByRole('region', { name: 'fix login' })).toBeVisible();
-  if (!wide) await page.goBack();
-  if (wide) await row(page, 'Eval 3').click();
-  else await row(page, 'Eval 3').getByRole('button', { name: 'Details of Eval 3' }).click();
-  await expect(page.getByRole('region', { name: 'Eval 3' })).toBeVisible();
-  expect(machine.of('read').at(-1)).toMatchObject({ what: 'eval', project: 'weft', eval: 'evl_3' });
+  if (wide) await row(page, 'health endpoint').click();
+  else await row(page, 'health endpoint').getByRole('button', { name: 'Details of health endpoint' }).click();
+  await expect(page.getByRole('region', { name: 'health endpoint' })).toBeVisible();
+  expect(machine.of('read').at(-1)).toMatchObject({ what: 'work', project: 'weft', unit: 'ask_3' });
   await machine.close();
 });
 
-test('M11.1 D11.1: Sealed unfolds a page at a time from read sealed, the next as it scrolls', async ({ page, context }) => {
+test('M11.1 D11.1: the earlier sealed units unfold a page at a time from read sealed, the next as it scrolls', async ({ page, context }) => {
   const big = large();
   const sample = atlas();
-  sample.tree = [{ ...project('weft', big.sessions.slice(0, 5)), work: { open: { since: null, asks: [], eval: null }, evals: [], sealed: { seals: 120, asks: 400 } } }];
+  sample.tree = [{ ...project('weft', big.sessions.slice(0, 5)), work: { units: [], earlier: 120 } }];
   sample.tree[0].agents = { running: 2, ended: 298, rows: big.sessions.slice(0, 5), earlier: 295 };
   sample.agents = [];
   sample.reads.sealed = { weft: big.sealed };
   const machine = await opened(page, context, sample);
-  // Folded, Sealed is its count of Asks.
-  await expect(row(page, 'Sealed')).toHaveText('▸Sealed400');
+  // Folded, they are a count.
+  await expect(row(page, '120 sealed earlier')).toHaveText('120 sealed earlier ›');
   expect(machine.of('read')).toHaveLength(0);
-  await row(page, 'Sealed').click();
-  await expect(row(page, 'Seal 120')).toBeVisible();
-  await expect(page.locator('.tree-row--seal')).toHaveCount(50);
+  await row(page, '120 sealed earlier').click();
+  await expect(row(page, 'sealed 120')).toBeVisible();
+  await expect(page.locator('.tree-row--work')).toHaveCount(50);
   expect(machine.of('read')).toEqual([expect.objectContaining({ what: 'sealed', project: 'weft' })]);
   expect(machine.of('read')[0]).not.toHaveProperty('after');
-  await row(page, 'Seal 71').scrollIntoViewIfNeeded();
-  await expect(page.locator('.tree-row--seal')).toHaveCount(100);
-  expect(machine.of('read')[1]).toMatchObject({ what: 'sealed', after: 'rcp_000071' });
-  await row(page, 'Seal 21').scrollIntoViewIfNeeded();
-  await expect(page.locator('.tree-row--seal')).toHaveCount(120);
-  await expect(row(page, 'Seal 1')).toBeAttached();
+  await row(page, 'sealed 71').scrollIntoViewIfNeeded();
+  await expect(page.locator('.tree-row--work')).toHaveCount(100);
+  expect(machine.of('read')[1]).toMatchObject({ what: 'sealed', after: 'ask_000071' });
+  await row(page, 'sealed 21').scrollIntoViewIfNeeded();
+  await expect(page.locator('.tree-row--work')).toHaveCount(120);
+  await expect(row(page, 'sealed 1')).toBeAttached();
   await page.waitForTimeout(300);
   expect(machine.of('read')).toHaveLength(3);
   await machine.close();
@@ -214,31 +199,30 @@ test('M11.1 D11.1: the tree follows the machine', async ({ page, context }) => {
   const machine = await opened(page, context, sample);
   await expect(page.getByText('■ NEEDS YOU 1')).toBeVisible();
   const t = sample.tree;
-  Object.assign(t[0], { needs: 0, open: 3 });
+  Object.assign(t[0], { needs: 0, open: 4 });
   Object.assign(t[0].agents.rows[1], { turn: 'working' });
-  t[0].work.open.asks.push({ unit: 'ask_9', title: 'new work', harness: 'codex', word: 'asking' });
+  t[0].work.units.unshift({ unit: 'ask_9', title: 'new work', harness: 'codex', status: { state: 'asking' }, asks: 1, eval: null, seal: null });
   machine.agents = sample.agents.map((a, i) => (i === 0 ? { ...a, turn: 'working' } : a));
   machine.send({ type: 'agents', agents: machine.agents });
   machine.send({ type: 'tree', tree: t });
-  await expect(row(page, 'new work')).toContainText('ASKING · codex');
+  await expect(row(page, 'new work')).toContainText('new work·codexasking');
   await expect(row(page, 'claude · fix login').locator('.agent-dot')).toHaveText('●');
   await expect(page.getByText('■ NEEDS YOU 1')).toHaveCount(0);
   await expect(page.locator('[data-needs-you]')).toHaveCount(0);
   await machine.close();
 });
 
-test('M11.1 D11.1: ▾ ▸ fold a project or a round, and this browser keeps it', async ({ page, context }) => {
+test('M11.1 D11.1: ▾ ▸ fold a project or the earlier sealed units, and this browser keeps it', async ({ page, context }) => {
   const machine = await opened(page, context);
   await row(page, 'docs').click();
   await expect(row(page, 'docs')).toHaveAttribute('aria-expanded', 'false');
-  await row(page, 'Eval 3').getByRole('button', { name: 'Fold Eval 3' }).click();
-  await expect(row(page, 'health endpoint')).toHaveCount(0);
-  await expect(row(page, 'fix login')).toBeVisible();
+  await row(page, '4 sealed earlier').click();
+  await expect(row(page, 'lint pass')).toBeVisible();
   await page.reload();
   await expect(row(page, 'docs')).toHaveAttribute('aria-expanded', 'false');
-  await expect(row(page, 'health endpoint')).toHaveCount(0);
-  await row(page, 'Eval 3').getByRole('button', { name: 'Unfold Eval 3' }).click();
-  await expect(row(page, 'health endpoint')).toBeVisible();
+  await expect(row(page, 'lint pass')).toBeVisible();
+  await row(page, '4 sealed earlier').click();
+  await expect(row(page, 'lint pass')).toHaveCount(0);
   await machine.close();
 });
 
@@ -289,7 +273,7 @@ test('M2.5: an agent with nothing asked of it says to ask', async ({ page, conte
 
 test('M2.8: a tree longer than the screen scrolls, with no markers', async ({ page, context }) => {
   const sample = atlas();
-  sample.tree[0].work.open.asks = Array.from({ length: 24 }, (_, i) => ({ unit: `ask_${i + 10}`, title: `task ${i}`, harness: 'claude', word: 'asked' as const }));
+  sample.tree[0].work.units = Array.from({ length: 24 }, (_, i) => ({ unit: `ask_${i + 10}`, title: `task ${i}`, harness: 'claude', status: { state: 'asked' as const }, asks: 1, eval: null, seal: null }));
   const machine = await opened(page, context, sample);
   const tree = page.getByRole('tree', { name: 'Work' });
   await expect(row(page, 'task 23')).toHaveCount(1);

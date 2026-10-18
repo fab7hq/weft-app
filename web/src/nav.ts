@@ -8,7 +8,9 @@ export type View =
   | { name: 'machines' }
   | { name: 'tree'; machine: string }
   | { name: 'agent'; machine: string; agent: string }
-  /** A work's Details (M11.2): its Ask only. */
+  /** A unit of work's Details: its workflow and its acts. */
+  | { name: 'work'; machine: string; project: string; unit: string }
+  /** An Ask's Details (M11.2). */
   | { name: 'detail'; machine: string; project: string; unit: string }
   /** An Eval's Details (M11.3), a Seal's (M11.4), a session's (M11.5). */
   | { name: 'round'; machine: string; project: string; eval: string }

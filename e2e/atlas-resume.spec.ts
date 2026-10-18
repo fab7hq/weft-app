@@ -14,7 +14,7 @@ const pending = (req: unknown) => [
 async function evalOn(page: Page, context: BrowserContext, machine: FakeMachine) {
   await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
   await page.goto('/');
-  await page.getByRole('treeitem', { name: 'Open', exact: true }).click();
+  await page.getByRole('treeitem', { name: 'fix login', exact: true }).click();
   await page.locator('.tree-acts').getByRole('button', { name: 'Eval', exact: true }).click();
 }
 

@@ -21,7 +21,7 @@ export const shown = signal<string | null>(null);
 export const acting = signal<string | null>(null);
 
 /** The views a Send closes, as the desktop app closes its detail view. */
-const CLOSED_BY_SEND: View['name'][] = ['detail', 'round', 'seal', 'session', 'eval'];
+const CLOSED_BY_SEND: View['name'][] = ['work', 'detail', 'round', 'seal', 'session', 'eval'];
 
 /** Once Weft types into an agent, the person goes where the keys went, as on
  * the desktop app: into that agent, in place of a Details view. */
@@ -60,9 +60,8 @@ export async function resume(project: string, harness: string, session: string, 
   else if (machine && agent) go({ name: 'agent', machine: machine.id, agent: String(agent) });
 }
 
-/** The project a work is in, as the tree shows it. */
-const projectOf = (unit: unknown) =>
-  m.tree.value.find((p) => p.work.open.asks.some((a) => a.unit === unit) || p.work.evals.some((r) => r.asks.some((a) => a.unit === unit)))?.project ?? '';
+/** The project a unit of work is in, as the tree shows it. */
+const projectOf = (unit: unknown) => m.tree.value.find((p) => p.work.units.some((u) => u.unit === unit))?.project ?? '';
 
 /** An act; the pending it staged is shown when the machine answers. Its error, if any. */
 export async function act(message: Record<string, unknown>): Promise<Record<string, unknown> | null> {

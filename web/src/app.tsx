@@ -8,7 +8,7 @@ import { AddMachine } from './views/AddMachine';
 import { Agent } from './views/Agent';
 import { PendingBar } from './views/Asked';
 import { AskSheet } from './views/Ask';
-import { Details, RoundDetails, SealDetails } from './views/Details';
+import { Details, RoundDetails, SealDetails, UnitDetails } from './views/Details';
 import { SessionDetails } from './views/Session';
 import { EvalView } from './views/EvalView';
 import { Mark, TreePage } from './views/Tree';
@@ -186,6 +186,7 @@ export function App() {
       return <Machines list={a.machines} wide={wide.value} onRemoved={removed} />;
     case 'tree':
     case 'agent':
+    case 'work':
     case 'detail':
     case 'round':
     case 'seal':
@@ -201,6 +202,7 @@ export function App() {
       const shown =
         wide.value ? <Wide login={a.login} machine={m} agent={view.name === 'agent' ? view.agent : null} starting={view.name === 'start' ? view.harness ?? '' : null} view={view} />
         : view.name === 'eval' ? <EvalView key={`${view.eval}${view.at}${view.files}`} machine={m} project={view.project} eval={view.eval} at={view.at} files={view.files} />
+        : view.name === 'work' ? <UnitDetails key={view.unit} machine={m} project={view.project} unit={view.unit} />
         : view.name === 'detail' ? <Details key={view.unit} machine={m} project={view.project} unit={view.unit} />
         : view.name === 'round' ? <RoundDetails key={view.eval} machine={m} project={view.project} eval={view.eval} />
         : view.name === 'seal' ? <SealDetails key={view.seal} machine={m} project={view.project} seal={view.seal} />

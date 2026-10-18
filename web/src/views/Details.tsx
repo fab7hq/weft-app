@@ -1,5 +1,5 @@
-// Details, one level each: a work's (M11.2, D11.2), its Ask
-// only, under a breadcrumb of where it stands; an Eval's (M11.3, D11.3), once;
+// Details, one level each: a unit of work's, its workflow and its acts; an
+// Ask's (M11.2, D11.2), under a breadcrumb of where it stands; an Eval's (M11.3, D11.3), once;
 // a Seal's (M11.4, D11.4), once. Each is read from the machine; a part of the
 // record it names is a link to its own Details. On a phone a page with its
 // acts under it; on a desktop the agent's place, with Close.
@@ -9,15 +9,15 @@ import type { Machine } from '../api';
 import { clock, stamp } from '../bar';
 import * as m from '../machine';
 import { back, go } from '../nav';
-import { fill, stateWord, w } from '../words';
+import { fill, stateWord, statusTone, statusWord, w } from '../words';
 import { asking } from './Ask';
 import { act, acting } from './Asked';
-import { said, sealRound } from './Bar';
-import { Verdict, evalName, sealName, sealedCount, stateOf } from './Tree';
+import { evalWork, said, sealRound, sealWork } from './Bar';
+import { Verdict, evalName, sealName, stateOf } from './Tree';
 
 /** The record's parts, as a work's breadcrumb names them. */
 interface Crumb {
-  eval: { eval: string; n: number; verdict: m.Round['verdict'] } | null;
+  eval: { eval: string; n: number; verdict: m.Verdict | null } | null;
   seal: { seal: string; n: number } | null;
 }
 
@@ -39,7 +39,7 @@ interface Judged {
   eval: string;
   n: number;
   judging: boolean;
-  verdict: m.Round['verdict'];
+  verdict: m.Verdict | null;
   agreement: string | null;
   judged_by: string | null;
   at: number | null;
@@ -56,12 +56,14 @@ interface Sealed {
   n: number;
   decision: string;
   at: number | null;
-  eval: { eval: string; n: number; verdict: m.Round['verdict']; agreement: string | null } | null;
+  eval: { eval: string; n: number; verdict: m.Verdict | null; agreement: string | null } | null;
   receipt: string;
   holds: boolean | null;
   broken: string[];
   asks: m.Ask[];
   next: string | null;
+  /** How many Asks it covered, all pages. */
+  total: number;
 }
 
 /** Read once, and again when `again` changes. */
@@ -207,13 +209,140 @@ export function AskLine({ title, aside, onGo }: { title: string; aside: string; 
 /** Where the Details views lead. */
 export function moves(machine: Machine, project: string) {
   return {
-    work: (unit: string) => go({ name: 'detail', machine: machine.id, project, unit }),
+    ask: (unit: string) => go({ name: 'detail', machine: machine.id, project, unit }),
     round: (eval_: string) => go({ name: 'round', machine: machine.id, project, eval: eval_ }),
     seal: (seal: string) => go({ name: 'seal', machine: machine.id, project, seal }),
     session: (session: string) => go({ name: 'session', machine: machine.id, project, session }),
     agent: (agent: string) => go({ name: 'agent', machine: machine.id, agent }),
     view: (eval_: string, at?: string) => go({ name: 'eval', machine: machine.id, project, eval: eval_, at }),
   };
+}
+
+/** One step of a unit's workflow (`read work`). */
+type Step =
+  | { step: 'ask'; unit: string; title: string; follow_up: boolean; aside: string }
+  | { step: 'eval'; eval: string; n: number; verdict: m.Verdict | null; agreement: string | null; aside: string }
+  | { step: 'seal'; seal: string; n: number; decision: string; aside: string }
+  | { step: 'not_sealed' };
+
+/** A unit of work's Details (`read work`). */
+interface Unit {
+  unit: string;
+  title: string;
+  harness: string;
+  status: m.Status;
+  aside: string;
+  steps: Step[];
+  follows: string;
+  eval: m.Why | null;
+  seal: m.Why | null;
+}
+
+/** One step: its number, what it is, what it says, and where it leads. */
+function StepRow({ n, step, to }: { n: number; step: Step; to: ReturnType<typeof moves> }) {
+  const [kind, text, aside, open, name]: [string, ComponentChildren, string | null, (() => void) | null, string] =
+    step.step === 'ask'
+      ? [w(step.follow_up ? 'act.follow_up' : 'act.ask'), step.title, step.aside, () => to.ask(step.unit), step.title]
+      : step.step === 'eval'
+        ? [
+            evalName(step.n),
+            step.verdict ? <><Verdict verdict={step.verdict} />{step.agreement && ` · ${fill('unit.confidence', { agreement: step.agreement })}`}</> : <span class="blue">{w('tree.judging')}</span>,
+            step.aside,
+            null,
+            evalName(step.n),
+          ]
+        : step.step === 'seal'
+          ? [w('act.seal'), step.decision, step.aside, () => to.seal(step.seal), sealName(step.n)]
+          : [w('act.seal'), <span class="faint">{w('unit.not_sealed')}</span>, null, null, w('unit.not_sealed')];
+  const body = (
+    <>
+      <span class="step-n">{n}</span>
+      <span class="step-body">
+        <span class="step-kind">{kind}</span>
+        <span class="step-text">{text}</span>
+        {aside && <span class="step-aside">{aside}</span>}
+      </span>
+    </>
+  );
+  if (step.step === 'eval')
+    return (
+      <div class="step" role="group" aria-label={name}>
+        {body}
+        <button class="step-view" type="button" onClick={() => to.view(step.eval)}>{`${w('act.eval_view')} ›`}</button>
+      </div>
+    );
+  return open ? (
+    <button class="step step--link" type="button" aria-label={name} onClick={open}>
+      {body}
+      <span class="tree-more" aria-hidden="true">›</span>
+    </button>
+  ) : (
+    <div class="step" role="group" aria-label={name}>{body}</div>
+  );
+}
+
+/** A unit of work's Details: its workflow in order, each step opening its own Details, and the unit's acts. */
+export function UnitDetails({ machine, project, unit, wide = false }: { machine: Machine; project: string; unit: string; wide?: boolean }) {
+  const d = useRead<Unit>({ project, unit }, 'work', [JSON.stringify(m.tree.value.find((p) => p.project === project)?.work)]);
+  const to = moves(machine, project);
+  if (!d) return <Frame machine={machine} project={project} label="" crumbs={[]} wide={wide} />;
+  const followUp = () => (asking.value = { project, follow: { unit: d.unit, title: d.title, follows: d.follows } });
+  // The act its status puts forward is the primary one.
+  const primary = d.status.state === 'judged' ? 'seal' : d.status.state === 'sealed' ? 'follow_up' : 'eval';
+  const tone = (a: string) => (a === primary ? 'tree-act tree-act--go' : 'tree-act');
+  const acts = (
+    <>
+      <button class={tone('follow_up')} type="button" onClick={followUp}>{w('act.follow_up')}</button>
+      <button class={tone('eval')} type="button" aria-busy={acting.value === 'eval' || undefined} onClick={() => void evalWork(project, d.unit, d.eval)}>{w('act.eval')}</button>
+      <button class={tone('seal')} type="button" aria-busy={acting.value === 'seal' || undefined} onClick={() => void sealWork(project, d.unit, d.seal)}>{w('act.seal')}</button>
+    </>
+  );
+  const head = (
+    <div class="unit-head">
+      <div class="unit-title-row">
+        <span class="unit-title">{d.title}</span>
+        <span class={`work-status ${statusTone(d.status)}`}>{statusWord(d.status)}</span>
+      </div>
+      <span class="unit-aside">{d.aside}</span>
+    </div>
+  );
+  const flow = (
+    <>
+      <span class="detail-label unit-label">{w('unit.workflow')}</span>
+      <div class="workflow">
+        {d.steps.map((step, i) => <StepRow key={i} n={i + 1} step={step} to={to} />)}
+      </div>
+    </>
+  );
+  if (wide)
+    return (
+      <div class="detail-pane" role="region" aria-label={d.title}>
+        {head}
+        <div class="detail unit-body">{flow}</div>
+        <div class="detail-acts detail-acts--wide">
+          {acts}
+          <span class="spacer" />
+          <button class="tree-act" type="button" onClick={back}>{w('act.close')}</button>
+        </div>
+      </div>
+    );
+  return (
+    <div class="app">
+      <div class="appbar">
+        <button class="back" type="button" onClick={back}>{w('web.back.tree')}</button>
+        <span class="spacer" />
+        <span class="detail-harness">{d.harness}</span>
+      </div>
+      <div class="page unit-page" role="region" aria-label={d.title}>
+        {head}
+        <div class="unit-body">{flow}</div>
+      </div>
+      <div class="detail-foot">
+        {said.value && <p class="tree-said" role="status">{said.value}</p>}
+        <div class="detail-acts">{acts}</div>
+      </div>
+    </div>
+  );
 }
 
 const coverage = (n: number) => (n === 1 ? w('web.detail.covers_one') : fill('web.detail.covers', { n: String(n) }));
@@ -303,7 +432,7 @@ export function Details({ machine, project, unit, wide = false }: { machine: Mac
 
 /** An Eval's Details (M11.3, D11.3): once, with the Asks it covers; Seal stays drawn, and says why when it does not apply. */
 export function RoundDetails({ machine, project, eval: id, wide = false }: { machine: Machine; project: string; eval: string; wide?: boolean }) {
-  const d = useRead<Judged>({ project, eval: id }, 'eval', [JSON.stringify(m.tree.value.find((p) => p.project === project)?.work.evals)]);
+  const d = useRead<Judged>({ project, eval: id }, 'eval', [JSON.stringify(m.tree.value.find((p) => p.project === project)?.work)]);
   const to = moves(machine, project);
   if (!d) return <Frame machine={machine} project={project} label="" crumbs={[]} wide={wide} />;
   const crumbs: Part[] = [{ text: evalName(d.n) }];
@@ -363,7 +492,7 @@ export function RoundDetails({ machine, project, eval: id, wide = false }: { mac
       </div>
       <Head label={w('web.eval.asks')} n={wide ? undefined : d.asks.length} />
       <div class="detail-asks">
-        {d.asks.map((a) => <AskLine key={a.unit} title={a.title} aside={a.harness} onGo={() => to.work(a.unit)} />)}
+        {d.asks.map((a) => <AskLine key={a.unit} title={a.title} aside={a.harness} onGo={() => to.ask(a.unit)} />)}
       </div>
       {d.sealed ? (
         <button class="detail-sealed" type="button" onClick={() => to.seal(d.sealed!.seal)}>
@@ -420,7 +549,7 @@ export function SealDetails({ machine, project, seal, wide = false }: { machine:
   const to = moves(machine, project);
   const d = first;
   if (!d) return <Frame machine={machine} project={project} label="" crumbs={[]} wide={wide} />;
-  const n = sealedCount(project, d.seal) ?? asks.length;
+  const n = d.total ?? asks.length;
   const accepted = d.decision === 'accepted';
   return (
     <Frame
@@ -475,7 +604,7 @@ export function SealDetails({ machine, project, seal, wide = false }: { machine:
       </>
       )}
       <div class="detail-asks">
-        {asks.map((a) => <AskLine key={a.unit} title={a.title} aside={a.harness} onGo={() => to.work(a.unit)} />)}
+        {asks.map((a) => <AskLine key={a.unit} title={a.title} aside={a.harness} onGo={() => to.ask(a.unit)} />)}
         {next && <div ref={end} class="tree-more-rows" aria-hidden="true" />}
       </div>
       <div class="detail-note">

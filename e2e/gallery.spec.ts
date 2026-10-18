@@ -118,26 +118,39 @@ const staging = (agent: string, what: string, why: string, text: string, sends: 
   { type: 'ok', req: m.req, pending: 'pnd_1' },
 ];
 
-/** Eval on the Open round, or Seal on Eval 3, from the tree's bar. */
+/** Eval on fix login, or Seal on health endpoint, from the tree's bar. */
 async function roundAct(at: At, act: 'Eval' | 'Seal' = 'Eval') {
   await tree(at);
-  await item(at, act === 'Eval' ? 'Open' : 'Eval 3').click();
+  await item(at, act === 'Eval' ? 'fix login' : 'health endpoint').click();
   await at.page.locator('.tree-acts').getByRole('button', { name: act, exact: true }).click();
 }
 
-/** A work's Details, read as this payload, from › on its row. */
-async function details(at: At, unit: string, d: Detail = DETAILS[unit]) {
-  at.machine.reads.details[unit] = d;
+/** A unit of work's Details, from the tree: › on a phone, a click on a desktop. */
+async function workOpen(at: At, title: string) {
   await tree(at);
-  await item(at, d.title).getByRole('button', { name: `Details of ${d.title}` }).click();
-  await expect(at.page.getByRole('region', { name: d.title })).toBeVisible();
+  if (at.wide) await item(at, title).click();
+  else await item(at, title).getByRole('button', { name: `Details of ${title}` }).click();
+  await expect(at.page.locator('.workflow')).toBeVisible();
 }
 
-/** An Eval's Details, from the tree: › on a phone, a click on a desktop. */
+/** A step of the open unit's workflow, by its name. */
+const step = (at: At, name: string) => at.page.locator('.workflow').getByRole('button', { name, exact: true });
+
+/** An Ask's Details, read as this payload, from its step in its unit's workflow. */
+async function details(at: At, unit: string, d: Detail = DETAILS[unit]) {
+  at.machine.reads.details[unit] = d;
+  const units = at.machine.reads.units;
+  const owner = Object.values(units).find((u) => u.steps.some((x) => x.step === 'ask' && x.unit === unit))
+    ?? (units[unit] = { unit, title: d.title, harness: d.harness, status: { state: 'asked' }, aside: '', steps: [{ step: 'ask', unit, title: d.title, follow_up: false, aside: '' }], follows: unit, eval: null, seal: null });
+  await workOpen(at, owner.title);
+  await step(at, d.title).click();
+  await expect(at.page.getByRole('region', { name: d.title }).locator('.crumbs')).toBeVisible();
+}
+
+/** Eval 3's Details, from health endpoint's breadcrumb. */
 async function roundOpen(at: At) {
-  await tree(at);
-  if (at.wide) await item(at, 'Eval 3').click();
-  else await item(at, 'Eval 3').getByRole('button', { name: 'Details of Eval 3' }).click();
+  await details(at, 'ask_3');
+  await at.page.locator('.crumbs').first().getByRole('button', { name: 'Eval 3 aligned' }).click();
   await expect(at.page.getByRole('region', { name: 'Eval 3' })).toBeVisible();
 }
 
@@ -172,12 +185,12 @@ async function sendTo(at: At, harness: string) {
   await sheet(at).getByRole('option', { name: `weft · ${harness}`, exact: true }).first().click();
 }
 
-/** Eval on the Open round (or Seal on Eval 3) from the tree's bar; on a desktop with claude open beside it. */
+/** Eval on fix login (or Seal on health endpoint) from the tree's bar; on a desktop with claude open beside it. */
 async function barOn(at: At, act: 'Eval' | 'Seal' = 'Eval') {
   await folded(at);
   if (at.wide) {
     await agentOpen(at, 'claude');
-    await item(at, act === 'Eval' ? 'Open' : 'Eval 3').click();
+    await item(at, act === 'Eval' ? 'fix login' : 'health endpoint').click();
     await at.page.locator('.tree-acts').getByRole('button', { name: act, exact: true }).click();
   } else await roundAct(at, act);
 }
@@ -590,7 +603,7 @@ const SCREENS: Screen[] = [
   { ids: ['M5.3'], run: (at) => details(at, 'ask_3', { ...DETAILS.ask_3, crumb: { eval: null, seal: null }, proceed: true,
     ask: { ...DETAILS.ask_3.ask, aside: 'asked 2026-10-08 10:31 · ready to send', lines: [...DETAILS.ask_3.ask.lines.slice(0, 5), 'not sent yet · ready to send'] } }) },
   { ids: ['M5.4', 'D5.4'], run: (at) => details(at, 'ask_3') },
-  { ids: ['M5.9'], sample: () => withTree((t) => t[0].work.open.asks.push({ unit: 'ask_9', title: 'old idea', harness: 'claude', word: 'asked' })),
+  { ids: ['M5.9'], sample: () => withTree((t) => t[0].work.units.push({ unit: 'ask_9', title: 'old idea', harness: 'claude', status: { state: 'asked' }, asks: 1, eval: null, seal: null })),
     run: (at) => details(at, 'ask_9', { ...DETAILS.ask_1, unit: 'ask_9', title: 'old idea', proceed: false, follows: 'ask_9',
       ask: { state: 'DONE', aside: 'asked 2026-10-08 08:30 · cancelled', lines: ['You asked:', 'Try a second login provider', 'How it was sent:', 'cancelled'] } }) },
   { ids: ['M5.10'], run: (at) => details(at, 'ask_3', { ...DETAILS.ask_3, ask: { state: 'DONE', aside: '', lines: ['what you asked is not on disk', 'the prompt is not on disk'] } }) },
@@ -725,36 +738,51 @@ const SCREENS: Screen[] = [
     await tree(at);
     await item(at, 'claude · fix login').click();
   } },
-  // D11.1: claude open beside the tree, asking; Eval 3 folded so the tree fits. The card's machine has
+  // D11.1: claude open beside the tree, asking. The card's machine has
   // one project, so its tabs are weft's three agents.
   { ids: ['D11.1'], sample: () => { const s = atlas(); return { ...s, agents: s.agents.filter((a) => a.project === 'weft'), tree: s.tree.filter((p) => p.project === 'weft') }; }, run: async (at) => {
-    await folded(at, ['weft/evl_3']);
+    await folded(at, []);
     await onClaude(at, ASKING);
   } },
   { ids: ['M11.2'], run: (at) => details(at, 'ask_1') },
+  // WORK as units of work, and a unit's workflow.
+  { ids: ['M11.10'], run: async (at) => {
+    await folded(at, ['docs']);
+    await tree(at);
+  } },
+  { ids: ['D11.10'], run: async (at) => {
+    await folded(at, ['docs']);
+    await agentOpen(at, 'codex');
+  } },
+  ...(['M11.11', 'D11.11'] as const).map((id): Screen => ({
+    ids: [id],
+    run: async (at) => {
+      await folded(at, ['docs']);
+      await workOpen(at, 'health endpoint');
+    },
+  })),
   { ids: ['D11.2'], run: async (at) => {
-    await folded(at, ['docs', 'weft/evl_3']);
+    await folded(at, ['docs']);
     await details(at, 'ask_1');
   } },
   { ids: ['M11.3'], run: roundOpen },
   { ids: ['D11.3'], run: async (at) => {
-    await folded(at, ['docs', 'weft/open']);
+    await folded(at, ['docs']);
     await roundOpen(at);
   } },
   ...(['M11.4', 'D11.4'] as const).map((id): Screen => ({
     ids: [id],
     run: async (at) => {
-      await folded(at, ['docs', 'weft/open', 'weft/evl_3', 'weft/sealed']);
-      await tree(at);
-      if (at.wide) await item(at, 'Seal 4').click();
-      else await item(at, 'Seal 4').getByRole('button', { name: 'Details of Seal 4' }).click();
+      await folded(at, ['docs']);
+      await workOpen(at, 'readme fix');
+      await step(at, 'Seal 4').click();
       await expect(at.page.getByRole('region', { name: 'Seal 4' })).toBeVisible();
     },
   })),
   ...(['M11.5', 'D11.5'] as const).map((id): Screen => ({
     ids: [id],
     run: async (at) => {
-      await folded(at, ['docs', 'weft/evl_3']);
+      await folded(at, ['docs']);
       await tree(at);
       if (at.wide) await item(at, 'claude · readme fix').click();
       else await item(at, 'claude · readme fix').getByRole('button', { name: /^Details of/ }).click();
@@ -772,7 +800,7 @@ const SCREENS: Screen[] = [
       const r = at.machine.tree![0].agents.rows[2];
       at.machine.reads.sessions[r.session] = { session: r.session, harness: 'codex', state: 'running', turn: 'working', started: r.at - 18 * 60_000, last: r.at, resume: true, joins: true,
         asks: [{ unit: 'ask_h', title: 'health endpoint', harness: 'codex', word: 'asked', eval: null, seal: null }], agent: null };
-      await folded(at, ['docs', 'weft/evl_3']);
+      await folded(at, ['docs']);
       await tree(at);
       if (at.wide) await item(at, 'codex · health endpoint').click();
       else await item(at, 'codex · health endpoint').getByRole('button', { name: /^Details of/ }).click();
@@ -782,7 +810,7 @@ const SCREENS: Screen[] = [
   ...(['M11.7', 'D11.7'] as const).map((id): Screen => ({
     ids: [id],
     run: async (at) => {
-      await folded(at, ['docs', 'weft/evl_3']);
+      await folded(at, ['docs']);
       await tree(at);
       await item(at, '12 earlier sessions').click();
       await expect(at.page.locator('.tree-row--past')).toHaveCount(12);
@@ -803,7 +831,7 @@ const SCREENS: Screen[] = [
     await tree(at);
     if (at.wide) await button(at, 'NEEDS YOU 1').click();
     await at.page.locator('.tree-acts').getByRole('button', { name: 'Eval', exact: true }).click();
-    await expect(at.page.getByText('Select Open to Eval its Asks.')).toBeVisible();
+    await expect(at.page.getByText('Select a work to Eval it.')).toBeVisible();
   } },
   { ids: ['M10.2', 'D10.2'], sample: calm, run: async (at) => {
     at.machine.onText = (m) => ({ type: 'error', req: m.req, code: 'in_flight', message: 'still typing' });

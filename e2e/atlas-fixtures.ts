@@ -1,7 +1,7 @@
 // The Atlas's sample (cards M11.x, D11.x; spec/atlas.md §6), as the machine
-// sends it on the remote protocol: the project weft's sessions and rounds, and
+// sends it on the remote protocol: the project weft's sessions and units of work, and
 // what each read answers. Shared by the fake machine, the specs and the gallery.
-import type { Ask, Detail, Earlier, EvalDetail, Reads, Round, SealDetail, SealRow, Session, SessionDetail } from './fake-machine';
+import type { Ask, Detail, Earlier, EvalDetail, Reads, SealDetail, Session, SessionDetail, UnitDetail, Verdict, WorkRow } from './fake-machine';
 
 /** A time on the cards' day, 2026-10-08 (a Thursday), as the machine sends one. */
 export const at = (h: number, m: number, day = 8) => Date.UTC(2026, 9, day, h, m);
@@ -33,12 +33,20 @@ export const SESSIONS: Session[] = [
 
 const ask = (unit: string, title: string, harness: string, word?: Ask['word']): Ask => (word ? { unit, title, harness, word } : { unit, title, harness });
 
-/** WORK: Open since Eval 3, Eval 3 aligned and not sealed, Sealed · 4 seals 31. */
-export const OPEN: Ask[] = [ask('ask_1', 'fix login', 'claude', 'asked'), ask('ask_2', 'telemetry', 'claude', 'asking')];
-export const EVAL_3: Round = {
-  eval: 'evl_3', n: 3, judging: false, verdict: 'aligned', agreement: '0.67',
-  asks: [ask('ask_3', 'health endpoint', 'codex'), ask('ask_5', 'build number', 'codex')], seal: null,
-};
+/** A unit of work's row. */
+const unit = (id: string, title: string, harness: string, status: WorkRow['status'], asks = 1, why: Partial<Pick<WorkRow, 'eval' | 'seal'>> = {}): WorkRow =>
+  ({ unit: id, title, harness, status, asks, eval: why.eval ?? null, seal: why.seal ?? null });
+const closed = (title: string) => ({ key: 'why.closed', title });
+
+/** WORK: fix login asked; health endpoint and its follow-up build number, judged by Eval 3; telemetry asking; readme fix sealed by Seal 4. */
+export const UNITS: WorkRow[] = [
+  unit('ask_1', 'fix login', 'claude', { state: 'asked' }, 1, { seal: { key: 'why.no_eval', title: 'fix login' } }),
+  unit('ask_3', 'health endpoint', 'codex', { state: 'judged', verdict: 'aligned', agreement: 0.67 }, 2),
+  unit('ask_2', 'telemetry', 'claude', { state: 'asking' }, 1, { seal: { key: 'why.no_eval', title: 'telemetry' } }),
+  unit('ask_4', 'readme fix', 'claude', { state: 'sealed', decision: 'accepted' }, 2, { eval: closed('readme fix'), seal: closed('readme fix') }),
+];
+/** Eval 3's Asks: health endpoint and its follow-up. */
+const EVAL_3_ASKS: Ask[] = [ask('ask_3', 'health endpoint', 'codex'), ask('ask_5', 'build number', 'codex')];
 
 /** The 12 ended sessions past the tree's, as D11.6 lists them. */
 export const EARLIER: Earlier[] = ([
@@ -56,15 +64,49 @@ export const EARLIER: Earlier[] = ([
   ['a0f2d7e4-6e7f-4081-9293-a4b5c6d7e8f9', 'claude', null, 9, 12, 5, 'week'],
 ] as const).map(([id, harness, title, h, m, day, group]) => ({ session: id, harness, title, asks: title ? 1 : 0, at: at(h, m, day), group }));
 
-/** Sealed, newest first (D11.4): Seal 4 sealed Eval 2, Seal 3 Eval 1, Seals 2 and 1 no Eval. */
-export const SEALED_ROWS: SealRow[] = [
-  { seal: 'rcp_7f3a2c', n: 4, decision: 'accepted', at: at(9, 40), eval: 2, asks: 2 },
-  { seal: 'rcp_5b21e0', n: 3, decision: 'accepted', at: at(16, 5, 7), eval: 1, asks: 9 },
-  { seal: 'rcp_3c90aa', n: 2, decision: 'accepted', at: at(12, 30, 6), eval: null, asks: 11 },
-  { seal: 'rcp_18f4d2', n: 1, decision: 'accepted', at: at(10, 0, 5), eval: null, asks: 9 },
+/** The sealed units past the tree's, newest first. */
+export const SEALED_ROWS: WorkRow[] = [
+  unit('ask_7', 'lint pass', 'codex', { state: 'sealed', decision: 'accepted' }, 1, { eval: closed('lint pass'), seal: closed('lint pass') }),
+  unit('ask_8', 'session list api', 'claude', { state: 'sealed', decision: 'deferred' }, 3, { eval: closed('session list api'), seal: closed('session list api') }),
+  unit('ask_9', 'turn-state map', 'claude', { state: 'sealed', decision: 'accepted' }, 1, { eval: closed('turn-state map'), seal: closed('turn-state map') }),
+  unit('ask_10', 'ci cache', 'codex', { state: 'sealed', decision: 'rejected' }, 2, { eval: closed('ci cache'), seal: closed('ci cache') }),
 ];
 
-const crumb = (e: [string, number, Round['verdict']] | null, s: [string, number] | null): Detail['crumb'] => ({
+/** A unit of work's Details: health endpoint, judged and not sealed; readme fix, sealed. */
+export const UNIT_DETAILS: Record<string, UnitDetail> = {
+  ask_1: {
+    unit: 'ask_1', title: 'fix login', harness: 'claude', status: UNITS[0].status, aside: '1 Ask · claude · since 11:29',
+    steps: [{ step: 'ask', unit: 'ask_1', title: 'fix login', follow_up: false, aside: 'claude · not sent yet' }, { step: 'not_sealed' }],
+    follows: 'ask_1', eval: null, seal: UNITS[0].seal,
+  },
+  ask_2: {
+    unit: 'ask_2', title: 'telemetry', harness: 'claude', status: UNITS[2].status, aside: '1 Ask · claude · since 11:20',
+    steps: [{ step: 'ask', unit: 'ask_2', title: 'telemetry', follow_up: false, aside: 'claude · asking' }, { step: 'not_sealed' }],
+    follows: 'ask_2', eval: null, seal: UNITS[2].seal,
+  },
+  ask_3: {
+    unit: 'ask_3', title: 'health endpoint', harness: 'codex', status: UNITS[1].status, aside: '2 Asks · codex · since 10:31',
+    steps: [
+      { step: 'ask', unit: 'ask_3', title: 'health endpoint', follow_up: false, aside: 'codex · sent 10:31' },
+      { step: 'ask', unit: 'ask_5', title: 'build number', follow_up: true, aside: 'codex · sent 10:40' },
+      { step: 'eval', eval: 'evl_3', n: 3, verdict: 'aligned', agreement: '0.67', aside: 'judged 10:58 · 1 met · 1 not met' },
+      { step: 'not_sealed' },
+    ],
+    follows: 'evl_3', eval: null, seal: null,
+  },
+  ask_4: {
+    unit: 'ask_4', title: 'readme fix', harness: 'claude', status: UNITS[3].status, aside: '2 Asks · claude · since 08:52',
+    steps: [
+      { step: 'ask', unit: 'ask_4', title: 'readme fix', follow_up: false, aside: 'claude · sent 08:52' },
+      { step: 'ask', unit: 'ask_6', title: 'docs links', follow_up: true, aside: 'claude · sent 09:02' },
+      { step: 'eval', eval: 'evl_2', n: 2, verdict: 'aligned', agreement: '1.0', aside: 'judged 09:31 · 1 met · 0 not met' },
+      { step: 'seal', seal: 'rcp_7f3a2c', n: 4, decision: 'accepted', aside: '09:40 · by you' },
+    ],
+    follows: 'evl_2', eval: closed('readme fix'), seal: closed('readme fix'),
+  },
+};
+
+const crumb = (e: [string, number, Verdict | null] | null, s: [string, number] | null): Detail['crumb'] => ({
   eval: e && { eval: e[0], n: e[1], verdict: e[2] },
   seal: s && { seal: s[0], n: s[1] },
 });
@@ -117,7 +159,7 @@ export const EVALS: Record<string, EvalDetail> = {
     eval: 'evl_3', n: 3, judging: false, verdict: 'aligned', agreement: '0.67', judged_by: 'codex', at: at(10, 58),
     findings: [{ mark: '✓', text: 'reads BUILD_NUMBER at startup' }, { mark: '✗', text: 'no test for the footer' }],
     checks: [{ mark: '✓', text: 'cargo test', result: 'passed' }],
-    asks: EVAL_3.asks, sealed: null, seal: null,
+    asks: EVAL_3_ASKS, sealed: null, seal: null,
   },
   evl_2: {
     eval: 'evl_2', n: 2, judging: false, verdict: 'aligned', agreement: '1.0', judged_by: 'codex', at: at(9, 31),
@@ -151,19 +193,19 @@ export const SESSION_DETAILS: Record<string, SessionDetail> = {
 
 /** Every read of the sample. */
 export const reads = (): Reads => structuredClone({
-  details: DETAILS, evals: EVALS, seals: SEALS, sessions: SESSION_DETAILS,
+  units: UNIT_DETAILS, details: DETAILS, evals: EVALS, seals: SEALS, sessions: SESSION_DETAILS,
   sealed: { weft: SEALED_ROWS }, earlier: { weft: EARLIER }, views: { evl_3: VIEW, evl_2: VIEW },
 });
 
-/** A LARGE project, to page: 300 sessions (2 running), 120 seals of 400 Asks. */
-export function large(): { sessions: Session[]; earlier: Earlier[]; sealed: SealRow[] } {
+/** A LARGE project, to page: 300 sessions (2 running), 120 sealed units. */
+export function large(): { sessions: Session[]; earlier: Earlier[]; sealed: WorkRow[] } {
   const sessions: Session[] = Array.from({ length: 300 }, (_, i) => {
     const running = i < 2;
     const id = `big${String(i).padStart(5, '0')}-0000-4000-8000-000000000000`;
     return session(id, i % 2 ? 'codex' : 'claude', running ? 'running' : 'ended', running ? 'ready' : null, `task ${300 - i}`, at(11, 0) - i * 3_600_000, 1, running ? `b16b16b16b16-${i}` : null);
   });
   const earlier: Earlier[] = sessions.slice(5).map((s) => ({ session: s.session, harness: s.harness, title: s.title, asks: s.asks, at: s.at, group: 'earlier' }));
-  const sealed: SealRow[] = Array.from({ length: 120 }, (_, i) => ({ seal: `rcp_${String(120 - i).padStart(6, '0')}`, n: 120 - i, decision: 'accepted', at: at(9, 0) - i * 3_600_000, eval: null, asks: i < 40 ? 4 : 3 }));
+  const sealed: WorkRow[] = Array.from({ length: 120 }, (_, i) => unit(`ask_${String(120 - i).padStart(6, '0')}`, `sealed ${120 - i}`, 'claude', { state: 'sealed', decision: 'accepted' }, i < 40 ? 4 : 3));
   return { sessions, earlier, sealed };
 }
 

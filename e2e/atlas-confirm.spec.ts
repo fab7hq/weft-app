@@ -34,7 +34,7 @@ for (const card of CARDS) {
       ];
       await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
       await page.goto('/');
-      await page.getByRole('treeitem', { name: 'Open', exact: true }).click();
+      await page.getByRole('treeitem', { name: 'fix login', exact: true }).click();
       await page.getByRole('button', { name: 'Eval', exact: true }).click();
       const bar = page.getByRole('dialog', { name: card.what });
       await expect(bar).toBeVisible();
@@ -65,7 +65,7 @@ test('M4.6 D4.6: SEND TO on a send: the agent that wrote it on top and picked; a
     ];
     await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
     await page.goto('/');
-    await page.getByRole('treeitem', { name: 'Open', exact: true }).click();
+    await page.getByRole('treeitem', { name: 'fix login', exact: true }).click();
     await page.getByRole('button', { name: 'Eval', exact: true }).click();
     const bar = page.getByRole('dialog', { name: 'Ready to send' });
     await bar.getByRole('button', { name: /^SEND TO / }).click();

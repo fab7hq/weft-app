@@ -13,11 +13,13 @@ async function opened(page: Page, context: BrowserContext, views: Record<string,
   machine.onRead = (m) => (m.what === 'eval_view' ? { type: 'ok', req: m.req, eval_view: views[Math.min(reads++, views.length - 1)] } : machine.read(m));
   await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
   await page.goto('/');
-  // The Eval's Details (M11.3), then its Eval view.
-  const round = page.getByRole('treeitem', { name: 'Eval 3', exact: true });
-  if (page.viewportSize()!.width >= 768) await round.click();
-  else await round.getByRole('button', { name: 'Details of Eval 3' }).click();
-  await page.getByRole('button', { name: 'Eval view' }).click();
+  // The Eval's Details (M11.3), from its unit's Ask, then its Eval view.
+  const unit = page.getByRole('treeitem', { name: 'health endpoint', exact: true });
+  if (page.viewportSize()!.width >= 768) await unit.click();
+  else await unit.getByRole('button', { name: 'Details of health endpoint' }).click();
+  await page.locator('.workflow').getByRole('button', { name: 'health endpoint', exact: true }).click();
+  await page.locator('.crumbs').first().getByRole('button', { name: 'Eval 3 aligned' }).click();
+  await page.getByRole('button', { name: 'Eval view', exact: true }).click();
   const view = page.getByRole('region', { name: 'Eval view' });
   await expect(view).toBeVisible();
   return { machine, view };

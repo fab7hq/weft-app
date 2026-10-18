@@ -23,23 +23,23 @@ const noneDisabled = async (page: Page) => expect(page.locator('button:disabled,
 test('M10.1 D10.1 M11.1: Eval with nothing picked says what to select, and the next press clears it', async ({ page, context }) => {
   const machine = await opened(page, context);
   await page.getByRole('button', { name: 'Eval', exact: true }).click();
-  await expect(page.getByRole('status')).toHaveText('Select Open to Eval its Asks.');
-  await page.getByRole('treeitem', { name: 'Open', exact: true }).click();
-  await expect(page.getByText('Select Open to Eval its Asks.')).toHaveCount(0);
+  await expect(page.getByRole('status')).toHaveText('Select a work to Eval it.');
+  await page.getByRole('treeitem', { name: 'fix login', exact: true }).click();
+  await expect(page.getByText('Select a work to Eval it.')).toHaveCount(0);
   await noneDisabled(page);
   await machine.close();
 });
 
-test('M10.1 D10.1: each why-not on a round is said in its sentence', async ({ page, context }) => {
+test('M10.1 D10.1: each why-not on a unit of work is said in its sentence', async ({ page, context }) => {
   const machine = await opened(page, context);
   const keys = Object.keys(WORDS).filter((k) => k.startsWith('why.') && k !== 'why.not_set_up');
   expect(keys.length).toBeGreaterThan(5);
-  await page.getByRole('treeitem', { name: 'Open', exact: true }).click();
+  await page.getByRole('treeitem', { name: 'fix login', exact: true }).click();
   for (const key of keys) {
     const tree = atlas().tree;
-    tree[0].work.open.eval = { key, harness: 'codex', title: 'health endpoint' };
+    tree[0].work.units[0].eval = { key, harness: 'codex', title: 'health endpoint' };
     machine.send({ type: 'tree', tree });
-    await page.getByRole('button', { name: 'Eval', exact: true }).click();
+    await page.locator('.tree-acts').getByRole('button', { name: 'Eval', exact: true }).click();
     await expect(page.getByRole('status')).toHaveText(fill(WORDS[key], { harness: 'codex', title: 'health endpoint', machine: 'studio' }));
   }
   expect(machine.of('act')).toHaveLength(0);

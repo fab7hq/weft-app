@@ -1,9 +1,9 @@
 // The desktop app's tree (M11.1, D11.1): each project's AGENTS, every
-// session weftd holds, newest first, and its WORK by Eval round, with the
+// session weftd holds, newest first, and its WORK as units of work, with the
 // machine's words. Amber only for an agent that waits for you. A tap selects
-// a row, and the bar's acts follow the selection; › opens its Details. Sealed
-// and the earlier sessions travel as counts: each unfolds in the tree a page at
-// a time, read as it scrolls. One search at the top (M11.8, D11.8) narrows
+// a row, and the bar's acts follow the selection; › opens its Details. The
+// earlier sealed units and the earlier sessions travel as counts: each unfolds
+// in the tree a page at a time, read as it scrolls. One search at the top (M11.8, D11.8) narrows
 // every project to what matches.
 import { signal } from '@preact/signals';
 import { useEffect, useRef } from 'preact/hooks';
@@ -11,35 +11,19 @@ import type { Machine } from '../api';
 import { clock, stamp, weekday } from '../bar';
 import * as m from '../machine';
 import { go, here } from '../nav';
-import { fill, stateWord, turnWord, w } from '../words';
+import { fill, statusTone, statusWord, turnWord, w } from '../words';
 import { TreeBar, askOn, evalOn, sealOn } from './Bar';
 import { HeaderPills, Strips } from './Status';
 
 /** What the bar's acts are on: a row of the tree, by what it is. */
 export type Selected =
   | { kind: 'agent'; project: string; session: string }
-  | { kind: 'open'; project: string }
-  | { kind: 'eval'; project: string; eval: string }
-  | { kind: 'ask'; project: string; unit: string }
-  | { kind: 'seal'; project: string; seal: string };
+  | { kind: 'work'; project: string; unit: string };
 
 export const selected = signal<Selected | null>(null);
 
-/** A Seal as Sealed unfolds it (`read sealed`). */
-export interface SealRow {
-  seal: string;
-  n: number;
-  decision: string;
-  at: number | null;
-  eval: number | null;
-  asks: number;
-}
-
-/** What Sealed has read of each project: its pages so far, the `after` of the next, and the count it was read at. */
-const sealed = signal<Record<string, { rows: SealRow[]; next: string | null; count: number }>>({});
-
-/** How many Asks a Seal covered, as Sealed read it, if it has. */
-export const sealedCount = (project: string, seal: string) => sealed.value[project]?.rows.find((r) => r.seal === seal)?.asks ?? null;
+/** What the earlier sealed units have read of each project: its pages so far, the `after` of the next, and the count it was read at. */
+const sealed = signal<Record<string, { rows: m.WorkRow[]; next: string | null; count: number }>>({});
 
 /** One of the earlier sessions (`read sessions`). */
 interface Earlier {
@@ -100,10 +84,7 @@ const asRow = (e: Earlier): m.Session => ({ session: e.session, harness: e.harne
 /** The selection, as the tree holds it now: none once its row has gone. */
 export type Chosen =
   | { kind: 'agent'; p: m.Project; row: m.Session }
-  | { kind: 'open'; p: m.Project }
-  | { kind: 'eval'; p: m.Project; round: m.Round }
-  | { kind: 'ask'; p: m.Project; ask: m.Ask; round: m.Round | null }
-  | { kind: 'seal'; p: m.Project; seal: SealRow };
+  | { kind: 'work'; p: m.Project; row: m.WorkRow };
 
 export function chosen(): Chosen | null {
   const s = selected.value;
@@ -114,25 +95,10 @@ export function chosen(): Chosen | null {
       const row = p.agents.rows.find((r) => rowKey(r) === s.session);
       return row ? { kind: 'agent', p, row } : null;
     }
-    case 'eval': {
-      const round = p.work.evals.find((r) => r.eval === s.eval);
-      return round ? { kind: 'eval', p, round } : null;
+    case 'work': {
+      const row = p.work.units.find((r) => r.unit === s.unit) ?? sealed.value[p.project]?.rows.find((r) => r.unit === s.unit);
+      return row ? { kind: 'work', p, row } : null;
     }
-    case 'ask': {
-      const open = p.work.open.asks.find((a) => a.unit === s.unit);
-      if (open) return { kind: 'ask', p, ask: open, round: null };
-      for (const round of p.work.evals) {
-        const ask = round.asks.find((a) => a.unit === s.unit);
-        if (ask) return { kind: 'ask', p, ask, round };
-      }
-      return null;
-    }
-    case 'seal': {
-      const seal = sealed.value[p.project]?.rows.find((r) => r.seal === s.seal);
-      return seal ? { kind: 'seal', p, seal } : null;
-    }
-    default:
-      return { kind: s.kind, p };
   }
 }
 
@@ -141,8 +107,8 @@ export function unready(p: m.Project, harness: string): m.Why | null {
   return p.ask && p.ask.harness === harness && p.ask.key !== 'why.start_an_agent' ? p.ask : null;
 }
 
-/** What this browser has folded or unfolded: a project by name, a round as
- * `project/open`, `project/evl_…`, and Sealed, folded until unfolded, as `project/sealed`. */
+/** What this browser has folded or unfolded: a project by name, and the earlier
+ * sealed units, folded until unfolded, as `project/sealed`. */
 const FOLDS = 'weft.folded';
 const folded = signal<string[]>(read());
 
@@ -163,7 +129,7 @@ function fold(key: string): void {
   }
 }
 
-/** Whether a row is open: as drawn first (Sealed folded, the rest open), unless this browser turned it. */
+/** Whether a row is open: as drawn first (the earlier sealed folded, the rest open), unless this browser turned it. */
 const isOpen = (key: string, first = true) => first !== folded.value.includes(key);
 
 /** Weft's banner: its woven mark and its name, as the desktop draws them. */
@@ -257,7 +223,7 @@ function Skeleton() {
 }
 
 /** Nothing in the tree but what the machine says is missing. */
-const bare = (p: m.Project) => p.agents.rows.length === 0 && p.work.open.asks.length === 0 && p.work.evals.length === 0 && p.work.sealed.seals === 0;
+const bare = (p: m.Project) => p.agents.rows.length === 0 && p.work.units.length === 0 && p.work.earlier === 0;
 
 /** What a session's row says after its harness: its turn, ended, or when it was last active. */
 export function stateOf(s: m.Session): string {
@@ -283,9 +249,6 @@ export function selectAgent(agent: string): void {
 }
 
 export const sessionName = (s: m.Session) => `${s.harness} · ${s.title ?? w('tree.no_ask')}`;
-
-/** A round's name: `Eval 3`. */
-export const evalName = (n: number) => fill('tree.eval', { n: String(n) });
 
 /** How the tree opens a view: the person goes there, and back comes here. */
 interface Moves {
@@ -327,13 +290,11 @@ function narrowed(p: m.Project, q: string): { p: m.Project; n: number; past: Ear
   const l = q.toLowerCase();
   const has = (...t: (string | null | undefined)[]) => t.some((x) => x?.toLowerCase().includes(l));
   const rows = p.agents.rows.filter((s) => has(s.harness, s.title, s.session));
-  const asks = (all: m.Ask[]) => all.filter((a) => has(a.title, a.word && stateWord(a.word)));
-  const open = asks(p.work.open.asks);
-  const evals = p.work.evals.map((r) => ({ ...r, asks: asks(r.asks) })).filter((r) => r.asks.length > 0);
+  const units = p.work.units.filter((u) => has(u.title, u.harness, statusWord(u.status)));
   const found = pastOf(p.project, q);
-  const n = rows.length + open.length + evals.reduce((sum, r) => sum + r.asks.length, 0) + (found?.total ?? 0);
+  const n = rows.length + units.length + (found?.total ?? 0);
   if (n === 0) return null;
-  const kept = { ...p, reopened: null, setup: null, agents: { ...p.agents, rows, earlier: found?.total ?? 0 }, work: { ...p.work, open: { ...p.work.open, asks: open }, evals } };
+  const kept = { ...p, reopened: null, setup: null, agents: { ...p.agents, rows, earlier: found?.total ?? 0 }, work: { units, earlier: 0 } };
   return { p: kept, n, past: found?.rows ?? [] };
 }
 
@@ -499,14 +460,11 @@ function AgentRow({ p, s, moves, later }: { p: m.Project; s: m.Session; moves: M
   );
 }
 
-/** WORK: an Eval being judged, Open, each Eval not sealed, then Sealed (M11.1, D11.1). */
+/** WORK: a row per unit of work, then `n sealed earlier`. */
 function Work({ p, moves }: { p: m.Project; moves: Moves }) {
-  const judging = p.work.evals.filter((r) => r.judging);
-  const done = p.work.evals.filter((r) => !r.judging);
-  const nothing = p.work.open.asks.length === 0 && p.work.evals.length === 0 && p.work.sealed.seals === 0;
-  // Searching, p holds only what matched, and Sealed holds no Ask to match.
-  const { searching } = moves;
-  if (searching && p.work.open.asks.length === 0 && p.work.evals.length === 0) return null;
+  const nothing = p.work.units.length === 0 && p.work.earlier === 0;
+  // Searching, p holds only what matched.
+  if (moves.searching && p.work.units.length === 0) return null;
   return (
     <>
       <div class="tree-section tree-section--work" role="none">
@@ -514,105 +472,48 @@ function Work({ p, moves }: { p: m.Project; moves: Moves }) {
       </div>
       {/* M2.5: nothing asked yet. A harness not set up says so by its ⚠ instead (M7.1). */}
       {nothing && !p.agents.rows.some((s) => unready(p, s.harness)) && <p class="tree-next">{w('web.tree.ask_for_something')}</p>}
-      {judging.map((r) => <RoundRows key={r.eval} p={p} round={r} moves={moves} />)}
-      {(searching ? p.work.open.asks.length > 0 : p.work.open.asks.length > 0 || p.work.evals.length > 0) && <OpenRows p={p} moves={moves} />}
-      {done.map((r) => <RoundRows key={r.eval} p={p} round={r} moves={moves} />)}
-      {!searching && p.work.sealed.seals > 0 && <SealedRows p={p} moves={moves} />}
-    </>
-  );
-}
-
-/** A group's fold, its own press. */
-function Fold({ open, name, onFold }: { open: boolean; name: string; onFold: () => void }) {
-  return (
-    <button class="tree-fold" type="button" aria-label={open ? `Fold ${name}` : `Unfold ${name}`} onClick={(e) => (e.stopPropagation(), onFold())}>
-      {open ? '▾' : '▸'}
-    </button>
-  );
-}
-
-function OpenRows({ p, moves }: { p: m.Project; moves: Moves }) {
-  const key = `${p.project}/open`;
-  const open = moves.searching || isOpen(key);
-  const me: Selected = { kind: 'open', project: p.project };
-  return (
-    <>
-      <div class="tree-row tree-row--group" role="treeitem" aria-label={w('tree.open')} aria-expanded={open} aria-selected={isSelected(me)} onClick={() => (selected.value = me)}>
-        <Fold open={open} name={w('tree.open')} onFold={() => fold(key)} />
-        <span class="group-name">
-          <span class="group-title">{w('tree.open')}</span>
-        </span>
-        <span class="group-count">{p.work.open.asks.length}</span>
-      </div>
-      {open && p.work.open.asks.map((a) => <AskRow key={a.unit} p={p} ask={a} moves={moves} />)}
+      {p.work.units.map((u) => <WorkRowView key={u.unit} p={p} row={u} moves={moves} />)}
+      {!moves.searching && p.work.earlier > 0 && <SealedEarlier p={p} moves={moves} />}
     </>
   );
 }
 
 /** A verdict, in its colour: aligned teal, drifted amber. */
-export function Verdict({ verdict }: { verdict: m.Round['verdict'] }) {
+export function Verdict({ verdict }: { verdict: m.Verdict | null }) {
   if (!verdict) return null;
   return <span class={verdict === 'aligned' ? 'good' : 'needs'}>{w(`verdict.${verdict}`)}</span>;
 }
 
-function RoundRows({ p, round, moves }: { p: m.Project; round: m.Round; moves: Moves }) {
-  const { machine, wide } = moves;
-  const key = `${p.project}/${round.eval}`;
-  const open = moves.searching || isOpen(key);
-  const me: Selected = { kind: 'eval', project: p.project, eval: round.eval };
-  const name = evalName(round.n);
-  const details = () => go({ name: 'round', machine: machine.id, project: p.project, eval: round.eval });
-  // A tap selects it; on a desktop it opens its Details too (D11.1).
-  const tap = () => {
-    selected.value = me;
-    if (wide) details();
-  };
-  return (
-    <>
-      <div class="tree-row tree-row--group" role="treeitem" aria-label={name} aria-expanded={open} aria-selected={isSelected(me)} onClick={tap}>
-        <Fold open={open} name={name} onFold={() => fold(key)} />
-        <span class="group-name">
-          <span class="group-title">{name}</span>
-          {round.judging ? (
-            <span class="group-aside">{` · ${w('tree.judging')}`}</span>
-          ) : (
-            <span class="group-aside">
-              {round.verdict && ' · '}
-              <Verdict verdict={round.verdict} />
-              {round.agreement && ` ${round.agreement}`}
-            </span>
-          )}
-        </span>
-        <span class="group-count">{round.asks.length}</span>
-        {!wide && <button class="tree-more" type="button" aria-label={`Details of ${name}`} onClick={(e) => (e.stopPropagation(), (selected.value = me), details())}>›</button>}
-      </div>
-      {open && round.asks.map((a) => <AskRow key={a.unit} p={p} ask={a} moves={moves} />)}
-    </>
-  );
-}
+/** An Eval's name: `Eval 3`. */
+export const evalName = (n: number) => fill('tree.eval', { n: String(n) });
 
-/** An Ask in a round: its title and harness, and ASKED or ASKING only under Open. */
-function AskRow({ p, ask, moves }: { p: m.Project; ask: m.Ask; moves: Moves }) {
-  const { machine } = moves;
-  const me: Selected = { kind: 'ask', project: p.project, unit: ask.unit };
+/** A unit of work: its title and harness, and its one status. A tap selects it; on a desktop it opens its Details too. */
+function WorkRowView({ p, row, moves }: { p: m.Project; row: m.WorkRow; moves: Moves }) {
+  const { machine, wide } = moves;
+  const me: Selected = { kind: 'work', project: p.project, unit: row.unit };
   const details = () => {
     selected.value = me;
-    go({ name: 'detail', machine: machine.id, project: p.project, unit: ask.unit });
+    go({ name: 'work', machine: machine.id, project: p.project, unit: row.unit });
   };
+  const tap = () => (wide ? details() : (selected.value = me));
   return (
-    <div class="tree-row tree-row--work" role="treeitem" aria-label={ask.title} aria-selected={isSelected(me)} onClick={() => (selected.value = me)} onDblClick={details}>
-      <span class="tree-name">{ask.title}</span>
-      <span class="tree-aside">{ask.word ? `${stateWord(ask.word)} · ${ask.harness}` : ask.harness}</span>
-      <button class="tree-more" type="button" aria-label={`Details of ${ask.title}`} onClick={(e) => (e.stopPropagation(), details())}>›</button>
+    <div class="tree-row tree-row--work" role="treeitem" aria-label={row.title} aria-selected={isSelected(me)} onClick={tap} onDblClick={details}>
+      <span class="work-line">
+        <span class="work-title">{row.title}</span>
+        <span class="agent-sep">·</span>
+        <span class="work-harness">{row.harness}</span>
+      </span>
+      <span class={`work-status ${statusTone(row.status)}`}>{statusWord(row.status)}</span>
+      {!wide && <button class="tree-more" type="button" aria-label={`Details of ${row.title}`} onClick={(e) => (e.stopPropagation(), details())}>›</button>}
     </div>
   );
 }
 
-/** Sealed, folded: unfolded, its Seals a page at a time from `read sealed`, the next page read as the last comes into view. */
-function SealedRows({ p, moves }: { p: m.Project; moves: Moves }) {
+/** `n sealed earlier`, a fold: unfolded, those units follow it a page at a time from `read sealed`, the next page read as the last comes into view. */
+function SealedEarlier({ p, moves }: { p: m.Project; moves: Moves }) {
   const key = `${p.project}/sealed`;
   const open = isOpen(key, false);
-  const count = p.work.sealed.seals;
+  const count = p.work.earlier;
   const had = sealed.value[p.project];
   const reading = useRef(false);
   const more = async (after: string | null) => {
@@ -621,9 +522,9 @@ function SealedRows({ p, moves }: { p: m.Project; moves: Moves }) {
     const answer = await m.request({ type: 'read', what: 'sealed', project: p.project, ...(after ? { after } : {}) });
     reading.current = false;
     if (answer?.type !== 'ok') return;
-    const page = answer.sealed as { seals: SealRow[]; next: string | null };
+    const page = answer.sealed as { units: m.WorkRow[]; next: string | null };
     const before = after ? sealed.value[p.project]?.rows ?? [] : [];
-    sealed.value = { ...sealed.value, [p.project]: { rows: [...before, ...page.seals], next: page.next, count } };
+    sealed.value = { ...sealed.value, [p.project]: { rows: [...before, ...page.units], next: page.next, count } };
   };
   // Read from the first page when it unfolds, and again when the count moves on.
   useEffect(() => {
@@ -638,44 +539,20 @@ function SealedRows({ p, moves }: { p: m.Project; moves: Moves }) {
     seen.observe(el);
     return () => seen.disconnect();
   }, [open, next]);
-  const name = w('tree.sealed');
+  const said = fill('tree.sealed_earlier', { n: String(count) });
   return (
     <>
-      <div class="tree-row tree-row--group" role="treeitem" aria-label={name} aria-expanded={open} onClick={() => fold(key)}>
-        <span class="tree-fold">{open ? '▾' : '▸'}</span>
-        <span class="group-name">
-          <span class="group-title">{name}</span>
-        </span>
-        <span class="group-count">{p.work.sealed.asks}</span>
+      <div class="tree-row tree-row--earlier" role="treeitem" aria-label={said} aria-expanded={open} onClick={() => fold(key)}>
+        <span class="tree-name">{`${said} ${open ? '▾' : '›'}`}</span>
       </div>
-      {open && had?.rows.map((s) => <SealRowView key={s.seal} p={p} seal={s} moves={moves} />)}
+      {open && had?.rows.map((u) => <WorkRowView key={u.unit} p={p} row={u} moves={moves} />)}
       {open && next && <div ref={end} class="tree-more-rows" aria-hidden="true" />}
     </>
   );
 }
 
-/** The Seal's own name: `Seal 4`. */
+/** A Seal's own name: `Seal 4`. */
 export const sealName = (n: number) => fill('tree.seal', { n: String(n) });
-
-function SealRowView({ p, seal, moves }: { p: m.Project; seal: SealRow; moves: Moves }) {
-  const { machine, wide } = moves;
-  const me: Selected = { kind: 'seal', project: p.project, seal: seal.seal };
-  const name = sealName(seal.n);
-  const details = () => {
-    selected.value = me;
-    go({ name: 'seal', machine: machine.id, project: p.project, seal: seal.seal });
-  };
-  return (
-    <div class="tree-row tree-row--seal" role="treeitem" aria-label={name} aria-selected={isSelected(me)} onClick={() => (wide ? details() : (selected.value = me))}>
-      <span class="seal-lines">
-        <span class="tree-name">{name}</span>
-        <span class="tree-aside">{seal.eval === null ? seal.decision : `${seal.decision} · ${evalName(seal.eval)}`}</span>
-      </span>
-      <span class="group-count">{seal.asks}</span>
-      <button class="tree-more" type="button" aria-label={`Details of ${name}`} onClick={(e) => (e.stopPropagation(), details())}>›</button>
-    </div>
-  );
-}
 
 /** The phone's tree: the bar on top, the tree under it. */
 export function TreePage({ machine }: { machine: Machine }) {

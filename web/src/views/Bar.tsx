@@ -1,5 +1,5 @@
 // The tree's bar: Ask, Eval and Seal, following the selection (Ask on an
-// agent, Eval on the Open round, Seal on an Eval's). An act that does not
+// agent, Eval and Seal on a unit of work). An act that does not
 // apply says why in one line; none is ever drawn disabled.
 import { effect, signal } from '@preact/signals';
 import type { Machine } from '../api';
@@ -8,7 +8,7 @@ import { here } from '../nav';
 import { clock } from '../bar';
 import { asking } from './Ask';
 import { act, acting } from './Asked';
-import { chosen, evalName, sealName, stateOf, unready, type Chosen } from './Tree';
+import { chosen, stateOf, unready, type Chosen } from './Tree';
 import { fill, w } from '../words';
 
 /** The pane is active: it has the keys, and a wheel or a finger scrolls its history. */
@@ -46,7 +46,7 @@ function fallback(project: string | undefined, harness?: string): string | undef
   return open?.agent ?? (mine.find((a) => a.harness === harness) ?? mine[0])?.agent;
 }
 
-/** Ask, on the selection: an agent takes it, or says why it cannot; a round says to select an agent. */
+/** Ask, on the selection: an agent takes it, or says why it cannot; on a unit of work, an agent of its harness. */
 export function askOn(): void {
   const s = chosen();
   if (s?.kind === 'agent') {
@@ -55,9 +55,8 @@ export function askOn(): void {
     asking.value = { agent: s.row.agent, project: s.p.project };
     return;
   }
-  if (s && s.kind !== 'ask') return void (said.value = w('select.agent'));
   const project = s?.p.project;
-  const agent = fallback(project, s?.kind === 'ask' ? s.ask.harness : undefined);
+  const agent = fallback(project, s?.row.harness);
   if (!agent) return void (said.value = fill('web.why.start_an_agent', { machine: m.current.value?.name ?? '' }));
   // Its harness not set up for RingFrame, nothing it is asked is written down (M7.1).
   const of = m.agents.value.find((a) => a.agent === agent);
@@ -67,21 +66,32 @@ export function askOn(): void {
   asking.value = { agent, project: project ?? of?.project };
 }
 
-/** Eval, on the Open round: on anything else, select Open. */
+/** Eval, on a unit of work: on anything else, select one. */
 export async function evalOn(): Promise<void> {
   const s = chosen();
-  if (!(s?.kind === 'open' || (s?.kind === 'ask' && !s.round))) return void (said.value = w('select.open'));
-  if (s.p.work.open.eval) return void (said.value = sentence(s.p.work.open.eval));
-  const refused = await act({ act: 'eval', project: s.p.project });
+  if (s?.kind !== 'work') return void (said.value = w('select.work_eval'));
+  await evalWork(s.p.project, s.row.unit, s.row.eval);
+}
+
+/** Seal, on a unit of work: on anything else, select one. */
+export async function sealOn(): Promise<void> {
+  const s = chosen();
+  if (s?.kind !== 'work') return void (said.value = w('select.work_seal'));
+  await sealWork(s.p.project, s.row.unit, s.row.seal);
+}
+
+/** Eval this unit of work, unless the machine said why not. */
+export async function evalWork(project: string, unit: string, why: m.Why | null): Promise<void> {
+  if (why) return void (said.value = sentence(why));
+  const refused = await act({ act: 'eval', project, unit });
   if (refused) said.value = String(refused.message);
 }
 
-/** Seal, on an Eval's round: on anything else, select an Eval. */
-export async function sealOn(): Promise<void> {
-  const s = chosen();
-  const round = s?.kind === 'eval' ? s.round : s?.kind === 'ask' ? s.round : null;
-  if (!s || !round) return void (said.value = w('select.eval'));
-  await sealRound(s.p.project, round.eval, round.seal);
+/** Seal this unit of work, unless the machine said why not. */
+export async function sealWork(project: string, unit: string, why: m.Why | null): Promise<void> {
+  if (why) return void (said.value = sentence(why));
+  const refused = await act({ act: 'seal', project, unit });
+  if (refused) said.value = String(refused.message);
 }
 
 /** Seal this Eval, unless the machine said why not (it stays drawn, and says so). */
@@ -91,19 +101,13 @@ export async function sealRound(project: string, eval_: string, why: m.Why | nul
   if (refused) said.value = String(refused.message);
 }
 
-/** The selection as the desktop's bar names it: `claude · 11:29`, `fix login · Open round`, `Eval 3`. */
+/** The selection as the desktop's bar names it: `claude · 11:29`, `health endpoint`. */
 function named(s: Chosen): string {
   switch (s.kind) {
     case 'agent':
       return `${s.row.harness} · ${s.row.state === 'running' ? clock(s.row.at) : s.row.state === 'ended' ? `${w('state.ended')} ${clock(s.row.at)}` : stateOf(s.row)}`;
-    case 'open':
-      return w('web.bar.open_round');
-    case 'eval':
-      return evalName(s.round.n);
-    case 'ask':
-      return `${s.ask.title} · ${s.round ? evalName(s.round.n) : w('web.bar.open_round')}`;
-    case 'seal':
-      return sealName(s.seal.n);
+    case 'work':
+      return s.row.title;
   }
 }
 

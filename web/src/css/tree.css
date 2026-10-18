@@ -6,7 +6,6 @@
 .tree-side { flex: 0 0 341px; width: 341px; box-sizing: border-box; border-right: 1px solid var(--fab7-line); display: flex; flex-direction: column; min-height: 0; }
 .tree-row { display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 16px; box-sizing: border-box; border-bottom: 1px solid var(--fab7-line); cursor: pointer; }
 .tree-row--harness { padding-left: 32px; }
-.tree-row--work { padding-left: 50px; }
 .tree-row[aria-selected="true"] { background: var(--fab7-selected); box-shadow: inset 3px 0 0 var(--fab7-accent); }
 .tree-fold { font-family: inherit; font-size: 12px; line-height: normal; color: var(--fab7-muted); background: none; border: 0; padding: 0; cursor: pointer; }
 .tree-name { flex: 1; min-width: 0; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -64,8 +63,8 @@
 .woven--weaving .woven-mark { animation: weave 1.6s ease-in-out infinite alternate; }
 @keyframes weave { from { opacity: 0.35; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .woven--weaving .woven-mark { animation: none; } }
-/* AGENTS and WORK: the sections' heads, one line per session, the rounds
-   and their Asks, Sealed's Seals. */
+/* AGENTS and WORK: the sections' heads, one line per session, one per unit
+   of work. */
 .tree-section { display: flex; align-items: center; height: 24px; box-sizing: border-box; padding: 0 16px 0 32px; background: var(--fab7-panel); border-bottom: 1px solid var(--fab7-line); }
 .tree-section-name { flex: 1; min-width: 0; font: 600 11px var(--font-mono); letter-spacing: 0.08em; color: var(--fab7-faint); }
 .tree-row--agent { padding: 0 16px 0 32px; gap: 8px; }
@@ -85,16 +84,16 @@
 .tree-row--earlier .tree-name { font-size: 12px; color: var(--fab7-accent); }
 
 .tree-row--past { padding-left: 48px; }
-.tree-row--group { height: 38px; padding: 0 16px 0 32px; gap: 10px; }
-.group-name { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px; overflow: hidden; white-space: pre; }
-.group-title { font-size: 14px; font-weight: 600; }
-.group-aside { font-size: 12px; color: var(--fab7-muted); }
-.group-aside .good, .group-aside .needs { white-space: pre; }
-.group-count { min-width: 16px; text-align: right; font: 400 12px var(--font-mono); color: var(--fab7-muted); }
-.tree-row--work, .tree-row--seal { height: 38px; padding-left: 48px; }
-.tree-row--work .tree-name, .tree-row--seal .tree-name { font-size: 13px; }
-.seal-lines { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 8px; }
-.seal-lines .tree-name { flex: none; }
+.tree-row--work { height: 36px; padding-left: 32px; }
+.work-line { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 4px; overflow: hidden; white-space: nowrap; }
+.work-title { min-width: 0; font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; }
+.tree-row[aria-selected="true"] .work-title { font-weight: 600; }
+.work-harness { flex: none; font-size: 13px; color: var(--fab7-faint); }
+.work-status { flex: none; font: 400 11px var(--font-mono); color: var(--fab7-muted); white-space: nowrap; }
+.work-status.good { color: var(--fab7-teal); }
+.work-status.needs { color: var(--fab7-amber-text); }
+.blue, .work-status.blue { color: var(--fab7-accent); }
+.faint, .work-status.faint { color: var(--fab7-faint); }
 .tree-more-rows { height: 1px; flex: none; border: 0; }
 .tree-selected { font-size: 12px; color: var(--fab7-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* The search (M11.8, D11.8): a pill above the tree, blue once it holds text. */
@@ -112,10 +111,7 @@
 .tree-side .agent-dot { width: 10px; }
 .tree-side .agent-harness { font-size: 13px; }
 .tree-side .tree-row--earlier { height: 30px; }
-.tree-side .tree-row--group { height: 36px; gap: 8px; }
-.tree-side .group-title { font-size: 13px; }
-.tree-side .tree-row--work, .tree-side .tree-row--seal { height: 34px; }
-.tree-side .group-count { font-size: 11px; }
+.tree-side .work-title { font-size: 13px; }
 /* A project reopened after Weft on the machine ended uncleanly (M13.5). */
 .reopened { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin: 0; padding: 12px 16px 12px 32px; background: var(--fab7-surface); border-bottom: 1px solid var(--fab7-line); }
 .reopened-notice { margin: 0; font-size: 13px; line-height: 19px; color: var(--fab7-text); }

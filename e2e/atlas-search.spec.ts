@@ -35,7 +35,7 @@ test('M11.8 D11.8: the box is at the top of the tree; with text it has a ✕ tha
   await expect(row(page, 'docs')).toBeVisible();
   await expect(row(page, 'weft')).toHaveAttribute('aria-expanded', 'true');
   await expect(row(page, '12 earlier sessions')).toBeVisible();
-  await expect(row(page, 'Sealed')).toBeVisible();
+  await expect(row(page, '4 sealed earlier')).toBeVisible();
   // An emptied box restores it as well.
   await box(page).fill('health');
   await expect(row(page, 'docs')).toHaveCount(0);
@@ -49,25 +49,23 @@ test('M11.8 D11.8: the tree narrows as you type: a project with a match stays wi
   // A harness, in both projects, ignoring case.
   await box(page).fill('CLAUDE');
   await expect(row(page, 'docs')).toContainText('1 match');
-  await expect(row(page, 'weft')).toContainText('11 match');
+  await expect(row(page, 'weft')).toContainText('14 match');
   await expect(row(page, 'codex · health endpoint')).toHaveCount(0);
-  // An Ask's title and its harness, under the group it sits in: the section labels stay, their counts go.
+  // A unit's title: the section labels stay.
   await box(page).fill('health');
   await expect(row(page, 'docs')).toHaveCount(0);
   await expect(row(page, 'weft')).toContainText('2 match');
   await expect(page.locator('.tree-section')).toHaveText(['AGENTS', 'WORK']);
   await expect(page.locator('.tree-row--agent')).toHaveCount(1);
   await expect(row(page, 'codex · health endpoint')).toBeVisible();
-  await expect(row(page, 'Eval 3')).toContainText('Eval 3');
   await expect(page.locator('.tree-row--work')).toHaveText([/health endpoint/]);
-  for (const gone of ['Open', 'Sealed', 'telemetry', 'build number', 'claude · fix login']) await expect(row(page, gone)).toHaveCount(0);
-  // An Ask's state word.
+  for (const gone of ['4 sealed earlier', 'telemetry', 'readme fix', 'claude · fix login']) await expect(row(page, gone)).toHaveCount(0);
+  // A unit's status.
   await box(page).fill('Asked');
   await expect(row(page, 'weft')).toContainText('1 match');
   await expect(page.locator('.tree-section')).toHaveText(['WORK']);
-  await expect(row(page, 'Open')).toBeVisible();
   await expect(page.locator('.tree-row--work')).toHaveText([/fix login/]);
-  await expect(row(page, 'Eval 3')).toHaveCount(0);
+  await expect(row(page, 'telemetry')).toHaveCount(0);
   // A session's id; the project's name and nothing else matches.
   await box(page).fill('8b2e4f60');
   await expect(row(page, 'weft')).toContainText('1 match');

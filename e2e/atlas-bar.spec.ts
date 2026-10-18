@@ -25,20 +25,20 @@ const button = (page: Page, name: string) => page.getByRole('button', { name, ex
 test('M10.1 D10.1: Eval and Seal with nothing selected say what to select, until the next press', async ({ page, context }) => {
   const machine = await opened(page, context);
   await button(page, 'Eval').click();
-  await expect(page.getByRole('status')).toHaveText('Select Open to Eval its Asks.');
+  await expect(page.getByRole('status')).toHaveText('Select a work to Eval it.');
   await button(page, 'Seal').click();
-  await expect(page.getByRole('status')).toHaveText('Select an Eval to Seal it.');
+  await expect(page.getByRole('status')).toHaveText('Select a work to Seal it.');
   await work(page, 'fix login').click();
-  await expect(page.getByText('Select an Eval to Seal it.')).toHaveCount(0);
+  await expect(page.getByText('Select a work to Seal it.')).toHaveCount(0);
   expect(machine.of('act')).toHaveLength(0);
   await machine.close();
 });
 
-test('M10.1 D10.1: Open that cannot be judged says why, and nothing is sent', async ({ page, context }) => {
+test('M10.1 D10.1: a unit of work that cannot be judged says why, and nothing is sent', async ({ page, context }) => {
   const sample = atlas();
-  sample.tree[0].work.open.eval = { key: 'why.not_set_up', harness: 'codex' };
+  sample.tree[0].work.units[0].eval = { key: 'why.not_set_up', harness: 'codex' };
   const machine = await opened(page, context, sample);
-  await work(page, 'Open').click();
+  await work(page, 'fix login').click();
   await button(page, 'Eval').click();
   await expect(page.getByRole('status')).toHaveText('codex is not set up for RingFrame. Set it up on studio from ☰ › Updates…');
   expect(machine.of('act')).toHaveLength(0);

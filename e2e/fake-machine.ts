@@ -6,7 +6,7 @@
 import { readFileSync } from 'node:fs';
 import { createServer, type Server } from 'node:https';
 import { WebSocketServer, type WebSocket } from 'ws';
-import { CLAUDE, CODEX, CODEX_NEW, DOCS, EVAL_3, OPEN, SESSIONS, at, reads } from './atlas-fixtures';
+import { CLAUDE, CODEX, CODEX_NEW, DOCS, SEALED_ROWS, SESSIONS, UNITS, at, reads } from './atlas-fixtures';
 
 // A test-only certificate: a machine is reached over wss:// as through its
 // tunnel, and WebKit refuses ws:// from an https:// page. Playwright ignores
@@ -54,14 +54,25 @@ export interface Session {
   ask: Why | null;
 }
 
-/** An Eval's round in WORK. */
-export interface Round {
-  eval: string;
-  n: number;
-  judging: boolean;
-  verdict: 'aligned' | 'drifted' | 'incomplete' | null;
-  agreement: string | null;
-  asks: Ask[];
+/** A verdict, as the record writes it. */
+export type Verdict = 'aligned' | 'drifted' | 'incomplete';
+
+/** Where a unit of work stands. */
+export type Status =
+  | { state: 'asking' }
+  | { state: 'asked' }
+  | { state: 'judging' }
+  | { state: 'judged'; verdict: Verdict; agreement: number | null }
+  | { state: 'sealed'; decision: string };
+
+/** A unit of work in WORK, as weft_core::tree builds its row. */
+export interface WorkRow {
+  unit: string;
+  title: string;
+  harness: string;
+  status: Status;
+  asks: number;
+  eval: Why | null;
   seal: Why | null;
 }
 
@@ -85,7 +96,7 @@ export interface Project {
   /** When weftd reopened it after ending uncleanly, until someone acts in it. */
   reopened?: number | null;
   agents: { running: number; ended: number; rows: Session[]; earlier: number };
-  work: { open: { since: number | null; asks: Ask[]; eval: Why | null }; evals: Round[]; sealed: { seals: number; asks: number } };
+  work: { units: WorkRow[]; earlier: number };
 }
 
 /** A harness a project can start. */
@@ -100,7 +111,7 @@ export interface Detail {
   unit: string;
   title: string;
   harness: string;
-  crumb: { eval: { eval: string; n: number; verdict: Round['verdict'] } | null; seal: { seal: string; n: number } | null };
+  crumb: { eval: { eval: string; n: number; verdict: Verdict | null } | null; seal: { seal: string; n: number } | null };
   ask: { state: 'DONE' | 'ASKING'; aside: string; lines: string[] };
   session: Session | null;
   proceed: boolean;
@@ -110,7 +121,7 @@ export interface EvalDetail {
   eval: string;
   n: number;
   judging: boolean;
-  verdict: Round['verdict'];
+  verdict: Verdict | null;
   agreement: string | null;
   judged_by: string | null;
   at: number | null;
@@ -125,7 +136,7 @@ export interface SealDetail {
   n: number;
   decision: string;
   at: number | null;
-  eval: { eval: string; n: number; verdict: Round['verdict']; agreement: string | null } | null;
+  eval: { eval: string; n: number; verdict: Verdict | null; agreement: string | null } | null;
   receipt: string;
   holds: boolean | null;
   broken: string[];
@@ -145,13 +156,24 @@ export interface SessionDetail {
   asks: { unit: string; title: string; harness: string; word: 'asking' | 'asked' | 'evaled' | 'sealed' | 'cancelled'; eval: number | null; seal: number | null }[];
   agent: string | null;
 }
-export interface SealRow {
-  seal: string;
-  n: number;
-  decision: string;
-  at: number | null;
-  eval: number | null;
-  asks: number;
+/** One step of a unit's workflow. */
+export type Step =
+  | { step: 'ask'; unit: string; title: string; follow_up: boolean; aside: string }
+  | { step: 'eval'; eval: string; n: number; verdict: Verdict | null; agreement: string | null; aside: string }
+  | { step: 'seal'; seal: string; n: number; decision: string; aside: string }
+  | { step: 'not_sealed' };
+
+/** A unit of work's Details, as `read work` answers them. */
+export interface UnitDetail {
+  unit: string;
+  title: string;
+  harness: string;
+  status: Status;
+  aside: string;
+  steps: Step[];
+  follows: string;
+  eval: Why | null;
+  seal: Why | null;
 }
 export interface Earlier {
   session: string;
@@ -164,19 +186,21 @@ export interface Earlier {
 
 /** What the machine answers each read with, by its id; the fake pages the lists, 50 at a time. */
 export interface Reads {
+  /** A unit of work's Details, by its root Ask. */
+  units: Record<string, UnitDetail>;
   details: Record<string, Detail>;
   evals: Record<string, EvalDetail>;
   seals: Record<string, SealDetail>;
   sessions: Record<string, SessionDetail>;
-  /** By project, newest first. */
-  sealed: Record<string, SealRow[]>;
+  /** By project, newest first: the sealed units past the tree's. */
+  sealed: Record<string, WorkRow[]>;
   /** By project, newest first: the ended sessions past the tree's. */
   earlier: Record<string, Earlier[]>;
   /** By Eval. */
   views: Record<string, unknown>;
 }
 
-const noReads = (): Reads => ({ details: {}, evals: {}, seals: {}, sessions: {}, sealed: {}, earlier: {}, views: {} });
+const noReads = (): Reads => ({ units: {}, details: {}, evals: {}, seals: {}, sessions: {}, sealed: {}, earlier: {}, views: {} });
 
 /** How many rows a page holds (remote.md §6). */
 export const PAGE = 50;
@@ -337,6 +361,8 @@ export class FakeMachine {
     switch (m.what) {
       case 'history':
         return { type: 'ok', req: m.req, text: '' };
+      case 'work':
+        return r.units[String(m.unit)] ? ok('work', r.units[String(m.unit)]) : refused('no_unit');
       case 'detail':
         return r.details[String(m.unit)] ? ok('detail', r.details[String(m.unit)]) : refused('no_unit');
       case 'eval':
@@ -347,15 +373,15 @@ export class FakeMachine {
         const s = r.seals[String(m.seal)];
         if (!s) return refused('no_seal');
         const { rows, next } = page(s.asks, m.after, (a) => a.unit);
-        return ok('seal', { ...s, asks: rows, next });
+        return ok('seal', { ...s, asks: rows, next, total: s.asks.length });
       }
       case 'session': {
         const s = r.sessions[String(m.session)] ?? this.sessionOf(String(m.project), String(m.session));
         return s ? ok('session', s) : refused('no_session');
       }
       case 'sealed': {
-        const { rows, next } = page(r.sealed[String(m.project)] ?? [], m.after, (x) => x.seal);
-        return ok('sealed', { seals: rows, next });
+        const { rows, next } = page(r.sealed[String(m.project)] ?? [], m.after, (x) => x.unit);
+        return ok('sealed', { units: rows, next });
       }
       case 'sessions': {
         const q = typeof m.q === 'string' ? m.q.toLowerCase() : '';
@@ -547,16 +573,16 @@ export function sessionOf(a: Agent, title: string | null = null): Session {
   };
 }
 
-/** A project's tree with these sessions and rounds; counts as weft_core::tree makes them. */
+/** A project's tree with these sessions and units of work; counts as weft_core::tree makes them. */
 export function project(name: string, rows: Session[], work: Partial<Project['work']> = {}, more: Partial<Project> = {}): Project {
-  const open = work.open ?? { since: null, asks: [], eval: null };
+  const units = work.units ?? [];
   return {
     project: name,
-    open: open.asks.length,
+    open: units.filter((u) => u.status.state !== 'sealed').length,
     needs: rows.filter((r) => r.turn === 'waiting').length,
     ask: null,
     agents: { running: rows.filter((r) => r.state === 'running').length, ended: rows.filter((r) => r.state !== 'running').length, rows, earlier: 0 },
-    work: { open, evals: work.evals ?? [], sealed: work.sealed ?? { seals: 0, asks: 0 } },
+    work: { units, earlier: work.earlier ?? 0 },
     ...more,
   };
 }
@@ -571,9 +597,9 @@ export function treeOf(agents: Agent[]): Project[] {
  * The Atlas's sample (M11.1–M11.6, D11.1–D11.6; spec/atlas.md §6): projects
  * weft and docs on studio. In weft, codex at work with no Ask yet, claude
  * needs you on fix login, codex whose turn ended on health endpoint,
- * and three ended sessions, 12 earlier; Open since Eval 3 (fix login,
- * telemetry), Eval 3 aligned and not sealed, Sealed · 4 seals 31. In docs, a
- * claude ready with nothing asked.
+ * and three ended sessions, 12 earlier; WORK: fix login asked, health
+ * endpoint judged aligned, telemetry asking, readme fix sealed, and 4 sealed
+ * earlier. In docs, a claude ready with nothing asked.
  */
 export function atlas(): { agents: Agent[]; tree: Project[]; harnesses: Start[]; reads: Reads; conversations: Record<string, Item[]> } {
   const since = Date.now() - 120_000;
@@ -583,11 +609,7 @@ export function atlas(): { agents: Agent[]; tree: Project[]; harnesses: Start[];
     { agent: CODEX_NEW, project: 'weft', harness: 'codex', title: 'Codex', turn: 'working', running: true, since },
     { agent: `${DOCS}-0`, project: 'docs', harness: 'claude', title: 'Claude Code', turn: 'ready', running: true, since },
   ];
-  const weft = project('weft', structuredClone(SESSIONS), {
-    open: { since: 3, asks: structuredClone(OPEN), eval: null },
-    evals: [structuredClone(EVAL_3)],
-    sealed: { seals: 4, asks: 31 },
-  });
+  const weft = project('weft', structuredClone(SESSIONS), { units: structuredClone(UNITS), earlier: SEALED_ROWS.length });
   weft.agents = { running: 3, ended: 15, rows: weft.agents.rows, earlier: 12 };
   const docs = project('docs', [{ ...sessionOf(agents[3]), session: 'd0c5e1a2-0b1c-4d2e-8f3a-4b5c6d7e8f90', at: at(11, 5) }]);
   const harnesses: Start[] = ['weft', 'docs'].flatMap((p) => [

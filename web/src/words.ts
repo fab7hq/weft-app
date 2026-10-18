@@ -46,14 +46,14 @@ export function score(v: number): string {
 /** A Seal's decision as a person reads it. */
 export const decision = (d: string) => (d === 'deferred' ? 'parked' : d === 'abandoned' ? 'dropped' : d);
 
-/** A unit of work's status as its row says it: asked, judging…, drifted · 0.75, sealed · accepted. */
+/** A unit of work's status as its row says it: asked, eval open, drifted · 0.75, sealed · accepted. */
 export function statusWord(s: Status): string {
   switch (s.state) {
     case 'asking':
     case 'asked':
       return w(`work.${s.state}`);
     case 'judging':
-      return w('tree.judging');
+      return w('work.eval_open');
     case 'judged': {
       const said = fill('work.judged', { verdict: w(`verdict.${s.verdict}`), agreement: s.agreement === null ? '' : score(s.agreement) });
       return said.endsWith(' · ') ? said.slice(0, -3) : said;
@@ -63,7 +63,7 @@ export function statusWord(s: Status): string {
   }
 }
 
-/** The tone a status is said in: teal aligned, amber drifted or short of proof, blue judging, faint sealed. */
+/** The tone a status is said in: teal aligned, amber drifted or short of proof, blue an Eval open, faint sealed. */
 export function statusTone(s: Status): string {
   switch (s.state) {
     case 'judged':

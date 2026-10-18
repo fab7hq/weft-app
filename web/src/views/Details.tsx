@@ -246,9 +246,9 @@ function StepRow({ n, step, to }: { n: number; step: Step; to: ReturnType<typeof
       : step.step === 'eval'
         ? [
             evalName(step.n),
-            step.verdict ? <><Verdict verdict={step.verdict} />{step.agreement && ` · ${fill('unit.confidence', { agreement: step.agreement })}`}</> : <span class="blue">{w('tree.judging')}</span>,
+            step.verdict ? <><Verdict verdict={step.verdict} />{step.agreement && ` · ${fill('unit.confidence', { agreement: step.agreement })}`}</> : <span class="needs">{w('tree.judging')}</span>,
             step.aside,
-            null,
+            () => to.round(step.eval),
             evalName(step.n),
           ]
         : step.step === 'seal'
@@ -264,11 +264,12 @@ function StepRow({ n, step, to }: { n: number; step: Step; to: ReturnType<typeof
       </span>
     </>
   );
+  // The whole row opens the Eval's Details; Eval view › is its own link.
   if (step.step === 'eval')
     return (
-      <div class="step" role="group" aria-label={name}>
+      <div class="step step--link" role="button" tabIndex={0} aria-label={name} onClick={open!}>
         {body}
-        <button class="step-view" type="button" onClick={() => to.view(step.eval)}>{`${w('act.eval_view')} ›`}</button>
+        <button class="step-view" type="button" onClick={(e) => (e.stopPropagation(), to.view(step.eval))}>{`${w('act.eval_view')} ›`}</button>
       </div>
     );
   return open ? (

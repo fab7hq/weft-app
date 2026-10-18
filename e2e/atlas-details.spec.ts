@@ -74,6 +74,10 @@ test('a unit of work opens as its workflow: its Asks, its Eval and its Seal, eac
   await view.getByRole('button', { name: 'Eval view ›' }).click();
   await expect(region(page, 'Eval view')).toBeVisible();
   await page.goBack();
+  // The Eval's whole row opens its Details; back comes to the unit.
+  await step(page, 'Eval 3').click();
+  await expect(region(page, 'Eval 3')).toBeVisible();
+  await page.goBack();
   await step(page, 'build number').click();
   await expect(crumbs(page)).toHaveText('build number›Eval 3 aligned›not sealed');
   await machine.close();

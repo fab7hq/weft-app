@@ -28,13 +28,13 @@ export type Block =
 const unescape = (t: string) =>
   t.replace(/&(amp|lt|gt|quot|#39);/g, (_, e: string) => ({ amp: '&', lt: '<', gt: '>', quot: '"', '#39': "'" })[e] ?? '');
 
-/** A message's text as blocks. */
 // A link goes only to the web or an address: any other scheme
 // (`javascript:`, `data:`) in an agent's message would run on a click.
 function safe(href: string): string | undefined {
   return /^(https?|mailto):/i.test(href) ? href : undefined;
 }
 
+/** A message's text as blocks. */
 export function blocks(text: string): Block[] {
   return read(marked.lexer(text, { gfm: true }));
 }

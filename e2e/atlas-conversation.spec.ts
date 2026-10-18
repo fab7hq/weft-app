@@ -195,3 +195,26 @@ test('M3.7: an agent that has ended keeps the switch, and its Conversation reads
   await expect(page.getByText('claude is waiting for you —')).toHaveCount(0);
   await machine.close();
 });
+
+test('an agent message is drawn from its markdown, as its terminal draws it: blocks and styles, no marks', async ({ page, context }) => {
+  const machine = await FakeMachine.start();
+  const sample = atlas();
+  sample.conversations[CLAUDE] = [
+    { id: '1.0', kind: 'person', at: at(11, 18), text: 'fix login' },
+    { id: '2.0', kind: 'agent', at: at(11, 24), text: '## Done\n\nThe token refreshes **60 s early**; `cargo test` passes.\n\n- one\n- two\n\n```\nfn main() {}\n```\n\n| file | change |\n| --- | --- |\n| login.rs | refresh |\n' },
+  ] as Item[];
+  Object.assign(machine, sample);
+  await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
+  await page.goto('/');
+  await openAgent(page, 'claude · fix login');
+  await tab(page, 'Conversation').click();
+  const said = page.locator('.convo-agent .convo-md').last();
+  await expect(said.locator('.md-heading')).toHaveText('Done');
+  await expect(said.locator('strong')).toHaveText('60 s early');
+  await expect(said.locator('code')).toHaveText('cargo test');
+  await expect(said.locator('li')).toHaveText(['one', 'two']);
+  await expect(said.locator('pre')).toHaveText('fn main() {}');
+  await expect(said.locator('th')).toHaveText(['file', 'change']);
+  for (const mark of ['##', '**', '```', '| ---']) await expect(said).not.toContainText(mark);
+  await machine.close();
+});

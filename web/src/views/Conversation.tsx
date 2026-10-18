@@ -6,6 +6,7 @@ import { signal } from '@preact/signals';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import * as m from '../machine';
 import { clock } from '../bar';
+import { Markdown } from './Markdown';
 import { Held, type Item, type Row, type Step, rows, spans } from '../conversation';
 import { fill, w } from '../words';
 
@@ -102,7 +103,7 @@ function Message({ row, harness, waiting }: { row: Extract<Row, { kind: 'person'
         <span class={waiting ? 'convo-name needs' : 'convo-name good'}>{`${waiting ? '■' : '●'} ${harness}`}</span>
         {at && <span class="convo-time">{at}</span>}
       </div>
-      <div class="convo-text"><Said text={row.text} /></div>
+      <div class="convo-text convo-md"><Markdown text={row.text} /></div>
     </div>
   );
 }

@@ -67,3 +67,22 @@
 .convo--wide .convo-text { line-height: 21px; }
 .convo--wide .convo-steps { padding: 10px 14px 10px 16px; }
 .convo--wide .convo-unreadable { padding: 20px; }
+/* An agent's message drawn from its markdown: blocks a line apart, the line
+   breaks it was written with kept. */
+.convo-md { display: flex; flex-direction: column; gap: 8px; white-space: normal; min-width: 0; }
+.convo-md .md-p, .convo-md .md-heading { margin: 0; white-space: pre-wrap; }
+.convo-md .md-heading { font-weight: 600; }
+.convo-md .md-h1 { font-size: 18px; line-height: 24px; }
+.convo-md .md-h2 { font-size: 16px; line-height: 24px; }
+.convo-md .md-h3 { font-size: 15px; line-height: 22px; }
+.convo-md .md-list { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+.convo-md .md-list > li > .md-p { display: block; }
+.convo-md .md-list::marker, .convo-md .md-list li::marker { color: var(--fab7-muted); }
+.convo-md .md-code { margin: 0; padding: 10px 12px; overflow-x: auto; white-space: pre; background: var(--fab7-surface); border: 1px solid var(--fab7-line); border-radius: var(--weft-radius-control); font: 400 12px/18px var(--font-mono); }
+.convo-md .md-quote { margin: 0; padding-left: 12px; border-left: 2px solid var(--fab7-line); color: var(--fab7-muted); display: flex; flex-direction: column; gap: 8px; }
+.convo-md .md-rule { width: 100%; margin: 4px 0; border: 0; border-top: 1px solid var(--fab7-line); }
+.convo-md .md-table-wrap { max-width: 100%; overflow-x: auto; }
+.convo-md .md-table { border-collapse: collapse; font-size: 13px; line-height: 18px; }
+.convo-md .md-table th, .convo-md .md-table td { padding: 6px 10px; border: 1px solid var(--fab7-line); text-align: left; vertical-align: top; }
+.convo-md .md-table th { font-weight: 600; }
+.convo-md a { color: var(--fab7-accent); }

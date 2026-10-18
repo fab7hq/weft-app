@@ -29,6 +29,12 @@ const unescape = (t: string) =>
   t.replace(/&(amp|lt|gt|quot|#39);/g, (_, e: string) => ({ amp: '&', lt: '<', gt: '>', quot: '"', '#39': "'" })[e] ?? '');
 
 /** A message's text as blocks. */
+// A link goes only to the web or an address: any other scheme
+// (`javascript:`, `data:`) in an agent's message would run on a click.
+function safe(href: string): string | undefined {
+  return /^(https?|mailto):/i.test(href) ? href : undefined;
+}
+
 export function blocks(text: string): Block[] {
   return read(marked.lexer(text, { gfm: true }));
 }
@@ -105,7 +111,7 @@ function spans(tokens: Token[] | undefined, style: Omit<Span, 'text'> = {}): Spa
         nest((t as Tokens.Del).tokens, { ...style, strike: true });
         break;
       case 'link':
-        nest((t as Tokens.Link).tokens, { ...style, link: (t as Tokens.Link).href });
+        nest((t as Tokens.Link).tokens, { ...style, link: safe((t as Tokens.Link).href) });
         break;
       case 'codespan':
         push(unescape((t as Tokens.Codespan).text), { ...style, code: true });

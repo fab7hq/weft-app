@@ -24,6 +24,15 @@ describe('markdown', () => {
     expect(table.rows[0].map(plain)).toEqual(['a.rs', 'new']);
   });
 
+  it('keeps a link only to the web or an address, so a message runs no script', () => {
+    const p = blocks('[a](https://x.dev) [b](http://x.dev) [c](mailto:me@x.dev) [d](javascript:alert(1)) [e](data:text/html,hi) [f](JavaScript:alert(1))')[0];
+    const spans = (p as Extract<typeof p, { kind: 'paragraph' }>).spans;
+    const link = (t: string) => spans.find((s) => s.text === t)?.link;
+    expect([link('a'), link('b'), link('c')]).toEqual(['https://x.dev', 'http://x.dev', 'mailto:me@x.dev']);
+    expect([link('d'), link('e'), link('f')]).toEqual([undefined, undefined, undefined]);
+    expect(plain(spans)).toBe('a b c d e f');
+  });
+
   it('reads plain text and HTML as written', () => {
     const b = blocks('first line\nsecond line\n\n<b>not bold</b> & `a < b`');
     expect(b[0]).toEqual({ kind: 'paragraph', spans: [{ text: 'first line\nsecond line' }] });

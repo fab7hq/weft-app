@@ -27,9 +27,17 @@ effect(() => {
 });
 addEventListener('pointerdown', () => (notice.value = null), { capture: true });
 
-/** Why an act did not apply, one line above the bar (M10.1, D10.1): the next press clears it. */
+/** Why an act did not apply, one line above the bar (M10.1, D10.1): the next press clears it,
+ *  and so does time, so a line about how things were never stays. */
 export const said = signal<string | null>(null);
 addEventListener('pointerdown', () => (said.value = null), { capture: true });
+const SAID_FOR = 6000;
+let saying: ReturnType<typeof setTimeout> | undefined;
+effect(() => {
+  const now = said.value;
+  clearTimeout(saying);
+  if (now) saying = setTimeout(() => said.value === now && (said.value = null), SAID_FOR);
+});
 
 /** A why-not, in the web's words; a harness not set up says where to set it up (M7.1). */
 export function sentence(why: m.Why): string {

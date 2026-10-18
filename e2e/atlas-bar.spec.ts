@@ -26,6 +26,8 @@ test('M10.1 D10.1: Eval and Seal with nothing selected say what to select, until
   const machine = await opened(page, context);
   await button(page, 'Eval').click();
   await expect(page.getByRole('status')).toHaveText('Select a work to Eval it.');
+  // Unanswered by another press, it goes by itself a few seconds later.
+  await expect(page.getByRole('status')).toHaveCount(0, { timeout: 8000 });
   await button(page, 'Seal').click();
   await expect(page.getByRole('status')).toHaveText('Select a work to Seal it.');
   await work(page, 'fix login').click();

@@ -83,7 +83,7 @@
 .menu-pop--said .push-said { padding: 0; }
 
 /* A machine's own settings (M9.8, D9.8): its tabs, and Turbo's switch in amber. */
-.settings-tabs { display: flex; gap: 2px; padding: 0 8px; border-bottom: 1px solid var(--fab7-line); overflow-x: auto; }
+.settings-tabs { flex-shrink: 0; display: flex; gap: 2px; padding: 0 8px; border-bottom: 1px solid var(--fab7-line); overflow-x: auto; }
 .settings-tab { padding: 12px 10px; border: 0; border-bottom: 2px solid transparent; background: none; color: var(--fab7-muted); font: 14px var(--font-sans); white-space: nowrap; cursor: pointer; }
 .settings-tab--on { color: var(--fab7-text); font-weight: 600; border-bottom-color: var(--fab7-accent); }
 .switch--turbo .switch-input:checked + .switch-track { background: var(--fab7-amber); }
@@ -91,6 +91,7 @@
 .settings-row--setting { cursor: default; }
 .settings-select, .settings-input { min-width: 0; max-width: 55%; padding: 7px 10px; border: 1px solid var(--fab7-line); border-radius: var(--weft-radius-control); background: var(--fab7-surface); color: var(--fab7-text); font: 14px var(--font-sans); }
 .settings-input::placeholder { color: var(--fab7-faint); }
+.settings-differs { padding: 0 16px; }
 .settings-add { align-self: flex-start; margin: 12px 16px; color: var(--fab7-accent); }
 .settings-reset { border: 0; background: none; color: var(--fab7-accent); font: 13px var(--font-sans); cursor: pointer; }
 /* RingFrame and Harnesses: a changed rule, a rule opened to edit, the preview. */

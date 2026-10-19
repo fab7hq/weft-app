@@ -10,7 +10,7 @@ import * as m from '../machine';
 import { back, swap } from '../nav';
 import { EFFORTS, ENTRIES, type Entry, KEYS, at, differs, machineSwitch, shownValue } from '../settings';
 import { fill, w } from '../words';
-import { HarnessesTab, ProjectRingFrame, RingFrameTab } from './RingFrameSettings';
+import { HarnessesTab, ProjectRingFrame, RingFrameTab, ringFrameAddable, useProjectRules } from './RingFrameSettings';
 import { Mark } from './Tree';
 
 type Which = 'turbo' | 'login' | 'notify' | 'suggest';
@@ -168,6 +168,7 @@ export function ProjectSettings({ machine, project, wide }: { machine: api.Machi
   const s = useSettings(project);
   const titles = m.harnesses.value.filter((h) => h.project === project);
   const [adding, setAdding] = useState<string | null>(null);
+  const rules = useProjectRules(project);
   const shown = [...differs(s), ...ENTRIES.filter((e) => e.name === adding && at(s?.project, e.key) === undefined)];
   const addable = ENTRIES.filter((e) => !shown.includes(e));
   const named = { project };
@@ -176,17 +177,18 @@ export function ProjectSettings({ machine, project, wide }: { machine: api.Machi
       <Bar wide={wide} machine={machine.name} title={fill('desktop.project.title', named)} backTo={project} />
       <div class="settings">
         {wide && <h1 class="settings-title">{fill('desktop.project.title', named)}</h1>}
-        <p class="settings-sub">{w('desktop.project.differs')}</p>
+        <p class="settings-sub settings-differs">{w('desktop.project.differs')}</p>
         {shown.length === 0 && <p class="settings-sub">{fill('desktop.project.none', named)}</p>}
         {shown.map((e) => {
           const every = at(s?.machine, e.key);
           const said = shownValue(e, every, titles);
           return <Row key={e.name} e={e} s={s?.project} project={project} scope="project" every={every === undefined ? w(said) : said} />;
         })}
-        <ProjectRingFrame project={project} />
+        <ProjectRingFrame project={project} rules={rules} adding={adding?.startsWith('ringframe:') ? adding.slice('ringframe:'.length) : null} done={() => setAdding(null)} />
         <select class="settings-select settings-add" value="" onChange={(ev) => setAdding((ev.target as HTMLSelectElement).value || null)}>
           <option value="">{w('desktop.project.add')}</option>
           {addable.map((e) => <option key={e.name} value={e.name}>{label(e)}</option>)}
+          {ringFrameAddable(project, rules).map(([v, words]) => <option key={v} value={v}>{words}</option>)}
         </select>
         <div class="settings-foot">
           <p>{fill('web.project.foot', { machine: machine.name })}</p>

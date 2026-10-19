@@ -231,7 +231,8 @@ export function Settings({ login, wide }: { login: string; wide: boolean }) {
           <input id="device-name" value={name} onInput={(e) => setName((e.target as HTMLInputElement).value)} onBlur={keep} class="settings-name" />
         </div>
         {!wide && <Notifications />}
-        {!wide && m.mine.value.length > 0 && (
+        {/* The machines, each opening its own settings from here (M9.8, D9.8). */}
+        {m.mine.value.length > 0 && (
           <>
             <div class="fab7-group settings-group">{w('web.settings.machines')}</div>
             <MachineRows />

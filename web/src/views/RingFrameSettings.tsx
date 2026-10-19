@@ -204,13 +204,31 @@ export function HarnessesTab({ project }: { project: string }) {
 /** A project's own RingFrame changes (M9.12): the core rules per phase and
  * each rule it sets, beside every project's, with Reset; a rule or the cap
  * added from the choice under them. */
-export function ProjectRingFrame({ project }: { project: string }) {
+/** A project's rules and every project's, asked again whenever its settings change. */
+export function useProjectRules(project: string): { here: Rules | null; every: Rules | null } {
   const [rules, setRules] = useState<{ here: Rules | null; every: Rules | null }>({ here: null, every: null });
   const said = m.settings.value[project];
   useEffect(() => {
     void Promise.all([m.readSettings(project, 'rules', 'project'), m.readSettings(project, 'rules', 'machine')]).then(([here, every]) =>
       setRules({ here: here as Rules | null, every: every as Rules | null }));
   }, [project, said]);
+  return rules;
+}
+
+/** What RingFrame a project can still set for itself: the cap, each rule not set; `[value, words]`. */
+export function ringFrameAddable(project: string, rules: { here: Rules | null }): [string, string][] {
+  const layer = (m.settings.value[project]?.project?.ringframe ?? {}) as { deltas?: Record<string, { entries?: Record<string, unknown>[]; render?: { core_cap?: number } }> };
+  const mine = layer.deltas?.[BASE]?.entries ?? [];
+  const out: [string, string][] = [];
+  if (layer.deltas?.[BASE]?.render?.core_cap === undefined) out.push(['ringframe:core_cap', w('desktop.settings.core_cap')]);
+  for (const e of rules.here?.catalogs.find((c) => c.catalog === BASE)?.entries ?? []) {
+    if (!mine.some((x) => x.id === e.id)) out.push([`ringframe:${String(e.id)}`, `RingFrame · ${String(e.label ?? e.id)}`]);
+  }
+  return out;
+}
+
+export function ProjectRingFrame({ project, rules, adding, done }: { project: string; rules: { here: Rules | null; every: Rules | null }; adding: string | null; done: () => void }) {
+  const said = m.settings.value[project];
   const layer = (said?.project?.ringframe ?? {}) as { deltas?: Record<string, { entries?: Record<string, unknown>[]; render?: { core_cap?: number } }>; eval?: { deny?: string[] } };
   const base = (r: Rules | null) => r?.catalogs.find((c) => c.catalog === BASE);
   const here = base(rules.here);
@@ -220,7 +238,6 @@ export function ProjectRingFrame({ project }: { project: string }) {
   const put = (key: string[], value: unknown) => void m.setSetting(project, 'project', ['ringframe', ...key], value ?? null);
   const said2 = (e: Record<string, unknown> | undefined) => `${String(e?.tier ?? 'core')}, ${e?.enabled === false ? 'off' : 'on'}`;
   const combos = ['core, on', 'core, off', 'situational, on', 'situational, off'];
-  const [adding, setAdding] = useState<string | null>(null);
   const shown = (here?.entries ?? []).filter((e) => mine.some((x) => x.id === e.id) || adding === String(e.id));
   return (
     <>
@@ -231,7 +248,7 @@ export function ProjectRingFrame({ project }: { project: string }) {
             {cap === undefined && <option value="">—</option>}
             {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => <option key={n} value={n}>{n}</option>)}
           </select>
-          <button class="settings-reset" type="button" onClick={() => (setAdding(null), put(['deltas', BASE, 'render', 'core_cap'], null))}>{w('act.reset')}</button>
+          <button class="settings-reset" type="button" onClick={() => (done(), put(['deltas', BASE, 'render', 'core_cap'], null))}>{w('act.reset')}</button>
         </div>
       )}
       {shown.map((e) => {
@@ -247,7 +264,7 @@ export function ProjectRingFrame({ project }: { project: string }) {
               {!mine.some((x) => x.id === id) && <option value="">—</option>}
               {combos.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
-            <button class="settings-reset" type="button" onClick={() => (setAdding(null), put(['deltas', BASE, 'entries'], withRule(mine, id, null, null)))}>{w('act.reset')}</button>
+            <button class="settings-reset" type="button" onClick={() => (done(), put(['deltas', BASE, 'entries'], withRule(mine, id, null, null)))}>{w('act.reset')}</button>
           </div>
         );
       })}
@@ -257,13 +274,6 @@ export function ProjectRingFrame({ project }: { project: string }) {
           <button class="settings-reset" type="button" onClick={() => put(['eval', 'deny'], null)}>{w('act.reset')}</button>
         </div>
       )}
-      <select class="settings-select settings-add" value="" onChange={(ev) => setAdding((ev.target as HTMLSelectElement).value || null)}>
-        <option value="">{`${w('desktop.project.add')} · RingFrame`}</option>
-        {cap === undefined && <option value="core_cap">{w('desktop.settings.core_cap')}</option>}
-        {(here?.entries ?? []).filter((e) => !mine.some((x) => x.id === e.id)).map((e) => (
-          <option key={String(e.id)} value={String(e.id)}>{`RingFrame · ${String(e.label ?? e.id)}`}</option>
-        ))}
-      </select>
     </>
   );
 }

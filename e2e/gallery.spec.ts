@@ -695,6 +695,23 @@ const SCREENS: Screen[] = [
     await button(at, 'Menu').click();
     await button(at, 'Settings…').click();
   } },
+  // A machine's own settings (M9.8–M9.11) and a project's (M9.12).
+  ...([['9.8', 'General'], ['9.9', 'Workflow'], ['9.10', 'RingFrame'], ['9.11', 'Harnesses']] as const).map(([n, tab]): Screen => ({
+    ids: [`M${n}`, `D${n}`],
+    run: async (at) => {
+      await settingsOpen(at, [{ name: 'laptop' }]);
+      await button(at, 'Menu').click();
+      if (at.wide) await button(at, 'Settings…').click();
+      await at.page.locator('.settings').getByRole('button', { name: /studio/ }).first().click();
+      await at.page.getByRole('tab', { name: tab }).click();
+      if (tab === 'Harnesses') await expect(at.page.getByText('Route rules · Claude Code')).toBeVisible();
+    },
+  })),
+  { ids: ['M9.12', 'D9.12'], run: async (at) => {
+    await settingsOpen(at);
+    await at.page.getByRole('button', { name: "weft's settings" }).first().click();
+    await expect(at.page.getByText('RingFrame · Hyrum')).toBeVisible();
+  } },
   { ids: ['M9.2'], run: async (at) => {
     at.machine.vapid = 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U';
     await settingsOpen(at);

@@ -316,6 +316,8 @@ export class FakeMachine {
           for (const out of this.onAct(m)) ws.send(JSON.stringify(out));
         } else if (m.type === 'read' && m.what === 'conversation' && !this.onRead?.(m)) {
           for (const out of this.conversation(m)) ws.send(JSON.stringify(out));
+        } else if (m.type === 'settings' || m.type === 'set') {
+          ws.send(JSON.stringify(this.setting(m)));
         } else if (m.type === 'follow') {
           const also: { agent: string }[] = Array.isArray(m.also) ? m.also : [];
           this.following.set(ws, new Set([m.agent, ...also.map((a) => a.agent)].filter((a): a is string => typeof a === 'string')));
@@ -339,6 +341,54 @@ export class FakeMachine {
         }
       });
     });
+  }
+
+  /** The machine's own settings, as the cards draw them (M9.8–M9.12). */
+  settings: Record<string, unknown> = {
+    machine: {
+      turbo: true,
+      routing: { eval: 'claude' },
+      eval: { debate: { harness: 'codex', map: { effort: 'low' }, reduce: { model: 'gpt-6-luna', effort: 'high' }, confirm: { effort: 'xhigh' } } },
+      ringframe: { deltas: { 'practices/software-development': { entries: [{ id: 'practice.hyrum', tier: 'core' }, { id: 'practice.postel', enabled: false }] } } },
+    },
+    project: { routing: { eval: 'codex' }, ringframe: { deltas: { 'practices/software-development': { entries: [{ id: 'practice.hyrum', tier: 'situational' }] } } } },
+    effective: {},
+  };
+
+  /** What `settings` reads and `set` changes: the settings, RingFrame's rules, a profile, a preview. */
+  setting(m: Record<string, unknown>): Record<string, unknown> {
+    const rule = (id: string, label: string, text: string, extra: Record<string, unknown> = {}) => ({ id, label, text, tier: 'core', source: 'shipped', ...extra });
+    const base = (project: boolean) => ({
+      catalog: 'practices/software-development',
+      render: { core_cap: 5 },
+      entries: [
+        rule('practice.kiss', 'KISS', 'Write readable code: choose clear names and short functions…'),
+        rule('practice.yagni', 'YAGNI', 'Add a capability only when a present requirement needs it…'),
+        rule('practice.hyrum', 'Hyrum', 'Treat every observable behaviour as something someone depends on…', { source: project ? 'weft-project' : 'weft', tier: project ? 'situational' : 'core' }),
+        rule('practice.postel', 'Postel', 'Be strict in what you produce and tolerant in what you accept…', { source: 'weft', tier: 'situational', enabled: false }),
+      ],
+    });
+    const host = {
+      catalog: 'claude',
+      entries: [
+        { id: 'claude.plan_as_files', label: 'Plan As Files', text: 'Draft the plan in Plan mode and present it…', status: 'qualified', source: 'shipped' },
+        { id: 'claude.step_loop', label: 'Step Loop', text: 'Work the plan\'s steps one at a time…', status: 'qualified', source: 'shipped' },
+        { id: 'claude.done_check', label: 'Done Check', text: 'Show each check as you run it…', status: 'qualified', source: 'weft' },
+        { id: 'claude.show_checks', label: 'Show Checks', text: 'Before you hand back, show what you ran…', status: 'candidate', source: 'shipped', enabled: false },
+      ],
+    };
+    const ok = (settings: unknown) => ({ type: 'ok', req: m.req, settings });
+    if (m.what === 'rules') {
+      return ok({ domains: [{ domain: 'software-development', base: true }, { domain: 'autonomous-trading', base: false, description: 'Trading strategies and the systems that run them' }], catalogs: [base(m.unit === 'project'), host] });
+    }
+    if (m.what === 'profile') {
+      return ok({ capabilities: [
+        { id: 'native_plan', delivery_mode: 'native_dispatch' },
+        { id: 'native_goal', delivery_mode: 'human_handoff', max_prompt_chars: 4000 },
+        { id: 'native_direct', delivery_mode: 'native_dispatch' }], paste_fold_chars: 512 });
+    }
+    if (m.what === 'preview') return ok({ text: 'Rules:\nFor this route:\n- Plan As Files: …\n- KISS: …' });
+    return ok(this.settings);
   }
 
   /** A fake machine, listening. */

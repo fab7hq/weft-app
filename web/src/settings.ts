@@ -46,7 +46,7 @@ export interface Entry {
   kind: Kind;
 }
 
-const ROLES: [string, string, string][] = [
+export const ROLES: [string, string, string][] = [
   ['map', 'Map', 'desktop.settings.map'],
   ['reduce', 'Reduce', 'desktop.settings.reduce'],
   ['confirm', 'Confirm', 'desktop.settings.confirm'],

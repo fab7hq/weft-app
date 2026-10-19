@@ -366,10 +366,12 @@ export class FakeMachine {
         rule('practice.yagni', 'YAGNI', 'Add a capability only when a present requirement needs it…'),
         rule('practice.hyrum', 'Hyrum', 'Treat every observable behaviour as something someone depends on…', { source: project ? 'weft-project' : 'weft', tier: project ? 'situational' : 'core' }),
         rule('practice.postel', 'Postel', 'Be strict in what you produce and tolerant in what you accept…', { source: 'weft', tier: 'situational', enabled: false }),
+        ...['DRY', 'SOLID', 'Demeter', 'Least Astonishment', 'Gall', 'Boy Scout', 'Testing Pyramid', 'Step Loop'].map((label) =>
+          rule(`practice.${label.toLowerCase().replace(/ /g, '_')}`, label, `${label}, as RingFrame words it…`)),
       ],
     });
     const host = {
-      catalog: 'claude',
+      catalog: 'claude-code',
       entries: [
         { id: 'claude.plan_as_files', label: 'Plan As Files', text: 'Draft the plan in Plan mode and present it…', status: 'qualified', source: 'shipped' },
         { id: 'claude.step_loop', label: 'Step Loop', text: 'Work the plan\'s steps one at a time…', status: 'qualified', source: 'shipped' },
@@ -379,7 +381,7 @@ export class FakeMachine {
     };
     const ok = (settings: unknown) => ({ type: 'ok', req: m.req, settings });
     if (m.what === 'rules') {
-      return ok({ domains: [{ domain: 'software-development', base: true }, { domain: 'autonomous-trading', base: false, description: 'Trading strategies and the systems that run them' }], catalogs: [base(m.unit === 'project'), host] });
+      return ok({ domains: [{ domain: 'software-development', base: true }, { domain: 'autonomous-trading', base: false, description: 'Trading strategies and the systems that run them' }], catalogs: [base(m.unit === 'project'), host], judges: { deny: ['Push to any remote.'], from: 'default' } });
     }
     if (m.what === 'profile') {
       return ok({ capabilities: [
@@ -387,7 +389,15 @@ export class FakeMachine {
         { id: 'native_goal', delivery_mode: 'human_handoff', max_prompt_chars: 4000 },
         { id: 'native_direct', delivery_mode: 'native_dispatch' }], paste_fold_chars: 512 });
     }
-    if (m.what === 'preview') return ok({ text: 'Rules:\nFor this route:\n- Plan As Files: …\n- KISS: …' });
+    if (m.what === 'harnesses') {
+      return ok([
+        { harness: 'antigravity', title: 'Antigravity', version: '1.3.5', verified: '1.3.5', mark: '✓', state: 'Ready' },
+        { harness: 'claude-code', title: 'Claude Code', version: '2.1.295', verified: '2.1.300', mark: '↑', state: 'Plugin behind' },
+        { harness: 'codex', title: 'Codex', version: null, verified: '0.163.0', mark: '✗', state: 'Not found' },
+        { harness: 'grok', title: 'Grok Build', version: '1.0.62', verified: '1.0.62', mark: '✓', state: 'Ready' },
+      ]);
+    }
+    if (m.what === 'preview') return ok({ text: 'Rules:\nFor this route:\n- Plan As Files: …\n- KISS: …', kept: 5, left_out: 2 });
     return ok(this.settings);
   }
 

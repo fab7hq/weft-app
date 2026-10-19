@@ -10,11 +10,23 @@ import { fill, w } from '../words';
 
 const BASE = 'practices/software-development';
 type Catalog = { catalog: string; render?: { core_cap?: number }; entries: Record<string, unknown>[] };
-type Rules = { domains: { domain: string; base: boolean; description?: string }[]; catalogs: Catalog[]; refused?: string };
+type Rules = { domains: { domain: string; base: boolean; description?: string }[]; catalogs: Catalog[]; judges?: { deny: string[]; from: string }; refused?: string };
+type Preview = { text?: string; kept?: number; left_out?: number; refused?: string };
 
 /** What a read shows until RingFrame answers: that it is asked, or why RingFrame would not say. */
 function unanswered(r: { refused?: unknown } | null): string {
   return r?.refused ? fill('desktop.settings.refused', { why: String(r.refused) }) : w('desktop.settings.asking');
+}
+
+type Supported = { harness: string; title: string; version?: string | null; verified: string | null; mark: string; state: string };
+
+/** Every harness this Weft supports and how each stands, as the machine says. */
+function useSupported(project: string): Supported[] | null {
+  const [supported, setSupported] = useState<Supported[] | null>(null);
+  useEffect(() => {
+    void m.readSettings(project, 'harnesses', '').then((r) => setSupported(Array.isArray(r) ? (r as Supported[]) : null));
+  }, [project]);
+  return supported;
 }
 
 /** RingFrame's rules through the machine, asked again whenever its settings change. */
@@ -51,9 +63,25 @@ function Typed({ value, keep, placeholder }: { value: string; keep: (v: string) 
   );
 }
 
-/** One rule: where it comes from, its tier, on or off; Edit opens its wording,
- * tasks and concerns; Reset takes the change out. `field` names the status
- * a host's rule has instead of a tier. */
+/** How many rules show before "N more". */
+const FIRST_RULES = 4;
+
+/** Qualified or candidate, as two halves of one control (a host's rule). */
+function Status({ on, put }: { on: string; put: (v: string) => void }) {
+  return (
+    <span class="rf-status" role="group">
+      {(['qualified', 'candidate'] as const).map((v) => (
+        <button key={v} type="button" class={`rf-status-half${on === v ? ' rf-status-half--on' : ''}`} aria-pressed={on === v} onClick={() => put(v)}>
+          {w(`desktop.harness.${v}`)}
+        </button>
+      ))}
+    </span>
+  );
+}
+
+/** One rule on one line: its name, its wording (wide), where it comes from and
+ * its tier, a host's status, on or off, and Edit or Reset. Edit, or the name
+ * on a phone, opens its wording, tier, tasks and concerns. */
 function RuleRow({ project, catalog, e, mine }: { project: string; catalog: string; e: Record<string, unknown>; mine: unknown }) {
   const [open, setOpen] = useState(false);
   const id = String(e.id);
@@ -61,148 +89,217 @@ function RuleRow({ project, catalog, e, mine }: { project: string; catalog: stri
   const put = (field: string | null, value: unknown) => set(project, ['deltas', catalog, 'entries'], withRule(mine, id, field, value));
   const host = catalog !== BASE;
   const list = (v: unknown) => (Array.isArray(v) ? v.join(', ') : '');
+  const source = w(changed ? 'desktop.settings.changed' : 'desktop.settings.shipped');
+  const said = host ? (changed ? source : '') : `${source} · ${String(e.tier ?? 'core')}`;
   return (
-    <div class={`settings-row settings-row--setting${changed ? ' settings-row--changed' : ''}`}>
-      <span class="settings-text">
+    <div class={`rf-row rf-rule${changed ? ' rf-row--changed' : ''}`}>
+      <button class="rf-name" type="button" onClick={() => setOpen(!open)}>
         <span>{String(e.label ?? id)}</span>
-        <span class="settings-sub">{`${w(changed ? 'desktop.settings.changed' : 'desktop.settings.shipped')} · ${String(e.text ?? '')}`}</span>
-        {open && (
-          <span class="settings-edit">
-            <label>{w('desktop.settings.wording')}<Typed value={String(e.text ?? '')} keep={(v) => put('text', v || null)} /></label>
-            {!host && <label>{w('desktop.settings.applies_to')}<Typed value={list(e.applies_to)} keep={(v) => put('applies_to', v ? v.split(',').map((s) => s.trim()).filter(Boolean) : null)} /></label>}
-            {!host && <label>{w('desktop.settings.concerns')}<Typed value={list(e.concerns)} keep={(v) => put('concerns', v ? v.split(',').map((s) => s.trim()).filter(Boolean) : null)} /></label>}
-          </span>
-        )}
-      </span>
-      {host ? (
-        <select class="settings-select" value={String(e.status ?? 'candidate')} onChange={(ev) => put('status', (ev.target as HTMLSelectElement).value)}>
-          <option value="qualified">{w('desktop.harness.qualified')}</option>
-          <option value="candidate">{w('desktop.harness.candidate')}</option>
-        </select>
-      ) : (
-        <select class="settings-select" value={String(e.tier ?? 'core')} onChange={(ev) => put('tier', (ev.target as HTMLSelectElement).value)}>
-          <option value="core">core</option>
-          <option value="situational">situational</option>
-        </select>
-      )}
+        {said && <span class={`rf-said rf-said--under${changed ? ' rf-said--changed' : ''}`}>{said}</span>}
+      </button>
+      <span class="rf-text">{String(e.text ?? '')}</span>
+      {said && <span class={`rf-said rf-said--beside${changed ? ' rf-said--changed' : ''}`}>{said}</span>}
+      {host && <Status on={String(e.status ?? 'candidate')} put={(v) => put('status', v)} />}
       <Switch id={`rule-${catalog}-${id}`} on={e.enabled !== false} flip={() => put('enabled', e.enabled === false)} />
       {changed ? (
-        <button class="settings-reset" type="button" onClick={() => put(null, null)}>{w('act.reset')}</button>
+        <button class="rf-link" type="button" onClick={() => put(null, null)}>{w('act.reset')}</button>
       ) : (
-        <button class="settings-reset" type="button" onClick={() => setOpen(!open)}>{w('desktop.settings.edit')}</button>
+        <button class="rf-link" type="button" onClick={() => setOpen(!open)}>{w('desktop.settings.edit')}</button>
+      )}
+      {open && (
+        <div class="settings-edit rf-edit">
+          <label>{w('desktop.settings.wording')}<Typed value={String(e.text ?? '')} keep={(v) => put('text', v || null)} /></label>
+          {!host && (
+            <label>{w('desktop.settings.tier')}
+              <select class="settings-select" value={String(e.tier ?? 'core')} onChange={(ev) => put('tier', (ev.target as HTMLSelectElement).value)}>
+                <option value="core">core</option>
+                <option value="situational">situational</option>
+              </select>
+            </label>
+          )}
+          {!host && <label>{w('desktop.settings.applies_to')}<Typed value={list(e.applies_to)} keep={(v) => put('applies_to', v ? v.split(',').map((s) => s.trim()).filter(Boolean) : null)} /></label>}
+          {!host && <label>{w('desktop.settings.concerns')}<Typed value={list(e.concerns)} keep={(v) => put('concerns', v ? v.split(',').map((s) => s.trim()).filter(Boolean) : null)} /></label>}
+          {changed && <button class="rf-link rf-link--phone" type="button" onClick={() => put(null, null)}>{w('act.reset')}</button>}
+        </div>
       )}
     </div>
   );
 }
 
+/** A section's label, with its one act on the right. */
+function Head({ label, act, onAct }: { label: string; act?: string; onAct?: () => void }) {
+  return (
+    <div class="rf-head">
+      <span class="fab7-group">{label}</span>
+      {act && <button class="rf-link" type="button" onClick={onAct}>{act}</button>}
+    </div>
+  );
+}
+
+const ROUTES = ['native_plan', 'native_goal', 'native_direct'];
+const TASKS = ['implement', 'plan', 'review', 'diagnose'];
+
 export function RingFrameTab({ project }: { project: string }) {
   const rules = useRules(project);
+  const supported = useSupported(project);
   const s = m.settings.value[project];
   const layer = (s?.machine?.ringframe ?? {}) as Record<string, unknown>;
-  const [preview, setPreview] = useState<string | null>(null);
+  const [preview, setPreview] = useState<Preview | null>(null);
+  const [shown, setShown] = useState(false);
+  const [all, setAll] = useState(false);
+  const [adding, setAdding] = useState<'rule' | 'deny' | null>(null);
+  const [denyOpen, setDenyOpen] = useState<number | null>(null);
   const [pick, setPick] = useState(['', 'native_plan', 'implement']);
+  const hosts = (rules?.catalogs ?? []).filter((c) => !c.catalog.startsWith('practices/')).map((c) => c.catalog);
+  const host = pick[0] || hosts[0] || '';
+  const unit = `${host}|${pick[1]}|${pick[2]}`;
+  // What the preview keeps, said beside Show; its text once shown.
+  useEffect(() => {
+    setPreview(null);
+    if (host) void m.readSettings(project, 'preview', unit).then((r) => setPreview(r as Preview | null));
+  }, [project, unit]);
   if (!rules?.catalogs) return <p class="settings-sub">{unanswered(rules)}</p>;
   const base = rules.catalogs.find((c) => c.catalog === BASE);
   const entries = ((layer.deltas as Record<string, { entries?: unknown }> | undefined)?.[BASE]?.entries) as unknown;
   const deny = (layer.eval as { deny?: string[] } | undefined)?.deny;
+  // Nothing set: RingFrame's own list, each line changed from there.
+  const listed = deny ?? rules.judges?.deny ?? [];
+  const title = (h: string) => supported?.find((x) => x.harness === h)?.title ?? h;
   const own = (base?.entries ?? []).filter((e) => String(e.id).startsWith('own.')).length;
-  const hosts = rules.catalogs.filter((c) => !c.catalog.startsWith('practices/')).map((c) => c.catalog);
-  const host = pick[0] || hosts[0] || '';
+  const ruleList = base?.entries ?? [];
+  const folded = !all && ruleList.length > FIRST_RULES + 1;
+  const kept = preview && !preview.refused
+    ? fill('web.settings.preview_kept', { kept: String(preview.kept ?? 0), left_out: String(preview.left_out ?? 0) })
+    : unanswered(preview);
   return (
-    <>
-      <div class="fab7-group settings-group">{w('desktop.settings.practices')}</div>
+    <div class="rf">
+      <Head label={w('desktop.settings.practices')} />
       {rules.domains.filter((d) => !d.base).map((d) => {
         const on = Boolean((layer.deltas as Record<string, unknown> | undefined)?.[`practices/${d.domain}`]);
         return (
-          <label key={d.domain} for={`practice-${d.domain}`} class="settings-row">
-            <span class="settings-text"><span>{domainName(d.domain)}</span><span class="settings-sub">{d.description ?? ''}</span></span>
+          <label key={d.domain} for={`practice-${d.domain}`} class="rf-row">
+            <span class="rf-name">{domainName(d.domain)}</span>
+            <span class="rf-text">{d.description ?? ''}</span>
             <Switch id={`practice-${d.domain}`} on={on} flip={() => set(project, ['deltas', `practices/${d.domain}`], on ? null : { domain: d.domain })} />
           </label>
         );
       })}
-      <div class="settings-row settings-row--setting">
-        <span class="settings-text"><span>{w('desktop.settings.core_cap')}</span><span class="settings-sub">{w('desktop.settings.core_cap_what')}</span></span>
-        <select class="settings-select" value={String(base?.render?.core_cap ?? 5)} onChange={(e) => set(project, ['deltas', BASE, 'render', 'core_cap'], Number((e.target as HTMLSelectElement).value))}>
+      <div class="rf-row">
+        <span class="rf-name">{w('desktop.settings.core_cap')}</span>
+        <span class="rf-text">{w('desktop.settings.core_cap_what')}</span>
+        <select class="settings-select rf-small" value={String(base?.render?.core_cap ?? 5)} onChange={(e) => set(project, ['deltas', BASE, 'render', 'core_cap'], Number((e.target as HTMLSelectElement).value))}>
           {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => <option key={n} value={n}>{n}</option>)}
         </select>
       </div>
-      <div class="fab7-group settings-group">{fill('desktop.settings.rules', { practice: domainName('software-development') })}</div>
-      {(base?.entries ?? []).map((e) => <RuleRow key={String(e.id)} project={project} catalog={BASE} e={e} mine={entries} />)}
-      <div class="settings-row settings-row--setting">
-        <Typed value="" placeholder={w('desktop.settings.add_rule')} keep={(v) => v && set(project, ['deltas', BASE, 'entries'], withRule(entries, `own.${own + 1}`, 'text', v))} />
-      </div>
-      <div class="fab7-group settings-group">{w('desktop.settings.judges')}</div>
-      {deny === undefined && <p class="settings-sub">{w('desktop.settings.judges_own')}</p>}
-      {(deny ?? []).map((line, i) => (
-        <div key={i} class="settings-row settings-row--setting">
-          <span class="settings-text">{line}</span>
-          <button class="settings-reset" type="button" onClick={() => set(project, ['eval', 'deny'], withDeny(deny, i, null))}>{w('desktop.settings.remove')}</button>
+      <Head label={fill('desktop.settings.rules', { practice: domainName('software-development') })} act={w('desktop.settings.add_rule')} onAct={() => setAdding(adding === 'rule' ? null : 'rule')} />
+      {adding === 'rule' && (
+        <div class="rf-row">
+          <Typed value="" placeholder={w('desktop.settings.wording')} keep={(v) => (setAdding(null), v && set(project, ['deltas', BASE, 'entries'], withRule(entries, `own.${own + 1}`, 'text', v)))} />
+        </div>
+      )}
+      {(folded ? ruleList.slice(0, FIRST_RULES) : ruleList).map((e) => <RuleRow key={String(e.id)} project={project} catalog={BASE} e={e} mine={entries} />)}
+      {folded && (
+        <button class="rf-row rf-more" type="button" onClick={() => setAll(true)}>
+          <span class="rf-name">{fill('web.settings.more_rules', { n: String(ruleList.length - FIRST_RULES) })}</span>
+        </button>
+      )}
+      <Head label={w('desktop.settings.judges')} act={w('desktop.settings.add')} onAct={() => setAdding(adding === 'deny' ? null : 'deny')} />
+      {adding === 'deny' && (
+        <div class="rf-row">
+          <Typed value="" placeholder={w('desktop.settings.judges')} keep={(v) => (setAdding(null), v && set(project, ['eval', 'deny'], withDeny(listed, '+', v)))} />
+        </div>
+      )}
+      {listed.map((line, i) => (
+        <div key={i} class="rf-row rf-deny">
+          <button class="rf-name" type="button" onClick={() => setDenyOpen(denyOpen === i ? null : i)}>
+            <span>{line}</span>
+            {deny === undefined && <span class="rf-said rf-said--under">{w('desktop.settings.shipped')}</span>}
+          </button>
+          {deny === undefined && <span class="rf-said rf-said--beside">{w('desktop.settings.shipped')}</span>}
+          <span class={`rf-link rf-chevron${denyOpen === i ? ' rf-chevron--open' : ''}`} aria-hidden="true">›</span>
+          <button class={`rf-link rf-remove${denyOpen === i ? ' rf-remove--open' : ''}`} type="button" onClick={() => set(project, ['eval', 'deny'], withDeny(listed, i, null))}>{w('desktop.settings.remove')}</button>
         </div>
       ))}
-      <div class="settings-row settings-row--setting">
-        <Typed value="" placeholder={w('desktop.settings.add')} keep={(v) => v && set(project, ['eval', 'deny'], withDeny(deny, '+', v))} />
+      <div class="rf-preview">
+        <span class="rf-preview-name">{w('desktop.settings.preview')}</span>
+        <select class="settings-select rf-pick" value={`${host}|${pick[1]}`} onChange={(e) => {
+          const [h, r] = (e.target as HTMLSelectElement).value.split('|');
+          setPick([h, r, pick[2]]);
+        }}>
+          {hosts.flatMap((h) => ROUTES.map((r) => <option key={`${h}|${r}`} value={`${h}|${r}`}>{`${title(h)} · ${w(`desktop.harness.${r}`)}`}</option>))}
+        </select>
+        <select class="settings-select rf-pick" value={pick[2]} onChange={(e) => setPick([pick[0], pick[1], (e.target as HTMLSelectElement).value])}>
+          {TASKS.map((t) => <option key={t} value={t}>{t}</option>)}
+        </select>
+        <button class="rf-preview-show" type="button" onClick={() => setShown(!shown)}>
+          <span class="rf-preview-title">{w('web.settings.preview_rules')}</span>
+          <span class="rf-said">{kept}</span>
+          <span class="rf-link">{`${w('desktop.settings.show')}`}</span>
+        </button>
       </div>
-      <div class="fab7-group settings-group">{w('desktop.settings.preview')}</div>
-      <div class="settings-row settings-row--setting">
-        <select class="settings-select" value={host} onChange={(e) => setPick([(e.target as HTMLSelectElement).value, pick[1], pick[2]])}>
-          {hosts.map((h) => <option key={h} value={h}>{h}</option>)}
-        </select>
-        <select class="settings-select" value={pick[1]} onChange={(e) => setPick([pick[0], (e.target as HTMLSelectElement).value, pick[2]])}>
-          {['native_plan', 'native_goal', 'native_direct'].map((r) => <option key={r} value={r}>{r}</option>)}
-        </select>
-        <select class="settings-select" value={pick[2]} onChange={(e) => setPick([pick[0], pick[1], (e.target as HTMLSelectElement).value])}>
-          {['implement', 'plan', 'review', 'diagnose'].map((t) => <option key={t} value={t}>{t}</option>)}
-        </select>
-        <button class="settings-reset" type="button" onClick={() => void m.readSettings(project, 'preview', `${host}|${pick[1]}|${pick[2]}`).then((r) => setPreview(r ? (r.refused ? unanswered(r) : String(r.text)) : null))}>{w('desktop.settings.show')}</button>
-      </div>
-      {preview && <pre class="settings-preview">{preview}</pre>}
-    </>
+      {shown && preview?.text && <pre class="settings-preview">{preview.text}</pre>}
+      <div class="settings-foot rf-foot--phone"><p>{w('web.ringframe.foot')}</p></div>
+    </div>
   );
 }
 
 export function HarnessesTab({ project }: { project: string }) {
   const rules = useRules(project);
+  const supported = useSupported(project);
   const [shown, setShown] = useState<string | null>(null);
   const [profile, setProfile] = useState<Record<string, unknown> | null>(null);
-  const hosts = (rules?.catalogs ?? []).filter((c) => !c.catalog.startsWith('practices/'));
-  const host = shown ?? hosts[0]?.catalog ?? null;
+  const catalogs = (rules?.catalogs ?? []).filter((c) => !c.catalog.startsWith('practices/'));
+  // Every harness this Weft supports; the route catalogs alone until the machine says.
+  const list: Supported[] = supported ?? catalogs.map((c) => ({ harness: c.catalog, title: c.catalog, verified: null, mark: '', state: '' }));
+  const host = shown ?? list.find((h) => catalogs.some((c) => c.catalog === h.harness))?.harness ?? null;
   useEffect(() => {
     setProfile(null);
-    if (host) void m.readSettings(project, 'profile', host).then(setProfile);
+    if (host) void m.readSettings(project, 'profile', host).then((r) => setProfile(r as Record<string, unknown> | null));
   }, [project, host]);
   if (!rules?.catalogs) return <p class="settings-sub">{unanswered(rules)}</p>;
-  const title = (h: string) => m.harnesses.value.find((x) => x.harness === h)?.title ?? h;
   const layer = (m.settings.value[project]?.machine?.ringframe ?? {}) as { deltas?: Record<string, { entries?: unknown }> };
   const caps = (profile?.capabilities ?? []) as Record<string, unknown>[];
+  const mark = (x: string) => (x === '✓' ? 'rf-mark--ok' : x === '↑' ? 'rf-mark--behind' : 'rf-mark--no');
   return (
-    <>
-      {hosts.map((c) => (
-        <div key={c.catalog}>
-          <button class={`settings-row${c.catalog === host ? ' settings-row--on' : ''}`} type="button" onClick={() => setShown(c.catalog)}>
-            <span class="settings-text">{title(c.catalog)}</span>
-            <span class="eval-more">{c.catalog === host ? '⌄' : '›'}</span>
-          </button>
-          {c.catalog === host && (
-            <>
-              <div class="fab7-group settings-group">{w('desktop.harness.sends')}</div>
-              {!profile?.capabilities && <p class="settings-sub">{unanswered(profile)}</p>}
-              {caps.map((cap) => (
-                <div key={String(cap.id)} class="settings-row settings-row--setting">
-                  <span class="settings-text">
-                    <span>{w(`desktop.harness.${String(cap.id)}`)}</span>
-                    {typeof cap.max_prompt_chars === 'number' && <span class="settings-sub">{fill('desktop.harness.limit', { n: String(cap.max_prompt_chars) })}</span>}
-                  </span>
-                  <span class="settings-sub">{w(cap.delivery_mode === 'human_handoff' ? 'desktop.harness.you_send' : 'desktop.harness.weft_sends')}</span>
-                </div>
-              ))}
-              <div class="fab7-group settings-group">{fill('desktop.harness.route_rules', { harness: title(c.catalog) })}</div>
-              {c.entries.map((e) => <RuleRow key={String(e.id)} project={project} catalog={c.catalog} e={e} mine={layer.deltas?.[c.catalog]?.entries} />)}
-            </>
-          )}
-        </div>
-      ))}
+    <div class="rf">
+      {list.map((h) => {
+        const open = h.harness === host;
+        const catalog = catalogs.find((c) => c.catalog === h.harness);
+        return (
+          <div key={h.harness}>
+            <button class={`rf-row rf-harness${open ? ' rf-harness--open' : ''}`} type="button" onClick={() => setShown(h.harness)}>
+              <span class={`rf-mark ${mark(h.mark)}`}>{h.mark}</span>
+              <span class="rf-name">
+                <span>{h.title}</span>
+                {open && (h.version || h.verified) && (
+                  <span class="rf-said">{[h.version, h.verified && fill('desktop.harness.verified', { version: h.verified })].filter(Boolean).join(' · ')}</span>
+                )}
+              </span>
+              <span class="rf-said rf-state">{`${h.state} ${open ? '⌄' : '›'}`}</span>
+            </button>
+            {open && (
+              <div class="rf-open">
+                <Head label={w('desktop.harness.sends')} />
+                {!profile?.capabilities && <p class="settings-sub">{unanswered(profile)}</p>}
+                {caps.map((cap) => (
+                  <div key={String(cap.id)} class="rf-row">
+                    <span class="rf-name">
+                      <span>{w(`desktop.harness.${String(cap.id)}`)}</span>
+                      <span class="rf-said rf-said--under">{typeof cap.max_prompt_chars === 'number' ? fill('desktop.harness.limit', { n: String(cap.max_prompt_chars) }) : String(cap.selection ?? '')}</span>
+                    </span>
+                    <span class="rf-text">{typeof cap.max_prompt_chars === 'number' ? fill('desktop.harness.limit', { n: String(cap.max_prompt_chars) }) : String(cap.selection ?? '')}</span>
+                    <span class="rf-said">{w(cap.delivery_mode === 'human_handoff' ? 'desktop.harness.you_send' : 'desktop.harness.weft_sends')}</span>
+                  </div>
+                ))}
+                {catalog && <Head label={fill('desktop.harness.route_rules', { harness: h.title })} />}
+                {catalog?.entries.map((e) => <RuleRow key={String(e.id)} project={project} catalog={catalog.catalog} e={e} mine={layer.deltas?.[catalog.catalog]?.entries} />)}
+              </div>
+            )}
+          </div>
+        );
+      })}
       <div class="settings-foot"><p>{fill('web.harness.foot', { machine: m.current.value?.name ?? '' })}</p></div>
-    </>
+    </div>
   );
 }
 
@@ -263,13 +360,17 @@ export function ProjectRingFrame({ project, rules, adding, done }: { project: st
         return (
           <div key={id} class="settings-row settings-row--setting">
             <span class="settings-text"><span>{`RingFrame · ${String(e.label ?? id)}`}</span><span class="settings-sub">{fill('desktop.project.every', { value: said2(theirs) })}</span></span>
-            <select class="settings-select" value={mine.some((x) => x.id === id) ? said2(e) : ''} onChange={(ev) => {
-              const [tier, on] = (ev.target as HTMLSelectElement).value.split(', ');
-              put(['deltas', BASE, 'entries'], withRule(withRule(mine, id, 'tier', tier), id, 'enabled', on === 'on'));
-            }}>
-              {!mine.some((x) => x.id === id) && <option value="">—</option>}
-              {combos.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
+            <span class="settings-pick">
+              <select class="settings-select" value={mine.some((x) => x.id === id) ? said2(e) : ''} onChange={(ev) => {
+                const value = (ev.target as HTMLSelectElement).value;
+                if (!value) return (done(), put(['deltas', BASE, 'entries'], withRule(mine, id, null, null)));
+                const [tier, on] = value.split(', ');
+                put(['deltas', BASE, 'entries'], withRule(withRule(mine, id, 'tier', tier), id, 'enabled', on === 'on'));
+              }}>
+                <option value="">{fill('desktop.project.every', { value: said2(theirs) })}</option>
+                {combos.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </span>
             <button class="settings-reset" type="button" onClick={() => (done(), put(['deltas', BASE, 'entries'], withRule(mine, id, null, null)))}>{w('act.reset')}</button>
           </div>
         );

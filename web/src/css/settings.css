@@ -101,3 +101,127 @@
 .settings-edit label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--fab7-muted); }
 .settings-edit .settings-input { max-width: 100%; }
 .settings-preview { margin: 8px 16px; padding: 10px; border: 1px solid var(--fab7-accent); border-radius: var(--weft-radius-control); font: 11px var(--font-mono); color: var(--fab7-muted); white-space: pre-wrap; }
+
+/* RingFrame and Harnesses (M9.10, M9.11, D9.10, D9.11): one line per rule. On
+   a phone a rule says where it comes from under its name, and the name opens
+   it; wide, its wording, source, Edit and Reset sit on the line. */
+.rf { display: flex; flex-direction: column; }
+.rf-head { display: flex; align-items: baseline; justify-content: space-between; padding: 14px 16px 6px; }
+.rf-head .fab7-group { padding: 0; font: 600 11px var(--font-mono); letter-spacing: 0.08em; color: var(--fab7-faint); }
+.rf-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; width: 100%; box-sizing: border-box; padding: 10px 16px; border: 0; border-bottom: 1px solid var(--fab7-line); background: none; color: var(--fab7-text); font: 15px var(--font-sans); text-align: left; }
+button.rf-row { cursor: pointer; }
+.rf-row--changed, .rf-harness--open { background: var(--fab7-selected); }
+.rf-name { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; }
+button.rf-name { cursor: pointer; }
+.rf-text { display: none; }
+.rf-said { font: 11px var(--font-mono); color: var(--fab7-muted); white-space: nowrap; }
+.rf-said--changed { color: var(--fab7-accent); }
+.rf-said--beside { display: none; }
+.rf-link { padding: 0; border: 0; background: none; color: var(--fab7-accent); font: 13px var(--font-sans); white-space: nowrap; cursor: pointer; }
+.rf-rule > .rf-link, .rf-remove { display: none; }
+.rf-remove--open { display: inline; }
+.rf-chevron { color: var(--fab7-muted); }
+.rf-edit { flex-basis: 100%; }
+.rf-small { max-width: none; }
+.rf-more .rf-name { color: var(--fab7-muted); }
+.rf-status { flex: none; display: inline-flex; border: 1px solid var(--fab7-line); border-radius: var(--weft-radius-control); overflow: hidden; }
+.rf-status-half { padding: 5px 8px; border: 0; background: none; color: var(--fab7-muted); font: 12px var(--font-sans); cursor: pointer; }
+.rf-status-half + .rf-status-half { border-left: 1px solid var(--fab7-line); }
+.rf-status-half--on { background: var(--fab7-surface); color: var(--fab7-text); font-weight: 600; }
+.rf-status-half--on:first-child { background: color-mix(in srgb, var(--fab7-teal) 14%, transparent); color: var(--fab7-teal); }
+.rf-mark { flex: none; width: 14px; font: 600 12px var(--font-mono); }
+.rf-mark--ok { color: var(--fab7-teal); }
+.rf-mark--behind { color: var(--fab7-accent); }
+.rf-mark--no { color: var(--fab7-muted); }
+.rf-state { color: var(--fab7-muted); }
+.rf-harness--open .rf-state { color: var(--fab7-accent); }
+.rf-preview-name, .rf-pick { display: none; }
+.rf-preview-show { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; box-sizing: border-box; padding: 12px 36px 12px 16px; border: 0; border-bottom: 1px solid var(--fab7-line); background: none; text-align: left; cursor: pointer; position: relative; }
+.rf-preview-show::after { content: "›"; position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: var(--fab7-muted); }
+.rf-preview-show .rf-link { display: none; }
+.rf-preview-title { color: var(--fab7-accent); font: 15px var(--font-sans); }
+
+@media (min-width: 768px) {
+  /* A machine's own pages, as wide as their cards; rows flush with the column. */
+  .settings.settings--machine { width: 560px; padding-top: 28px; }
+  .settings.settings--rf { width: 640px; }
+  .settings--machine .settings-tabs { padding: 0; }
+  .settings--machine .settings-tab { padding: 12px 14px; }
+  .settings--machine .settings-row { padding: 12px 0; }
+  .settings--machine .switch-track { width: 34px; height: 18px; }
+  .settings--machine .switch-knob { width: 18px; height: 18px; }
+  .rf .rf-head { padding: 12px 0 4px; }
+  .rf-row { flex-wrap: wrap; padding: 8px 0; }
+  .rf-name { flex: 0 0 180px; }
+  .rf-name .rf-said--under { display: none; }
+  .rf-text { display: block; flex: 1; min-width: 0; font-size: 13px; color: var(--fab7-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rf-said--beside, .rf-rule > .rf-link, .rf-remove { display: inline; }
+  .rf-link--phone, .rf-chevron { display: none; }
+  .rf-harness .rf-name { flex: 1; flex-direction: row; align-items: baseline; gap: 10px; }
+  .rf-open .rf-row, .rf-open .rf-head { padding-left: 26px; }
+  .rf-preview { display: flex; align-items: center; gap: 10px; margin-top: 12px; padding: 8px 10px; border: 1px solid var(--fab7-accent); border-radius: var(--weft-radius-control); }
+  .rf-preview-name { display: inline; font-weight: 600; }
+  .rf-pick { display: inline-block; flex: none; max-width: none; }
+  .rf-preview-show { flex: 1; min-width: 0; flex-direction: row; justify-content: flex-end; align-items: center; gap: 10px; padding: 0; border: 0; }
+  .rf-preview-show .rf-said { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  /* A project's own (D9.12): what differs under the title, its own values in
+     the accent, and the choice to add one as a link. */
+  .settings--project .settings-differs { margin-top: -12px; padding: 0; }
+  .settings--project .settings-row--setting .settings-select { border-color: var(--fab7-accent); color: var(--fab7-accent); }
+  .settings--project .settings-add { margin: 0; padding: 0; border: 0; background: none; appearance: none; font-size: 14px; }
+  .rf-preview-show::after, .rf-preview-title { display: none; }
+  .rf-preview-show .rf-link { display: inline; }
+  .rf-preview-show .rf-said { font: 13px var(--font-sans); }
+  .rf-foot--phone { display: none; }
+}
+
+/* Workflow (M9.9, D9.9): a choice as plain words with › on a phone; a judge's
+   role on one row, its model and effort, opened on a phone. */
+.settings-pick { position: relative; display: inline-flex; min-width: 0; max-width: 60%; }
+.settings-pick .settings-select { max-width: 100%; padding-right: 16px; border: 0; background: none; color: var(--fab7-muted); appearance: none; text-align: right; text-align-last: right; }
+.settings-pick::after { content: "›"; position: absolute; right: 0; top: 50%; transform: translateY(-50%); color: var(--fab7-muted); pointer-events: none; }
+.settings-role { flex-wrap: wrap; }
+.settings-role-name { padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.settings-role-said { color: var(--fab7-muted); font-size: 15px; white-space: nowrap; }
+.settings-role-said::after { content: " ›"; }
+.settings-role-controls { display: none; flex-basis: 100%; gap: 8px; }
+.settings-role--open .settings-role-controls { display: flex; }
+.settings-role-controls .settings-input { flex: 1; max-width: none; }
+@media (min-width: 768px) {
+  .settings.settings--machine { gap: 0; }
+  .settings--machine .fab7-group.settings-group { padding: 14px 0 6px; }
+  .settings--machine > .settings-tabs { margin-bottom: 8px; }
+  .settings-pick { max-width: 55%; }
+  .settings-pick .settings-select { padding: 7px 26px 7px 10px; border: 1px solid var(--fab7-line); background: var(--fab7-surface); color: var(--fab7-text); text-align: left; text-align-last: left; }
+  .settings-pick::after { content: "▾"; right: 10px; font-size: 9px; }
+  .settings-role { flex-wrap: nowrap; }
+  .settings-role-name { cursor: default; }
+  .settings-role-said { display: none; }
+  .settings-role-controls { display: flex; flex-basis: auto; }
+  .settings-role-controls .settings-input { width: 150px; flex: none; }
+  .settings-foot--phone { display: none; }
+}
+@media (min-width: 768px) {
+  .settings--machine .settings-title { margin-bottom: 14px; }
+  .settings--machine .settings-foot { display: block; margin-top: 12px; }
+}
+
+/* A project's own (M9.12, D9.12): its values in the accent; on a phone a value
+   offers every project's in place of Reset, and the add is a link. */
+.settings--project .settings-pick .settings-select { color: var(--fab7-accent); }
+.settings--project .settings-pick::after { color: var(--fab7-accent); }
+.settings--project .settings-differs::first-letter { text-transform: uppercase; }
+.settings--project .settings-add { margin: 12px 16px; padding: 0; border: 0; background: none; appearance: none; font-size: 15px; }
+.settings--project .settings-row--setting:has(.settings-pick) .settings-reset { display: none; }
+.settings-foot--wide { display: none; }
+@media (min-width: 768px) {
+  .settings--project .settings-row--setting:has(.settings-pick) .settings-reset { display: inline; }
+  .settings--project .settings-pick .settings-select { border-color: var(--fab7-accent); }
+  .settings--project .settings-add { margin: 14px 0 0; font-size: 14px; }
+  .settings--project .settings-foot { padding: 0; }
+  .settings-foot--wide { display: block; }
+  .settings-foot .settings-foot--phone { display: none; }
+}
+@media (min-width: 768px) {
+  .rf .settings-foot { padding: 12px 0 0; }
+}

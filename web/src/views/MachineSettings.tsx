@@ -8,7 +8,7 @@ import { useEffect, useState } from 'preact/hooks';
 import type * as api from '../api';
 import * as m from '../machine';
 import { back, swap } from '../nav';
-import { EFFORTS, ENTRIES, type Entry, KEYS, at, differs, machineSwitch, shownValue } from '../settings';
+import { EFFORTS, ENTRIES, type Entry, KEYS, ROLES, at, differs, machineSwitch, shownValue } from '../settings';
 import { fill, w } from '../words';
 import { HarnessesTab, ProjectRingFrame, RingFrameTab, ringFrameAddable, useProjectRules } from './RingFrameSettings';
 import { Mark } from './Tree';
@@ -53,8 +53,9 @@ function label(e: Entry): string {
   return e.role ? fill(e.label, { role: w(e.role) }) : w(e.label);
 }
 
-/** A setting's control: a choice of harnesses or efforts, or a model typed and kept on Enter or leaving. */
-function Control({ e, value, project, scope }: { e: Entry; value: string | undefined; project: string; scope: 'machine' | 'project' }) {
+/** A setting's control: a choice of harnesses or efforts, or a model typed and kept on Enter or leaving. A project's own
+ * offers every project's value first, which takes its own away. */
+function Control({ e, value, project, scope, every }: { e: Entry; value: string | undefined; project: string; scope: 'machine' | 'project'; every?: string }) {
   const set = (v: string | null) => void m.setSetting(project, scope, e.key, v === '' ? null : v);
   const [typed, setTyped] = useState(value ?? '');
   useEffect(() => setTyped(value ?? ''), [value]);
@@ -67,15 +68,17 @@ function Control({ e, value, project, scope }: { e: Entry; value: string | undef
         onKeyDown={(ev) => ev.key === 'Enter' && (ev.target as HTMLInputElement).blur()} />
     );
   }
-  const none = w(shownValue(e, undefined, []));
+  const none = every !== undefined ? fill('desktop.project.every', { value: every }) : w(shownValue(e, undefined, []));
   const options: [string, string][] =
     e.kind === 'effort' ? EFFORTS.map((x) => [x, x])
     : m.harnesses.value.filter((h) => h.project === project).map((h) => [h.harness, h.title]);
   return (
-    <select id={id} class="settings-select" value={value ?? ''} onChange={(ev) => set((ev.target as HTMLSelectElement).value)}>
-      <option value="">{none}</option>
-      {options.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
-    </select>
+    <span class="settings-pick">
+      <select id={id} class="settings-select" value={value ?? ''} onChange={(ev) => set((ev.target as HTMLSelectElement).value)}>
+        <option value="">{none}</option>
+        {options.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
+      </select>
+    </span>
   );
 }
 
@@ -92,7 +95,7 @@ export function MachineSettings({ machine, wide, tab }: { machine: api.Machine; 
   return (
     <div class="app">
       <Bar wide={wide} machine={machine.name} title={machine.name} backTo={w('web.settings.title')} />
-      <div class="settings">
+      <div class={`settings settings--machine${tab === 'ringframe' || tab === 'harnesses' ? ' settings--rf' : ''}`}>
         {wide && <h1 class="settings-title">{fill('web.machine.title', name)}</h1>}
         <div class="settings-tabs" role="tablist">
           {tabs.map(([t, word]) => (
@@ -134,9 +137,11 @@ export function MachineSettings({ machine, wide, tab }: { machine: api.Machine; 
         ) : (
           <>
             <div class="fab7-group settings-group">{w('desktop.settings.acts')}</div>
-            {ENTRIES.slice(0, 3).map((e) => <Row key={e.name} e={e} s={s?.machine} project={project} scope="machine" />)}
+            {ENTRIES.slice(0, 3).map((e) => <Row key={e.name} e={e} s={s?.machine} project={project} scope="machine" bare />)}
             <div class="fab7-group settings-group">{w('desktop.settings.debate')}</div>
-            {ENTRIES.slice(3).map((e) => <Row key={e.name} e={e} s={s?.machine} project={project} scope="machine" />)}
+            <Row e={ENTRIES[3]} s={s?.machine} project={project} scope="machine" bare />
+            {ROLES.map(([role, , word]) => <RoleRow key={role} role={role} word={word} s={s?.machine} project={project} />)}
+            <div class="settings-foot settings-foot--phone"><p>{w('web.workflow.foot')}</p></div>
           </>
         )}
       </div>
@@ -144,8 +149,29 @@ export function MachineSettings({ machine, wide, tab }: { machine: api.Machine; 
   );
 }
 
-/** One setting's row: its name and what it does, and its control; a project's own also says every project's and Reset. */
-function Row({ e, s, project, scope, every }: { e: Entry; s: Record<string, unknown> | null | undefined; project: string; scope: 'machine' | 'project'; every?: string }) {
+/** A judge's role on one row: its model and its effort. On a phone the row says
+ * both, and opens them. */
+function RoleRow({ role, word, s, project }: { role: string; word: string; s: Record<string, unknown> | null | undefined; project: string }) {
+  const [open, setOpen] = useState(false);
+  const [model, effort] = ['model', 'effort'].map((f) => ENTRIES.find((e) => e.key.join('.') === `eval.debate.${role}.${f}`) as Entry);
+  const said = [at(s, model.key) ?? w('web.workflow.own'), at(s, effort.key) ?? w('web.workflow.own')].join(' · ');
+  return (
+    <div class={`settings-row settings-row--setting settings-role${open ? ' settings-role--open' : ''}`}>
+      <button class="settings-text settings-role-name" type="button" onClick={() => setOpen(!open)}>
+        <span>{w(word)}</span>
+        <span class="settings-sub">{w(`${word}_what`)}</span>
+      </button>
+      <span class="settings-role-said">{said}</span>
+      <span class="settings-role-controls">
+        <Control e={model} value={at(s, model.key)} project={project} scope="machine" />
+        <Control e={effort} value={at(s, effort.key)} project={project} scope="machine" />
+      </span>
+    </div>
+  );
+}
+
+/** One setting's row: its name and what it does (unless `bare`), and its control; a project's own also says every project's and Reset. */
+function Row({ e, s, project, scope, every, bare }: { e: Entry; s: Record<string, unknown> | null | undefined; project: string; scope: 'machine' | 'project'; every?: string; bare?: boolean }) {
   return (
     <div class="settings-row settings-row--setting">
       <label class="settings-text" for={`${scope}-${e.key.join('-')}`}>
@@ -153,10 +179,10 @@ function Row({ e, s, project, scope, every }: { e: Entry; s: Record<string, unkn
         {every !== undefined ? (
           <span class="settings-sub">{fill('desktop.project.every', { value: every })}</span>
         ) : (
-          e.what && <span class="settings-sub">{w(e.what)}</span>
+          e.what && !bare && <span class="settings-sub">{w(e.what)}</span>
         )}
       </label>
-      <Control e={e} value={at(s, e.key)} project={project} scope={scope} />
+      <Control e={e} value={at(s, e.key)} project={project} scope={scope} every={every} />
       {scope === 'project' && (
         <button class="settings-reset" type="button" onClick={() => void m.setSetting(project, 'project', e.key, null)}>{w('act.reset')}</button>
       )}
@@ -175,7 +201,7 @@ export function ProjectSettings({ machine, project, wide }: { machine: api.Machi
   return (
     <div class="app">
       <Bar wide={wide} machine={machine.name} title={fill('desktop.project.title', named)} backTo={project} />
-      <div class="settings">
+      <div class="settings settings--machine settings--project">
         {wide && <h1 class="settings-title">{fill('desktop.project.title', named)}</h1>}
         <p class="settings-sub settings-differs">{w('desktop.project.differs')}</p>
         {shown.length === 0 && <p class="settings-sub">{fill('desktop.project.none', named)}</p>}
@@ -191,7 +217,8 @@ export function ProjectSettings({ machine, project, wide }: { machine: api.Machi
           {ringFrameAddable(project, rules).map(([v, words]) => <option key={v} value={v}>{words}</option>)}
         </select>
         <div class="settings-foot">
-          <p>{fill('web.project.foot', { machine: machine.name })}</p>
+          <p class="settings-foot--wide">{fill('web.project.foot', { machine: machine.name })}</p>
+          <p class="settings-foot--phone">{fill('web.project.foot_phone', { machine: machine.name })}</p>
         </div>
       </div>
     </div>

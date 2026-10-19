@@ -29,7 +29,8 @@ const noneDisabled = (page: Page) => expect(page.locator('button:disabled, input
 test('M11.1 D11.1: AGENTS and WORK, as the cards draw them: one line a row, the status a shape, amber only for an agent that needs you', async ({ page, context }) => {
   const machine = await opened(page, context);
   // Open, a project says nothing more of itself; its rows say it.
-  await expect(row(page, 'weft')).toHaveText('▾weft+');
+  // ⋯ opens the project's own settings (M9.12, D9.12).
+  await expect(row(page, 'weft')).toHaveText('▾weft⋯+');
   await expect(page.locator('.tree-section')).toHaveText(['AGENTS', 'WORK', 'AGENTS', 'WORK']);
   const agents = page.locator('.tree-row--agent');
   await expect(agents).toHaveCount(7);
@@ -64,7 +65,7 @@ test('M11.1 D11.1: AGENTS and WORK, as the cards draw them: one line a row, the 
   await expect(agents.nth(1).locator('.agent-dot')).toHaveClass(/needs/);
   // Folded, a project says what waits in it.
   await row(page, 'weft').click();
-  await expect(row(page, 'weft')).toHaveText('▸weft■ 1+');
+  await expect(row(page, 'weft')).toHaveText('▸weft■ 1⋯+');
   for (const outside of ['in Weft', 'outside']) await expect(page.getByText(outside)).toHaveCount(0);
   await machine.close();
 });

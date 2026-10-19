@@ -93,8 +93,8 @@ export function MachineRows({ then, menu = false }: { then?: () => void; menu?: 
       {m.mine.value.map((x) => {
         const here = x.id === open?.id && m.link.value === 'connected';
         return (
-          // In Settings, the machine this device is on opens its own settings.
-          <button key={x.id} class={menu ? 'menu-row menu-machine' : 'settings-row'} type="button" onClick={() => (then?.(), !menu && here ? go({ name: 'machine', machine: x.id }) : reset({ name: 'tree', machine: x.id }))}>
+          // The machine this device is on opens its own settings (M9.8, D9.8); another, its tree.
+          <button key={x.id} class={menu ? 'menu-row menu-machine' : 'settings-row'} type="button" onClick={() => (then?.(), here ? go({ name: 'machine', machine: x.id }) : reset({ name: 'tree', machine: x.id }))}>
             <span class="settings-text">{x.name}</span>
             {/* "connected ›", one line of words as the cards set it (M9.1). */}
             {here && <span class="settings-connected">{menu ? w('web.settings.connected') : `${w('web.settings.connected')} ›`}</span>}
@@ -231,8 +231,8 @@ export function Settings({ login, wide }: { login: string; wide: boolean }) {
           <input id="device-name" value={name} onInput={(e) => setName((e.target as HTMLInputElement).value)} onBlur={keep} class="settings-name" />
         </div>
         {!wide && <Notifications />}
-        {/* The machines, each opening its own settings from here (M9.8, D9.8). */}
-        {m.mine.value.length > 0 && (
+        {/* On a phone the machines are here; a desktop has them in ☰ (D9.1, D9.2). */}
+        {!wide && m.mine.value.length > 0 && (
           <>
             <div class="fab7-group settings-group">{w('web.settings.machines')}</div>
             <MachineRows />

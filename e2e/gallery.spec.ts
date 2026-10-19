@@ -701,8 +701,9 @@ const SCREENS: Screen[] = [
     run: async (at) => {
       await settingsOpen(at, [{ name: 'laptop' }]);
       await button(at, 'Menu').click();
-      if (at.wide) await button(at, 'Settings…').click();
-      await at.page.locator('.settings').getByRole('button', { name: /studio/ }).first().click();
+      // A phone's Settings lists the machines; a desktop's ☰ does (D9.1).
+      if (at.wide) await at.page.getByRole('menu').getByRole('button', { name: /studio/ }).click();
+      else await at.page.locator('.settings').getByRole('button', { name: /studio/ }).first().click();
       await at.page.getByRole('tab', { name: tab }).click();
       if (tab === 'Harnesses') await expect(at.page.getByText('Route rules · Claude Code')).toBeVisible();
     },

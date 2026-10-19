@@ -10,7 +10,12 @@ import { fill, w } from '../words';
 
 const BASE = 'practices/software-development';
 type Catalog = { catalog: string; render?: { core_cap?: number }; entries: Record<string, unknown>[] };
-type Rules = { domains: { domain: string; base: boolean; description?: string }[]; catalogs: Catalog[] };
+type Rules = { domains: { domain: string; base: boolean; description?: string }[]; catalogs: Catalog[]; refused?: string };
+
+/** What a read shows until RingFrame answers: that it is asked, or why RingFrame would not say. */
+function unanswered(r: { refused?: unknown } | null): string {
+  return r?.refused ? fill('desktop.settings.refused', { why: String(r.refused) }) : w('desktop.settings.asking');
+}
 
 /** RingFrame's rules through the machine, asked again whenever its settings change. */
 function useRules(project: string): Rules | null {
@@ -96,7 +101,7 @@ export function RingFrameTab({ project }: { project: string }) {
   const layer = (s?.machine?.ringframe ?? {}) as Record<string, unknown>;
   const [preview, setPreview] = useState<string | null>(null);
   const [pick, setPick] = useState(['', 'native_plan', 'implement']);
-  if (!rules) return <p class="settings-sub">{w('desktop.settings.asking')}</p>;
+  if (!rules?.catalogs) return <p class="settings-sub">{unanswered(rules)}</p>;
   const base = rules.catalogs.find((c) => c.catalog === BASE);
   const entries = ((layer.deltas as Record<string, { entries?: unknown }> | undefined)?.[BASE]?.entries) as unknown;
   const deny = (layer.eval as { deny?: string[] } | undefined)?.deny;
@@ -148,7 +153,7 @@ export function RingFrameTab({ project }: { project: string }) {
         <select class="settings-select" value={pick[2]} onChange={(e) => setPick([pick[0], pick[1], (e.target as HTMLSelectElement).value])}>
           {['implement', 'plan', 'review', 'diagnose'].map((t) => <option key={t} value={t}>{t}</option>)}
         </select>
-        <button class="settings-reset" type="button" onClick={() => void m.readSettings(project, 'preview', `${host}|${pick[1]}|${pick[2]}`).then((r) => setPreview(r ? String(r.text) : null))}>{w('desktop.settings.show')}</button>
+        <button class="settings-reset" type="button" onClick={() => void m.readSettings(project, 'preview', `${host}|${pick[1]}|${pick[2]}`).then((r) => setPreview(r ? (r.refused ? unanswered(r) : String(r.text)) : null))}>{w('desktop.settings.show')}</button>
       </div>
       {preview && <pre class="settings-preview">{preview}</pre>}
     </>
@@ -165,7 +170,7 @@ export function HarnessesTab({ project }: { project: string }) {
     setProfile(null);
     if (host) void m.readSettings(project, 'profile', host).then(setProfile);
   }, [project, host]);
-  if (!rules) return <p class="settings-sub">{w('desktop.settings.asking')}</p>;
+  if (!rules?.catalogs) return <p class="settings-sub">{unanswered(rules)}</p>;
   const title = (h: string) => m.harnesses.value.find((x) => x.harness === h)?.title ?? h;
   const layer = (m.settings.value[project]?.machine?.ringframe ?? {}) as { deltas?: Record<string, { entries?: unknown }> };
   const caps = (profile?.capabilities ?? []) as Record<string, unknown>[];
@@ -180,7 +185,7 @@ export function HarnessesTab({ project }: { project: string }) {
           {c.catalog === host && (
             <>
               <div class="fab7-group settings-group">{w('desktop.harness.sends')}</div>
-              {!profile && <p class="settings-sub">{w('desktop.settings.asking')}</p>}
+              {!profile?.capabilities && <p class="settings-sub">{unanswered(profile)}</p>}
               {caps.map((cap) => (
                 <div key={String(cap.id)} class="settings-row settings-row--setting">
                   <span class="settings-text">
@@ -221,7 +226,7 @@ export function ringFrameAddable(project: string, rules: { here: Rules | null })
   const mine = layer.deltas?.[BASE]?.entries ?? [];
   const out: [string, string][] = [];
   if (layer.deltas?.[BASE]?.render?.core_cap === undefined) out.push(['ringframe:core_cap', w('desktop.settings.core_cap')]);
-  for (const e of rules.here?.catalogs.find((c) => c.catalog === BASE)?.entries ?? []) {
+  for (const e of rules.here?.catalogs?.find((c) => c.catalog === BASE)?.entries ?? []) {
     if (!mine.some((x) => x.id === e.id)) out.push([`ringframe:${String(e.id)}`, `RingFrame · ${String(e.label ?? e.id)}`]);
   }
   return out;
@@ -230,7 +235,7 @@ export function ringFrameAddable(project: string, rules: { here: Rules | null })
 export function ProjectRingFrame({ project, rules, adding, done }: { project: string; rules: { here: Rules | null; every: Rules | null }; adding: string | null; done: () => void }) {
   const said = m.settings.value[project];
   const layer = (said?.project?.ringframe ?? {}) as { deltas?: Record<string, { entries?: Record<string, unknown>[]; render?: { core_cap?: number } }>; eval?: { deny?: string[] } };
-  const base = (r: Rules | null) => r?.catalogs.find((c) => c.catalog === BASE);
+  const base = (r: Rules | null) => r?.catalogs?.find((c) => c.catalog === BASE);
   const here = base(rules.here);
   const every = base(rules.every);
   const mine = layer.deltas?.[BASE]?.entries ?? [];
@@ -241,6 +246,7 @@ export function ProjectRingFrame({ project, rules, adding, done }: { project: st
   const shown = (here?.entries ?? []).filter((e) => mine.some((x) => x.id === e.id) || adding === String(e.id));
   return (
     <>
+      {rules.here?.refused && <p class="settings-sub">{unanswered(rules.here)}</p>}
       {(cap !== undefined || adding === 'core_cap') && (
         <div class="settings-row settings-row--setting">
           <span class="settings-text"><span>{w('desktop.settings.core_cap')}</span><span class="settings-sub">{fill('desktop.project.every', { value: String(every?.render?.core_cap ?? 5) })}</span></span>

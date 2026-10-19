@@ -462,9 +462,11 @@ export async function askSettings(project: string): Promise<void> {
 }
 
 /** What Settings reads of RingFrame through the machine: its `rules`, a
- * `preview` (`<host>|<route>|<task>`) or a harness's `profile`. */
+ * `preview` (`<host>|<route>|<task>`) or a harness's `profile`; or, when
+ * RingFrame would not say, `refused` with its reason. */
 export async function readSettings(project: string, what: 'rules' | 'preview' | 'profile', unit: string): Promise<Record<string, unknown> | null> {
   const r = await request({ type: 'settings', project, what, unit });
+  if (r?.type === 'error') return { refused: String(r.message ?? r.code) };
   return r?.type === 'ok' ? (r.settings as Record<string, unknown>) : null;
 }
 

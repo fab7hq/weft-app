@@ -2,6 +2,7 @@
 // socket, pairing, reconnecting with a backoff, the ping, and what the
 // machine says. The app holds no workflow rule: states, counts and pendings
 // are the machine's words.
+import type { Settings } from './settings';
 import { computed, signal } from '@preact/signals';
 import * as api from './api';
 import * as store from './store';
@@ -161,6 +162,8 @@ export const resolved = signal<{ id: string; yes: boolean } | null>(null);
 
 /** The machine this device has open. */
 export const current = signal<api.Machine | null>(null);
+/** Each open project's settings on this machine, as it last said (remote.md §6). */
+export const settings = signal<Record<string, Settings>>({});
 
 export const needsYou = computed(() => agents.value.filter((a) => a.turn === 'waiting').length);
 
@@ -351,6 +354,9 @@ function heard(s: WebSocket, m: api.Machine, msg: Record<string, unknown>): void
     case 'harnesses':
       harnesses.value = msg.harnesses as Start[];
       break;
+    case 'settings':
+      settings.value = { ...settings.value, [String(msg.project)]: msg.settings as Settings };
+      break;
     case 'pending':
       pendings.value = [...pendings.value.filter((p) => p.id !== msg.id), msg as unknown as Pending];
       break;
@@ -447,6 +453,23 @@ export function request(message: Record<string, unknown>): Promise<Record<string
   const req = nextReq++;
   if (!send({ ...message, req })) return null;
   return new Promise((done) => waiting.set(req, done));
+}
+
+/** A project's settings, asked of the machine. */
+export async function askSettings(project: string): Promise<void> {
+  const r = await request({ type: 'settings', project });
+  if (r?.type === 'ok') settings.value = { ...settings.value, [project]: r.settings as Settings };
+}
+
+/** One setting changed on the machine, for every project or this one; every
+ * device is told. What the machine would not take, it says. */
+export async function setSetting(project: string, scope: 'machine' | 'project', key: string[], value: unknown): Promise<string | null> {
+  const r = await request({ type: 'set', project, scope, key, value });
+  if (r?.type === 'ok') {
+    settings.value = { ...settings.value, [project]: r.settings as Settings };
+    return null;
+  }
+  return r ? String(r.message ?? r.code) : null;
 }
 
 /** Who hears what a followed agent's conversation adds (remote.md §6d). */

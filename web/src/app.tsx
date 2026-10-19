@@ -14,6 +14,7 @@ import { EvalView } from './views/EvalView';
 import { Mark, TreePage } from './views/Tree';
 import { StartPage } from './views/Start';
 import { Machines } from './views/Machines';
+import { MachineSettings } from './views/MachineSettings';
 import { Settings } from './views/Settings';
 import { Wide } from './views/Wide';
 import { SignIn } from './views/SignIn';
@@ -220,6 +221,12 @@ export function App() {
     }
     case 'settings':
       return <Settings login={a.login} wide={wide.value} />;
+    case 'machine': {
+      const m = a.machines.find((x) => x.id === view.machine);
+      if (!m) return <Machines list={a.machines} wide={wide.value} onRemoved={removed} />;
+      machine.open(m);
+      return <MachineSettings machine={m} wide={wide.value} />;
+    }
     default:
       return <div class="app" />;
   }

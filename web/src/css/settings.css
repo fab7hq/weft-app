@@ -81,3 +81,9 @@
 /* Notifications that cannot turn on: only their row and why (D9.3). */
 .menu-pop--said { gap: 8px; padding: 14px; }
 .menu-pop--said .push-said { padding: 0; }
+
+/* A machine's own settings (M9.8, D9.8): its tabs, and Turbo's switch in amber. */
+.settings-tabs { display: flex; gap: 2px; padding: 0 8px; border-bottom: 1px solid var(--fab7-line); overflow-x: auto; }
+.settings-tab { padding: 12px 10px; border: 0; border-bottom: 2px solid transparent; background: none; color: var(--fab7-muted); font: 14px var(--font-sans); white-space: nowrap; cursor: pointer; }
+.settings-tab--on { color: var(--fab7-text); font-weight: 600; border-bottom-color: var(--fab7-accent); }
+.switch--turbo .switch-input:checked + .switch-track { background: var(--fab7-amber); }

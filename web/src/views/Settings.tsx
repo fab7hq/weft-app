@@ -93,7 +93,8 @@ export function MachineRows({ then, menu = false }: { then?: () => void; menu?: 
       {m.mine.value.map((x) => {
         const here = x.id === open?.id && m.link.value === 'connected';
         return (
-          <button key={x.id} class={menu ? 'menu-row menu-machine' : 'settings-row'} type="button" onClick={() => (then?.(), reset({ name: 'tree', machine: x.id }))}>
+          // In Settings, the machine this device is on opens its own settings.
+          <button key={x.id} class={menu ? 'menu-row menu-machine' : 'settings-row'} type="button" onClick={() => (then?.(), !menu && here ? go({ name: 'machine', machine: x.id }) : reset({ name: 'tree', machine: x.id }))}>
             <span class="settings-text">{x.name}</span>
             {/* "connected ›", one line of words as the cards set it (M9.1). */}
             {here && <span class="settings-connected">{menu ? w('web.settings.connected') : `${w('web.settings.connected')} ›`}</span>}

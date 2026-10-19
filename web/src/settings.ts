@@ -88,3 +88,41 @@ export function shownValue(e: Entry, v: string | undefined, titles: { harness: s
 export function differs(s: Settings | undefined): Entry[] {
   return ENTRIES.filter((e) => at(s?.project, e.key) !== undefined);
 }
+
+type Rule = Record<string, unknown> & { id: string };
+
+/** A rule's field set (or taken out with null) in the list that holds the
+ * layer's rules; a rule's id and nothing else is taken out; null when the
+ * list is empty. A rule of the person's own gets what RingFrame needs. */
+export function withRule(list: unknown, id: string, field: string | null, value: unknown): Rule[] | null {
+  const rules: Rule[] = Array.isArray(list) ? list.map((r) => ({ ...(r as Rule) })) : [];
+  let at = rules.findIndex((r) => r.id === id);
+  if (field === null) {
+    if (at >= 0) rules.splice(at, 1);
+  } else {
+    if (at < 0) at = rules.push({ id }) - 1;
+    if (value === null) delete rules[at][field];
+    else rules[at][field] = value;
+    if (id.startsWith('own.')) {
+      rules[at].applies_to ??= ['implement'];
+      rules[at].tier ??= 'situational';
+    }
+    if (Object.keys(rules[at]).length === 1) rules.splice(at, 1);
+  }
+  return rules.length ? rules : null;
+}
+
+/** What judges must not do, a line added (`+`) or one taken out by its place;
+ * emptied, the list denies nothing and stays. */
+export function withDeny(list: unknown, which: '+' | number, value: string | null): string[] {
+  const lines = Array.isArray(list) ? (list as string[]).slice() : [];
+  if (which === '+' && value) lines.push(value);
+  else if (typeof which === 'number') lines.splice(which, 1);
+  return lines;
+}
+
+/** A practice's id as words: `autonomous-trading` is "Autonomous trading". */
+export function domainName(id: string): string {
+  const words = id.replace(/-/g, ' ');
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}

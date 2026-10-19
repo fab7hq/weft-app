@@ -10,10 +10,11 @@ import * as m from '../machine';
 import { back, swap } from '../nav';
 import { EFFORTS, ENTRIES, type Entry, KEYS, at, differs, machineSwitch, shownValue } from '../settings';
 import { fill, w } from '../words';
+import { HarnessesTab, ProjectRingFrame, RingFrameTab } from './RingFrameSettings';
 import { Mark } from './Tree';
 
 type Which = 'turbo' | 'login' | 'notify' | 'suggest';
-type Tab = 'general' | 'workflow';
+type Tab = 'general' | 'workflow' | 'ringframe' | 'harnesses';
 
 /** The machine's rows, each a switch the cards draw. */
 const ROWS: [Which, string, string][] = [
@@ -82,7 +83,12 @@ export function MachineSettings({ machine, wide, tab }: { machine: api.Machine; 
   const project = m.tree.value[0]?.project;
   const s = useSettings(project);
   const name = { machine: machine.name };
-  const tabs: [Tab, string][] = [['general', 'desktop.settings.tab.general'], ['workflow', 'desktop.settings.tab.workflow']];
+  const tabs: [Tab, string][] = [
+    ['general', 'desktop.settings.tab.general'],
+    ['workflow', 'desktop.settings.tab.workflow'],
+    ['ringframe', 'desktop.settings.tab.ringframe'],
+    ['harnesses', 'desktop.settings.tab.harnesses'],
+  ];
   return (
     <div class="app">
       <Bar wide={wide} machine={machine.name} title={machine.name} backTo={w('web.settings.title')} />
@@ -121,6 +127,10 @@ export function MachineSettings({ machine, wide, tab }: { machine: api.Machine; 
               <p>{fill('web.machine.foot', name)}</p>
             </div>
           </>
+        ) : tab === 'ringframe' ? (
+          <RingFrameTab project={project} />
+        ) : tab === 'harnesses' ? (
+          <HarnessesTab project={project} />
         ) : (
           <>
             <div class="fab7-group settings-group">{w('desktop.settings.acts')}</div>
@@ -173,6 +183,7 @@ export function ProjectSettings({ machine, project, wide }: { machine: api.Machi
           const said = shownValue(e, every, titles);
           return <Row key={e.name} e={e} s={s?.project} project={project} scope="project" every={every === undefined ? w(said) : said} />;
         })}
+        <ProjectRingFrame project={project} />
         <select class="settings-select settings-add" value="" onChange={(ev) => setAdding((ev.target as HTMLSelectElement).value || null)}>
           <option value="">{w('desktop.project.add')}</option>
           {addable.map((e) => <option key={e.name} value={e.name}>{label(e)}</option>)}

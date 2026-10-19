@@ -93,3 +93,10 @@
 .settings-input::placeholder { color: var(--fab7-faint); }
 .settings-add { align-self: flex-start; margin: 12px 16px; color: var(--fab7-accent); }
 .settings-reset { border: 0; background: none; color: var(--fab7-accent); font: 13px var(--font-sans); cursor: pointer; }
+/* RingFrame and Harnesses: a changed rule, a rule opened to edit, the preview. */
+.settings-row--changed { background: var(--fab7-selected); }
+.settings-row--on { color: var(--fab7-accent); }
+.settings-edit { display: flex; flex-direction: column; gap: 6px; padding-top: 8px; }
+.settings-edit label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--fab7-muted); }
+.settings-edit .settings-input { max-width: 100%; }
+.settings-preview { margin: 8px 16px; padding: 10px; border: 1px solid var(--fab7-accent); border-radius: var(--weft-radius-control); font: 11px var(--font-mono); color: var(--fab7-muted); white-space: pre-wrap; }

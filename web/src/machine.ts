@@ -461,6 +461,13 @@ export async function askSettings(project: string): Promise<void> {
   if (r?.type === 'ok') settings.value = { ...settings.value, [project]: r.settings as Settings };
 }
 
+/** What Settings reads of RingFrame through the machine: its `rules`, a
+ * `preview` (`<host>|<route>|<task>`) or a harness's `profile`. */
+export async function readSettings(project: string, what: 'rules' | 'preview' | 'profile', unit: string): Promise<Record<string, unknown> | null> {
+  const r = await request({ type: 'settings', project, what, unit });
+  return r?.type === 'ok' ? (r.settings as Record<string, unknown>) : null;
+}
+
 /** One setting changed on the machine, for every project or this one; every
  * device is told. What the machine would not take, it says. */
 export async function setSetting(project: string, scope: 'machine' | 'project', key: string[], value: unknown): Promise<string | null> {

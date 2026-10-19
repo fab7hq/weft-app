@@ -60,3 +60,26 @@ describe('Workflow and a project\'s own settings', () => {
     expect(ENTRIES.some((e) => e.key[0] === 'turbo')).toBe(false);
   });
 });
+
+import { domainName, withDeny, withRule } from '../src/settings';
+
+describe('RingFrame, written as RingFrame reads it', () => {
+  it('sets a rule\'s field in the list that holds it, and takes an emptied rule out', () => {
+    const list = [{ id: 'practice.kiss', enabled: false }];
+    expect(withRule(list, 'practice.kiss', 'enabled', true)).toEqual([{ id: 'practice.kiss', enabled: true }]);
+    expect(withRule(list, 'practice.yagni', 'tier', 'situational')).toEqual([...list, { id: 'practice.yagni', tier: 'situational' }]);
+    expect(withRule(list, 'practice.kiss', null, null)).toBeNull();
+    expect(withRule(list, 'practice.kiss', 'enabled', null)).toBeNull();
+    expect(withRule([], 'own.1', 'text', 'Say it plainly.')).toEqual([{ id: 'own.1', text: 'Say it plainly.', applies_to: ['implement'], tier: 'situational' }]);
+  });
+
+  it('adds and removes a line of what judges must not do; emptied, the list denies nothing', () => {
+    expect(withDeny(undefined, '+', 'Push.')).toEqual(['Push.']);
+    expect(withDeny(['Push.', 'Delete.'], 0, null)).toEqual(['Delete.']);
+    expect(withDeny(['Push.'], 0, null)).toEqual([]);
+  });
+
+  it('names a practice in words', () => {
+    expect(domainName('autonomous-trading')).toBe('Autonomous trading');
+  });
+});

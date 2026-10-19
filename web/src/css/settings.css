@@ -87,3 +87,9 @@
 .settings-tab { padding: 12px 10px; border: 0; border-bottom: 2px solid transparent; background: none; color: var(--fab7-muted); font: 14px var(--font-sans); white-space: nowrap; cursor: pointer; }
 .settings-tab--on { color: var(--fab7-text); font-weight: 600; border-bottom-color: var(--fab7-accent); }
 .switch--turbo .switch-input:checked + .switch-track { background: var(--fab7-amber); }
+/* Workflow's and a project's own settings: a choice, a model typed, Reset. */
+.settings-row--setting { cursor: default; }
+.settings-select, .settings-input { min-width: 0; max-width: 55%; padding: 7px 10px; border: 1px solid var(--fab7-line); border-radius: var(--weft-radius-control); background: var(--fab7-surface); color: var(--fab7-text); font: 14px var(--font-sans); }
+.settings-input::placeholder { color: var(--fab7-faint); }
+.settings-add { align-self: flex-start; margin: 12px 16px; color: var(--fab7-accent); }
+.settings-reset { border: 0; background: none; color: var(--fab7-accent); font: 13px var(--font-sans); cursor: pointer; }

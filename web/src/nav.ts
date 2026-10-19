@@ -21,7 +21,9 @@ export type View =
   | { name: 'start'; machine: string; from: string; harness?: string; project?: string }
   | { name: 'settings' }
   /** A machine's own settings, on one of its tabs. */
-  | { name: 'machine'; machine: string };
+  | { name: 'machine'; machine: string; tab?: 'general' | 'workflow' }
+  /** A project's own settings: what differs from every project's. */
+  | { name: 'project'; machine: string; project: string };
 
 export const stack = signal<View[]>([]);
 

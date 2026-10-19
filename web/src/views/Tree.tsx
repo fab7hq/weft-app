@@ -354,6 +354,15 @@ function ProjectRows({ p, moves, hit }: { p: m.Project; moves: Moves; hit?: { n:
         {!open && !hit && !p.reopened && p.needs > 0 && (
           <span class="tree-aside needs" data-needs-you="true">{`■ ${p.needs}`}</span>
         )}
+        {/* The project's own settings (M9.12): what differs from every project's. */}
+        <button
+          class="tree-plus"
+          type="button"
+          aria-label={fill('desktop.project.title', { project: p.project })}
+          onClick={(e) => (e.stopPropagation(), go({ name: 'project', machine: machine.id, project: p.project }))}
+        >
+          ⋯
+        </button>
         {/* Start an agent in this project (M9.8): the project is already chosen. */}
         <button
           class="tree-plus"

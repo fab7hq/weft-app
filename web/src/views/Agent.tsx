@@ -39,10 +39,11 @@ export function Agent({ machine, agent, embedded = false, current = true, onPick
   // An act's why, on a phone, where no tree bar is drawn to say it.
   const said = mine ?? (embedded ? null : actSaid.value);
   // A key, from the key bar, the answer strip or the screen: its refusal is said here.
+  /** Send keys; the promise settles once the machine has answered. */
   const key = (bytes: number[]) => {
     setSaid(null);
     if (!live) return setSaid(notLive(a));
-    void m.request({ type: 'keys', agent, bytes: b64(bytes) })?.then((r) => setSaid(refusal(r)));
+    return m.request({ type: 'keys', agent, bytes: b64(bytes) })?.then((r) => setSaid(refusal(r)));
   };
   const showHistory = async () => {
     const answer = await m.request({ type: 'read', agent, what: 'history' });

@@ -73,6 +73,45 @@ export function wholeFont(fits: number): number {
   return Math.max(MIN_FONT, Math.min(DRIVING_FONT, Math.floor(fits)));
 }
 
+/** The rows a wheel event scrolls, as a terminal counts them: its distance
+ * over the cell's height, its lines as given, or its pages of `rows`. */
+export function wheelRows(e: Pick<WheelEvent, 'deltaY' | 'deltaMode'>, cellHeight: number, rows: number): number {
+  if (e.deltaMode === 1) return e.deltaY;
+  if (e.deltaMode === 2) return e.deltaY * rows;
+  return e.deltaY / cellHeight;
+}
+
+/** What the wheel or a finger moved, in rows (up negative), gathered over an
+ * animation frame and sent as one message, one report per whole row; the
+ * rest waits for more. While a message is unacked nothing is sent, and what
+ * was gathered goes in the next one. */
+export function wheelGatherer(send: (bytes: number[]) => Promise<unknown> | void, next: (f: () => void) => void = requestAnimationFrame): (rows: number, report: (up: boolean) => string) => void {
+  let gathered = 0;
+  let report = (_up: boolean) => '';
+  let [waiting, planned] = [false, false];
+  const plan = () => {
+    if (!planned) (planned = true), next(flush);
+  };
+  const flush = () => {
+    planned = false;
+    const whole = Math.trunc(gathered);
+    if (waiting || !whole) return;
+    gathered -= whole;
+    const sent = send(Array.from(report(whole < 0).repeat(Math.abs(whole)), (c) => c.charCodeAt(0)));
+    if (!sent) return;
+    waiting = true;
+    void sent.finally(() => {
+      waiting = false;
+      if (Math.abs(gathered) >= 1) plan();
+    });
+  };
+  return (rows, reportFor) => {
+    gathered += rows;
+    report = reportFor;
+    plan();
+  };
+}
+
 /** Rows and columns this device fits at the normal text size. */
 export function fit(el: HTMLElement): { rows: number; cols: number } {
   const r = el.getBoundingClientRect();
@@ -82,7 +121,7 @@ export function fit(el: HTMLElement): { rows: number; cols: number } {
   };
 }
 
-export function Screen({ agent, current = true, bars = false, history, onHistory, onTop, onLive, onKey, box }: { agent: string; /** The side with the keys, of two side by side. */ current?: boolean; /** A phone's scroll bars (M3.3, M3.14). */ bars?: boolean; history: string | null; onHistory: () => void; onTop: () => void; onLive: () => void; onKey: (bytes: number[]) => void; box: { current: HTMLDivElement | null } }) {
+export function Screen({ agent, current = true, bars = false, history, onHistory, onTop, onLive, onKey, box }: { agent: string; /** The side with the keys, of two side by side. */ current?: boolean; /** A phone's scroll bars (M3.3, M3.14). */ bars?: boolean; history: string | null; onHistory: () => void; onTop: () => void; onLive: () => void; /** Sends keys; its promise settles once the machine has acked them. */ onKey: (bytes: number[]) => Promise<unknown> | void; box: { current: HTMLDivElement | null } }) {
   const host = useRef<HTMLDivElement>(null);
   const shown = useRef<HTMLPreElement>(null);
   // Where the screen and the history are scrolled to, for the bars.
@@ -184,30 +223,22 @@ export function Screen({ agent, current = true, bars = false, history, onHistory
     m.watch(agent, frame, fit(el));
     /** An agent that asked for mouse reports (as Codex does in its full
      * screen) scrolls itself: the wheel goes to it as a terminal sends it,
-     * button 64 up, 65 down, at the cell under the pointer. */
-    const wheelTo = (up: boolean, x: number, y: number): boolean => {
-      if (term.modes.mouseTrackingMode === 'none') return false;
-      const r = el.querySelector('.xterm-screen')?.getBoundingClientRect();
+     * button 64 up, 65 down, at the cell under the pointer, a report a row. */
+    const gather = wheelGatherer(onKey);
+    const cellHeight = () => (drawn()?.offsetHeight ?? 0) / term.rows || cell.height;
+    const wheelTo = (rows: number, x: number, y: number) => {
+      const r = drawn()?.getBoundingClientRect();
       const at = (v: number, from: number, size: number, n: number) => Math.min(n, Math.max(1, Math.floor(((v - from) / size) * n) + 1));
       const [col, row] = r?.width ? [at(x, r.left, r.width, term.cols), at(y, r.top, r.height, term.rows)] : [1, 1];
-      const button = up ? 64 : 65;
-      const report = sgr ? `\x1b[<${button};${col};${row}M` : `\x1b[M${String.fromCharCode(32 + button, 32 + Math.min(col, 223), 32 + Math.min(row, 223))}`;
-      onKey(Array.from(report, (c) => c.charCodeAt(0)));
-      return true;
+      gather(rows, (up) => {
+        const button = up ? 64 : 65;
+        return sgr ? `\x1b[<${button};${col};${row}M` : `\x1b[M${String.fromCharCode(32 + button, 32 + Math.min(col, 223), 32 + Math.min(row, 223))}`;
+      });
     };
     // Only an active pane scrolls: until then, the app is for its buttons.
-    let wheeled = 0;
     const wheel = (e: WheelEvent) => {
       if (!active()) return;
-      if (term.modes.mouseTrackingMode !== 'none') {
-        // A report for each notch's worth, so a trackpad does not flood it.
-        wheeled += e.deltaY;
-        while (Math.abs(wheeled) >= 40) {
-          wheelTo(wheeled < 0, e.clientX, e.clientY);
-          wheeled -= Math.sign(wheeled) * 40;
-        }
-        return;
-      }
+      if (term.modes.mouseTrackingMode !== 'none') return wheelTo(wheelRows(e, cellHeight(), term.rows), e.clientX, e.clientY);
       if (e.deltaY < 0) onHistory();
     };
     // In the capture phase: xterm's own viewport handles the wheel and stops it.
@@ -218,12 +249,11 @@ export function Screen({ agent, current = true, bars = false, history, onHistory
     const move = (e: TouchEvent) => {
       const t = e.touches[0];
       const y = t?.clientY;
-      // An agent that scrolls itself: a report for every 30 px the finger moves.
+      // An agent that scrolls itself: the rows the finger moved, as a wheel
+      // counts them; pulling the screen down scrolls up.
       if (active() && from !== null && y !== undefined && term.modes.mouseTrackingMode !== 'none') {
-        while (Math.abs(y - from) >= 30) {
-          wheelTo(y > from, t.clientX, y);
-          from += Math.sign(y - from) * 30;
-        }
+        wheelTo((from - y) / cellHeight(), t.clientX, y);
+        from = y;
         return;
       }
       if (active() && from !== null && y !== undefined && y - from > 40) {

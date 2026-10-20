@@ -210,9 +210,13 @@ test('an agent that asked for mouse reports gets the wheel, as in a terminal; no
   await pane(page).click();
   await expect(pane(page)).toHaveAttribute('data-active', 'true');
   await page.mouse.wheel(0, -300);
-  await expect.poll(() => wheels(machine).some((b) => /^\x1b\[<64;\d+;\d+M$/.test(b))).toBe(true);
+  await expect.poll(() => wheels(machine).some((b) => /^(\x1b\[<64;\d+;\d+M)+$/.test(b))).toBe(true);
+  // One message for the gesture, a report for each row it scrolls.
+  const up = wheels(machine).filter((b) => b.startsWith('\x1b[<64;'));
+  expect(up).toHaveLength(1);
+  expect(up[0].split('\x1b').length - 1).toBeGreaterThanOrEqual(3);
   await page.mouse.wheel(0, 300);
-  await expect.poll(() => wheels(machine).some((b) => /^\x1b\[<65;\d+;\d+M$/.test(b))).toBe(true);
+  await expect.poll(() => wheels(machine).some((b) => /^(\x1b\[<65;\d+;\d+M)+$/.test(b))).toBe(true);
   expect(machine.of('read').filter((r) => r.what === 'history')).toHaveLength(0);
   await expect(pane(page).getByLabel('History')).toHaveCount(0);
   await machine.close();

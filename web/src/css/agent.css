@@ -52,8 +52,10 @@
 /* Active: a 2 px blue border, the screen where it was. */
 /* Alone, the pane needs no frame; split, the one you are in is framed. */
 /* The agent's screen, at the agent's own size: a wider one scrolls sideways; a
-   vertical drag is the app's (the history), never the page's, so it never reloads it. */
-.pane-screen { width: 100%; height: 100%; overflow: auto hidden; touch-action: pan-x; overscroll-behavior: contain; scrollbar-width: thin; }
+   vertical drag is the app's (the history), never the page's, so it never reloads it.
+   Its own stacking context: xterm.js's layers (WebGL's link canvas among them)
+   stay under the history and the scroll bars drawn over it. */
+.pane-screen { width: 100%; height: 100%; overflow: auto hidden; touch-action: pan-x; overscroll-behavior: contain; scrollbar-width: thin; isolation: isolate; }
 /* A phone's scroll bars (M3.3, M3.14): up and down at the right, sideways at the bottom. */
 .pane-bar { position: absolute; z-index: 2; background: var(--fab7-surface); touch-action: none; }
 .pane-bar span { position: absolute; background: var(--fab7-line-hover); }

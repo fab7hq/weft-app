@@ -6,7 +6,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { CLAUDE, CODEX, CODEX_NEW, DOCS } from './atlas-fixtures';
 import { FakeMachine, atlas } from './fake-machine';
-import { openAgent, row } from './open';
+import { drawWithDom, openAgent, row } from './open';
 import { person, signIn } from './seed';
 
 const DOCS_CLAUDE = `${DOCS}-0`;
@@ -47,6 +47,7 @@ test.describe('desktop', () => {
   test.skip(({ isMobile }) => isMobile, 'a desktop');
 
   test('Split right moves the tab shown to a new pane, which has the keys; each pane its own tabs, frames and keys; one message row for the agent in front', async ({ page, context }) => {
+    await drawWithDom(page);
     const machine = await opened(page, context);
     await tab(page, 'docs · claude').click();
     await layout(page, 'Split right');

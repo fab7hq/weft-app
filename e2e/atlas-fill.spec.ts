@@ -4,7 +4,7 @@
 // and past that it scrolls sideways (M3.14). The app never sends a `size`.
 import { expect, test, type Page } from '@playwright/test';
 import { FakeMachine, atlas } from './fake-machine';
-import { openAgent } from './open';
+import { drawWithDom, openAgent } from './open';
 import { person, signIn } from './seed';
 
 const CODEX = '3f9a1c07b2de-1';
@@ -35,6 +35,7 @@ async function opened(page: Page, context: Parameters<typeof signIn>[0]) {
   const machine = await FakeMachine.start();
   Object.assign(machine, atlas());
   await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
+  await drawWithDom(page);
   await page.goto('/');
   await openAgent(page, 'codex · health endpoint');
   await expect.poll(() => machine.of('watch').at(-1)?.agent).toBe(CODEX);

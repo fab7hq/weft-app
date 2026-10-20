@@ -1,6 +1,8 @@
 // One agent's screen, drawn by xterm.js from the machine's frames
-// (web-app.md §6): a whole frame resets it first, every frame is written as
-// it is. Input from xterm.js itself is off; links are not opened.
+// (web-app.md §6): every frame is painted whole, a whole one resetting the
+// screen first, and drawn with WebGL where the browser can. Input from
+// xterm.js itself is off; links are not opened.
+import { WebglAddon } from '@xterm/addon-webgl';
 import { Terminal } from '@xterm/xterm';
 import '@xterm/xterm/css/xterm.css';
 import { useEffect, useRef, useState } from 'preact/hooks';
@@ -21,6 +23,54 @@ const MONO_FALLBACK = "ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas,
 function bytes(b64: string): Uint8Array {
   const s = atob(b64);
   return Uint8Array.from(s, (c) => c.charCodeAt(0));
+}
+
+/** A frame as xterm.js is given it: inside a synchronized update, so it is
+ * painted at once and whole. A whole screen starts with a full reset
+ * (`ESC c`), read in order with the frames before it; the update opens after
+ * it, since a reset ends one. */
+function framed(full: boolean, data: Uint8Array): Uint8Array {
+  const open = new TextEncoder().encode(`${full ? '\x1bc' : ''}\x1b[?2026h`);
+  const close = new TextEncoder().encode('\x1b[?2026l');
+  const out = new Uint8Array(open.length + data.length + close.length);
+  out.set(open);
+  out.set(data, open.length);
+  out.set(close, open.length + data.length);
+  return out;
+}
+
+/** What draws an agent's frames on `term`, each one whole. `fit` is called
+ * once the terminal has taken a size it was not fitted to yet. */
+export function frameWriter(term: Pick<Terminal, 'rows' | 'cols' | 'resize' | 'write'>, fit: (rows: number, cols: number) => void): (f: m.Frame) => void {
+  let fitted = '';
+  return (f) => {
+    if (f.full && `${f.rows}x${f.cols}` !== fitted) {
+      fitted = `${f.rows}x${f.cols}`;
+      if (term.rows !== f.rows || term.cols !== f.cols) term.resize(f.cols, f.rows);
+      fit(f.rows, f.cols);
+    }
+    term.write(framed(f.full, bytes(f.bytes)));
+  };
+}
+
+/** Draw with WebGL wherever the browser has WebGL2, Safari and iOS included
+ * (README, "Drawing in WebKit"). xterm.js waits 3 s for a lost context to
+ * come back; one that does not leaves the screen to the DOM renderer. */
+export function drawWithWebgl(term: Terminal, webgl2: boolean, make: () => WebglAddon = () => new WebglAddon()): void {
+  if (!webgl2) return;
+  try {
+    const gl = make();
+    gl.onContextLoss(() => gl.dispose());
+    term.loadAddon(gl);
+  } catch {
+    // Its context would not start: the DOM renderer draws.
+  }
+}
+
+/** The largest whole font size, from MIN_FONT to DRIVING_FONT, not past the
+ * size that `fits`. */
+export function wholeFont(fits: number): number {
+  return Math.max(MIN_FONT, Math.min(DRIVING_FONT, Math.floor(fits)));
 }
 
 /** Rows and columns this device fits at the normal text size. */
@@ -71,15 +121,39 @@ export function Screen({ agent, current = true, bars = false, history, onHistory
       linkHandler: null,
     });
     term.open(el);
+    drawWithWebgl(term, typeof WebGL2RenderingContext !== 'undefined');
+    const drawn = () => el.querySelector<HTMLElement>('.xterm-screen');
     const measure = () => {
-      const opened = el.querySelector('.xterm-screen')?.getBoundingClientRect();
-      if (opened?.width && opened.height && term.options.fontSize === DRIVING_FONT) cell = { width: opened.width / term.cols, height: opened.height / term.rows };
+      const opened = drawn();
+      if (opened?.offsetWidth && opened.offsetHeight && term.options.fontSize === DRIVING_FONT) cell = { width: opened.offsetWidth / term.cols, height: opened.offsetHeight / term.rows };
     };
     measure();
+    // Weft owns the agent's size (ADR-0038): it is drawn at it, never
+    // resized. A narrower one at the normal text size, the rest empty; a
+    // wider one at the largest whole font size that fits, down to MIN_FONT,
+    // and past that it scrolls sideways. Whole sizes only: under a CSS scale,
+    // xterm.js selects the wrong cells (xterm.js #6023).
+    let fitting = 0;
+    const fitTo = (rows: number, cols: number) => {
+      const { width, height } = el.getBoundingClientRect();
+      if (!width || !height) return;
+      term.options.fontSize = wholeFont(DRIVING_FONT * Math.min(width / (cols * cell.width), height / (rows * cell.height)));
+      cancelAnimationFrame(fitting);
+      fitting = requestAnimationFrame(() => (fitting = requestAnimationFrame(() => cutOff(width, height))));
+    };
+    // Once xterm.js has drawn at it (two frames): a size that a rounded cell
+    // left cut off, one smaller.
+    const cutOff = (width: number, height: number) => {
+      const screen = drawn();
+      const font = term.options.fontSize ?? DRIVING_FONT;
+      if (screen && font > MIN_FONT && (screen.offsetWidth > width + 0.5 || screen.offsetHeight > height + 0.5)) {
+        term.options.fontSize = font - 1;
+        fitting = requestAnimationFrame(() => (fitting = requestAnimationFrame(() => cutOff(width, height))));
+      } else moved();
+    };
     // The Atlas's mono, once it has loaded: xterm.js measures its cell again
-    // when the family changes, so it is set only then.
     // when the family changes, so it is set only then; the size `watch` gave
-    // is given again in the new cell.
+    // is given again in the new cell, and the screen fitted again.
     if (!loaded)
       void document.fonts?.load(`${DRIVING_FONT}px "JetBrains Mono"`).then(() => {
         if (gone) return;
@@ -87,56 +161,26 @@ export function Screen({ agent, current = true, bars = false, history, onHistory
         requestAnimationFrame(() => {
           if (gone) return;
           const before = fit(el);
-          measure();
-          const now = fit(el);
-          if (now.rows !== before.rows || now.cols !== before.cols) m.watch(agent, frame, now);
+          term.options.fontSize = DRIVING_FONT;
+          requestAnimationFrame(() => {
+            if (gone) return;
+            measure();
+            fitTo(term.rows, term.cols);
+            const now = fit(el);
+            if (now.rows !== before.rows || now.cols !== before.cols) m.watch(agent, frame, now);
+          });
         });
       });
     // A double tap or click makes the pane active (M3.3); it never selects text.
     el.addEventListener('mousedown', (e) => e.detail > 1 && (e.preventDefault(), e.stopPropagation()), { capture: true });
-    let cols = 80;
-    // Until nothing is cut off: shrink the font by what overflows, once
-    // xterm.js has drawn at it (two frames), and look again.
-    let settling = 0;
-    const settle = () => {
-      cancelAnimationFrame(settling);
-      settling = requestAnimationFrame(() => (settling = requestAnimationFrame(() => {
-        const { width, height } = el.getBoundingClientRect();
-        const drawn = el.querySelector('.xterm-screen')?.getBoundingClientRect();
-        const now = term.options.fontSize ?? DRIVING_FONT;
-        if (!drawn?.width || !drawn.height || now <= MIN_FONT) return moved();
-        const over = Math.min(width / drawn.width, height / drawn.height);
-        if (over < 0.999) {
-          term.options.fontSize = Math.max(MIN_FONT, Math.floor(now * over * 10) / 10);
-          settle();
-        } else moved();
-      })));
-    };
-    // Weft owns the agent's size (ADR-0038): it is drawn at it, never
-    // resized. A narrower one at the normal text size, the rest empty; a wider
-    // one smaller to fit, down to MIN_FONT, and past that it scrolls sideways.
-    const size = (rows: number, c: number) => {
-      cols = c;
-      if (term.rows !== rows || term.cols !== c) term.resize(c, rows);
-      const { width, height } = el.getBoundingClientRect();
-      const fits = DRIVING_FONT * Math.min(width / (cols * cell.width), height / (rows * cell.height));
-      term.options.fontSize = Math.max(MIN_FONT, Math.min(DRIVING_FONT, Math.floor(fits * 10) / 10));
-      settle();
-    };
     // Whether the agent asked for SGR mouse reports (1006): xterm.js keeps
-    // the tracking mode, not the encoding.
+    // the tracking mode, not the encoding. A full reset forgets it.
     let sgr = false;
     const has1006 = (params: (number | number[])[]) => params.some((p) => p === 1006);
     term.parser.registerCsiHandler({ prefix: '?', final: 'h' }, (p) => ((sgr ||= has1006(p)), false));
     term.parser.registerCsiHandler({ prefix: '?', final: 'l' }, (p) => ((sgr &&= !has1006(p)), false));
-    const frame = (f: m.Frame) => {
-      if (f.full) {
-        term.reset();
-        sgr = false;
-        size(f.rows, f.cols);
-      }
-      term.write(bytes(f.bytes));
-    };
+    term.parser.registerEscHandler({ final: 'c' }, () => ((sgr = false), false));
+    const frame = frameWriter(term, fitTo);
     m.watch(agent, frame, fit(el));
     /** An agent that asked for mouse reports (as Codex does in its full
      * screen) scrolls itself: the wheel goes to it as a terminal sends it,
@@ -195,7 +239,7 @@ export function Screen({ agent, current = true, bars = false, history, onHistory
       el.removeEventListener('touchmove', move);
       gone = true;
       m.unwatch(agent);
-      cancelAnimationFrame(settling);
+      cancelAnimationFrame(fitting);
       term.dispose();
     };
   }, [agent]);

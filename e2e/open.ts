@@ -7,6 +7,11 @@ export const wideOf = (page: Page) => page.viewportSize()!.width >= 768;
 export const shown = (page: Page) =>
   wideOf(page) ? page.getByRole('navigation', { name: 'Tabs' }).locator('[aria-current="page"]') : page.locator('.agent-name');
 
+/** Start the page with no WebGL2, so the screen is drawn with the DOM: for
+ * a test that reads the text xterm.js drew from its rows. */
+export const drawWithDom = (page: Page) =>
+  page.addInitScript(() => delete (window as { WebGL2RenderingContext?: unknown }).WebGL2RenderingContext);
+
 /** A row of the tree, by its name. */
 export const row = (page: Page, name: string | RegExp) => page.getByRole('treeitem', { name, exact: typeof name === 'string' }).first();
 

@@ -5,12 +5,13 @@ import path from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
 import { FakeMachine, agent } from './fake-machine';
 import { pull } from './touch';
-import { openAgent, shown } from './open';
+import { drawWithDom, openAgent, shown } from './open';
 import { person, signIn } from './seed';
 
 const fixtures = path.join(import.meta.dirname, '../../weft/crates/weftd/tests/fixtures/screens');
 
 async function opened(page: Page, machine: FakeMachine, which = 'claude-code · no Ask yet') {
+  await drawWithDom(page);
   await page.goto('/');
   await openAgent(page, which);
   await expect.poll(() => machine.of('watch').length).toBeGreaterThan(0);

@@ -8,7 +8,7 @@ import { card } from './card';
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import { FakeMachine, atlas, project, sessionOf, type Agent, type Detail, type Project } from './fake-machine';
 import { pull, swipeLeft } from './touch';
-import { openAgent } from './open';
+import { drawWithDom, openAgent } from './open';
 import { person, signIn } from './seed';
 import { CLAUDE, CODEX, CODEX_NEW, DETAILS, S7, SESSIONS, VIEW, at, row } from './atlas-fixtures';
 
@@ -951,6 +951,8 @@ const SCREENS: Screen[] = [
   } },
   // The Mac shows openbox · claude in a narrow pane: the agent is 46 columns, drawn at its own size.
   { ids: ['D3.14'], sample: across, run: async (at) => {
+    // Its wait reads the agent's text, which WebGL draws in a canvas.
+    await drawWithDom(at.page);
     await twoPanes(at);
     const narrow = ['● Write(src/billing.rs)', '  Do you want to make this edit', '  to billing.rs?', '  ❯ 1. Yes', "    2. Yes, and don't ask again", '       this session', '    3. No, and tell Claude what', '       to do differently'];
     at.machine.send({ type: 'screen', agent: OPENBOX_CLAUDE, seq: 2, full: true, rows: 24, cols: 46, bytes: Buffer.from(narrow.join('\r\n')).toString('base64') });

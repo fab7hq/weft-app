@@ -385,9 +385,9 @@ export class FakeMachine {
     }
     if (m.what === 'profile') {
       return ok({ capabilities: [
-        { id: 'native_plan', delivery_mode: 'native_dispatch' },
-        { id: 'native_goal', delivery_mode: 'human_handoff', max_prompt_chars: 4000 },
-        { id: 'native_direct', delivery_mode: 'native_dispatch' }], paste_fold_chars: 512 });
+        { id: 'native_goal', delivery_mode: 'human_handoff', max_prompt_chars: 4000, purpose: 'Keeps working, turn after turn, until the goal is met' },
+        { id: 'native_plan', delivery_mode: 'native_dispatch', purpose: 'Plans first, and changes nothing until you approve the plan' },
+        { id: 'native_direct', delivery_mode: 'native_dispatch', purpose: 'Does the work now, in this turn' }], paste_fold_chars: 512 });
     }
     if (m.what === 'harnesses') {
       return ok([

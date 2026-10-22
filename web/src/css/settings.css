@@ -117,6 +117,7 @@ button.rf-name { cursor: pointer; }
 .rf-said { font: 11px var(--font-mono); color: var(--fab7-muted); white-space: nowrap; }
 .rf-said--changed { color: var(--fab7-accent); }
 .rf-said--beside { display: none; }
+.rf-said--wrap { white-space: normal; font: 12px var(--font-sans); }
 .rf-link { padding: 0; border: 0; background: none; color: var(--fab7-accent); font: 13px var(--font-sans); white-space: nowrap; cursor: pointer; }
 .rf-rule > .rf-link, .rf-remove { display: none; }
 .rf-remove--open { display: inline; }
@@ -155,6 +156,7 @@ button.rf-name { cursor: pointer; }
   .rf-name { flex: 0 0 180px; }
   .rf-name .rf-said--under { display: none; }
   .rf-text { display: block; flex: 1; min-width: 0; font-size: 13px; color: var(--fab7-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rf-text--wrap { white-space: normal; }
   .rf-said--beside, .rf-rule > .rf-link, .rf-remove { display: inline; }
   .rf-link--phone, .rf-chevron { display: none; }
   .rf-harness .rf-name { flex: 1; flex-direction: row; align-items: baseline; gap: 10px; }

@@ -243,6 +243,12 @@ export function RingFrameTab({ project }: { project: string }) {
   );
 }
 
+/** What a mode does, in a line for people, and its limit when it has one. */
+function modeSaid(cap: Record<string, unknown>): string {
+  const limit = typeof cap.max_prompt_chars === 'number' ? fill('desktop.harness.limit', { n: String(cap.max_prompt_chars) }) : null;
+  return [typeof cap.purpose === 'string' ? cap.purpose : null, limit].filter(Boolean).join(' · ');
+}
+
 export function HarnessesTab({ project }: { project: string }) {
   const rules = useRules(project);
   const supported = useSupported(project);
@@ -285,9 +291,9 @@ export function HarnessesTab({ project }: { project: string }) {
                   <div key={String(cap.id)} class="rf-row">
                     <span class="rf-name">
                       <span>{w(`desktop.harness.${String(cap.id)}`)}</span>
-                      <span class="rf-said rf-said--under">{typeof cap.max_prompt_chars === 'number' ? fill('desktop.harness.limit', { n: String(cap.max_prompt_chars) }) : String(cap.selection ?? '')}</span>
+                      <span class="rf-said rf-said--under rf-said--wrap">{modeSaid(cap)}</span>
                     </span>
-                    <span class="rf-text">{typeof cap.max_prompt_chars === 'number' ? fill('desktop.harness.limit', { n: String(cap.max_prompt_chars) }) : String(cap.selection ?? '')}</span>
+                    <span class="rf-text rf-text--wrap">{modeSaid(cap)}</span>
                     <span class="rf-said">{w(cap.delivery_mode === 'human_handoff' ? 'desktop.harness.you_send' : 'desktop.harness.weft_sends')}</span>
                   </div>
                 ))}

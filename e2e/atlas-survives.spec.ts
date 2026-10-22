@@ -70,7 +70,7 @@ test('M13.2 D13.2: an older Weft on the machine says to update it, and Try again
   machine.version = FakeMachine.VERSION - 1;
   await opened(page, context, machine);
   await expect(page.getByRole('heading', { name: 'Update Weft on studio' })).toBeVisible();
-  await expect(page.getByText('studio runs an older Weft than this page. On studio, run weft update, then try again.')).toBeVisible();
+  await expect(page.getByText('studio runs an older Weft than this page. Update Weft on studio, then try again.')).toBeVisible();
   // It needs the person: no try by itself.
   const asked = machine.of('pair').length + machine.of('hello').length;
   await page.waitForTimeout(3_000);

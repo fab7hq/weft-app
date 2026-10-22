@@ -706,6 +706,7 @@ const SCREENS: Screen[] = [
       else await at.page.locator('.settings').getByRole('button', { name: /studio/ }).first().click();
       await at.page.getByRole('tab', { name: tab }).click();
       if (tab === 'Harnesses') await expect(at.page.getByText('Route rules · Claude Code')).toBeVisible();
+      if (tab === 'Workflow') await at.page.getByRole('button', { name: /Each judge/ }).click();
     },
   })),
   { ids: ['M9.12', 'D9.12'], run: async (at) => {

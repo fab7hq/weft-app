@@ -64,8 +64,50 @@ export const ENTRIES: Entry[] = [
   ]),
 ];
 
-/** The efforts a role can take; nothing set is the harness's own. */
+/** The efforts a role can take where the harness says none. */
 export const EFFORTS = ['low', 'medium', 'high', 'xhigh'];
+
+/** What a judge in a harness takes, from its harness file's `[eval]`. */
+export interface JudgeEval {
+  efforts: string[];
+  effort: 'model' | 'lookups';
+  models: string[];
+  model_typed: boolean;
+  default: Record<string, string>;
+}
+
+/** The harness Eval's judges run in: the debate's, else Eval's, else not known. */
+export function judgesIn(s: Record<string, unknown> | null | undefined): string | undefined {
+  return at(s, ['eval', 'debate', 'harness']) ?? at(s, ['routing', 'eval']);
+}
+
+export type HowHard = 'quick' | 'balanced' | 'thorough' | 'custom';
+
+/** What each choice of How hard writes into all three judges' efforts. */
+export const HOW_HARD: Record<Exclude<HowHard, 'custom'>, string | null> = { quick: 'low', balanced: null, thorough: 'high' };
+
+/** How hard the judges look: the choice their three efforts make, or Custom. */
+export function howHard(s: Record<string, unknown> | null | undefined): HowHard {
+  const set = ROLES.map(([role]) => at(s, ['eval', 'debate', role, 'effort']) ?? null);
+  const all = (v: string | null) => set.every((x) => x === v);
+  return all(null) ? 'balanced' : all('low') ? 'quick' : all('high') ? 'thorough' : 'custom';
+}
+
+/** A judge's efforts, and what nothing set reads as: its default by its value. */
+export function effortChoices(e: JudgeEval | undefined, role: string): { none: [string, string | null]; efforts: string[] } {
+  const dflt = e?.default[role];
+  return { none: dflt ? ['desktop.settings.effort_default', dflt] : ['desktop.settings.own_effort', null], efforts: e?.efforts ?? EFFORTS };
+}
+
+/** A judge's models, and whether any other may be typed; without a file, typed. */
+export function modelChoices(e: JudgeEval | undefined): { models: string[]; typed: boolean } {
+  return e ? { models: e.models ?? [], typed: e.model_typed } : { models: [], typed: true };
+}
+
+/** The words for what an effort changes in the harness the judges run in. */
+export function reachKey(e: JudgeEval | undefined): string {
+  return e ? `desktop.settings.effort_reaches_${e.effort}` : 'desktop.settings.effort_reaches_unknown';
+}
 
 /** The value at `key` in a settings table, if it holds one. */
 export function at(table: Record<string, unknown> | null | undefined, key: string[]): string | undefined {

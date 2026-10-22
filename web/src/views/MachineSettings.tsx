@@ -1,6 +1,6 @@
 // A machine's own settings (M9.8, M9.9, D9.8, D9.9), from Settings › Machines:
 // General (every project's Turbo, Start at login, Notifications and
-// Suggestions) and Workflow (who does each act, the Eval debate). And a
+// Suggestions) and Workflow (who runs each step, Eval's judges). And a
 // project's own settings (M9.12, D9.12), from its row's ⋯: what differs from
 // every project's. Each is the machine's, changed there at once; every device
 // is told.
@@ -8,9 +8,9 @@ import { useEffect, useState } from 'preact/hooks';
 import type * as api from '../api';
 import * as m from '../machine';
 import { back, swap } from '../nav';
-import { EFFORTS, ENTRIES, type Entry, KEYS, ROLES, at, differs, machineSwitch, shownValue } from '../settings';
+import { ENTRIES, type Entry, HOW_HARD, type HowHard, type JudgeEval, KEYS, ROLES, at, differs, effortChoices, howHard, judgesIn, machineSwitch, modelChoices, reachKey, shownValue } from '../settings';
 import { fill, w } from '../words';
-import { HarnessesTab, ProjectRingFrame, RingFrameTab, ringFrameAddable, useProjectRules } from './RingFrameSettings';
+import { HarnessesTab, ProjectRingFrame, RingFrameTab, ringFrameAddable, useProjectRules, useSupported } from './RingFrameSettings';
 import { Mark } from './Tree';
 
 type Which = 'turbo' | 'login' | 'notify' | 'suggest';
@@ -53,14 +53,23 @@ function label(e: Entry): string {
   return e.role ? fill(e.label, { role: w(e.role) }) : w(e.label);
 }
 
-/** A setting's control: a choice of harnesses or efforts, or a model typed and kept on Enter or leaving. A project's own
- * offers every project's value first, which takes its own away. */
-function Control({ e, value, project, scope, every }: { e: Entry; value: string | undefined; project: string; scope: 'machine' | 'project'; every?: string }) {
+/** What nothing set reads as for a judge's effort: its default by its value. */
+function effortNone(judge: JudgeEval | undefined, role: string): string {
+  const [key, effort] = effortChoices(judge, role).none;
+  return effort ? fill(key, { effort }) : w(key);
+}
+
+/** A setting's control: a choice of harnesses, efforts or models, or a model typed and kept on Enter or leaving. A
+ * judge's efforts and models are its harness's (`judge`). A project's own offers every project's value first, which
+ * takes its own away. */
+function Control({ e, value, project, scope, every, judge }: { e: Entry; value: string | undefined; project: string; scope: 'machine' | 'project'; every?: string; judge?: JudgeEval }) {
   const set = (v: string | null) => void m.setSetting(project, scope, e.key, v === '' ? null : v);
   const [typed, setTyped] = useState(value ?? '');
   useEffect(() => setTyped(value ?? ''), [value]);
   const id = `${scope}-${e.key.join('-')}`;
-  if (e.kind === 'model') {
+  const role = e.key[2] ?? '';
+  const models = modelChoices(judge);
+  if (e.kind === 'model' && models.typed) {
     const keep = () => typed.trim() !== (value ?? '') && set(typed.trim());
     return (
       <input id={id} class="settings-input" value={typed} placeholder={w('desktop.settings.own_model')}
@@ -68,9 +77,12 @@ function Control({ e, value, project, scope, every }: { e: Entry; value: string 
         onKeyDown={(ev) => ev.key === 'Enter' && (ev.target as HTMLInputElement).blur()} />
     );
   }
-  const none = every !== undefined ? fill('desktop.project.every', { value: every }) : w(shownValue(e, undefined, []));
+  if (e.kind === 'model' && models.models.length === 0) return <span class="settings-sub settings-session">{w('desktop.settings.own_model')}</span>;
+  const none = every !== undefined ? fill('desktop.project.every', { value: every })
+    : e.kind === 'effort' ? effortNone(judge, role) : w(shownValue(e, undefined, []));
   const options: [string, string][] =
-    e.kind === 'effort' ? EFFORTS.map((x) => [x, x])
+    e.kind === 'effort' ? effortChoices(judge, role).efforts.map((x) => [x, x])
+    : e.kind === 'model' ? models.models.map((x) => [x, x])
     : m.harnesses.value.filter((h) => h.project === project).map((h) => [h.harness, h.title]);
   return (
     <span class="settings-pick">
@@ -137,11 +149,14 @@ export function MachineSettings({ machine, wide, tab }: { machine: api.Machine; 
         ) : (
           <>
             <div class="fab7-group settings-group">{w('desktop.settings.acts')}</div>
-            {ENTRIES.slice(0, 3).map((e) => <Row key={e.name} e={e} s={s?.machine} project={project} scope="machine" bare />)}
+            {ENTRIES.slice(0, 3).map((e) => <Row key={e.name} e={e} s={s?.machine} project={project} scope="machine" />)}
             <div class="fab7-group settings-group">{w('desktop.settings.debate')}</div>
-            <Row e={ENTRIES[3]} s={s?.machine} project={project} scope="machine" bare />
-            {ROLES.map(([role, , word]) => <RoleRow key={role} role={role} word={word} s={s?.machine} project={project} />)}
-            <div class="settings-foot settings-foot--phone"><p>{w('web.workflow.foot')}</p></div>
+            <Row e={ENTRIES[3]} s={s?.machine} project={project} scope="machine" />
+            <Judges s={s?.machine} project={project} />
+            <div class="settings-foot">
+              <p class="settings-foot--wide">{w('desktop.settings.workflow_foot')}</p>
+              <p class="settings-foot--phone">{w('web.workflow.foot')}</p>
+            </div>
           </>
         )}
       </div>
@@ -149,29 +164,63 @@ export function MachineSettings({ machine, wide, tab }: { machine: api.Machine; 
   );
 }
 
-/** A judge's role on one row: its model and its effort. On a phone the row says
- * both, and opens them. */
-function RoleRow({ role, word, s, project }: { role: string; word: string; s: Record<string, unknown> | null | undefined; project: string }) {
+/** The three judges' choice, what an effort changes in the harness they run
+ * in, and each judge, closed until opened. */
+function Judges({ s, project }: { s: Record<string, unknown> | null | undefined; project: string }) {
+  const supported = useSupported(project);
+  const [open, setOpen] = useState(false);
+  const row = supported?.find((h) => h.harness === judgesIn(s));
+  const judge = row?.eval ?? undefined;
+  const hard = howHard(s);
+  const choose = async (h: Exclude<HowHard, 'custom'>) => {
+    for (const [role] of ROLES) await m.setSetting(project, 'machine', ['eval', 'debate', role, 'effort'], HOW_HARD[h]);
+  };
+  const choices: [Exclude<HowHard, 'custom'>, string][] = [['quick', 'desktop.settings.quick'], ['balanced', 'desktop.settings.balanced'], ['thorough', 'desktop.settings.thorough']];
+  return (
+    <>
+      <div class="settings-row settings-row--setting settings-hard">
+        <span class="settings-text"><span>{w('desktop.settings.how_hard')}</span></span>
+        <span class="settings-seg" role="radiogroup" aria-label={w('desktop.settings.how_hard')}>
+          {choices.map(([h, word]) => (
+            <button key={h} type="button" role="radio" aria-checked={hard === h} class={hard === h ? 'settings-seg--on' : ''} onClick={() => void choose(h)}>{w(word)}</button>
+          ))}
+          {hard === 'custom' && <span class="settings-seg--on" role="radio" aria-checked>{w('desktop.settings.custom')}</span>}
+        </span>
+        <span class="settings-sub settings-reach">{fill(reachKey(judge), { harness: row?.title ?? '' })}</span>
+      </div>
+      <button class={`settings-row settings-judges${open ? ' settings-judges--open' : ''}`} type="button" aria-expanded={open} onClick={() => setOpen(!open)}>
+        <span class="settings-text">{w('desktop.settings.each_judge')}</span>
+        <span class="settings-sub">{open ? '⌄' : '›'}</span>
+      </button>
+      {open && ROLES.map(([role, , word]) => <RoleRow key={role} role={role} word={word} s={s} project={project} judge={judge} />)}
+    </>
+  );
+}
+
+/** A judge on one row: its model and its effort. On a phone the row says its
+ * model under its name and its effort beside it, and opens both. */
+function RoleRow({ role, word, s, project, judge }: { role: string; word: string; s: Record<string, unknown> | null | undefined; project: string; judge?: JudgeEval }) {
   const [open, setOpen] = useState(false);
   const [model, effort] = ['model', 'effort'].map((f) => ENTRIES.find((e) => e.key.join('.') === `eval.debate.${role}.${f}`) as Entry);
-  const said = [at(s, model.key) ?? w('web.workflow.own'), at(s, effort.key) ?? w('web.workflow.own')].join(' · ');
+  const chosen = at(s, effort.key);
   return (
     <div class={`settings-row settings-row--setting settings-role${open ? ' settings-role--open' : ''}`}>
       <button class="settings-text settings-role-name" type="button" onClick={() => setOpen(!open)}>
         <span>{w(word)}</span>
-        <span class="settings-sub">{w(`${word}_what`)}</span>
+        <span class="settings-sub settings-role-what">{w(`${word}_what`)}</span>
+        <span class="settings-sub settings-role-model">{at(s, model.key) ?? w('desktop.settings.own_model')}</span>
       </button>
-      <span class="settings-role-said">{said}</span>
+      <span class="settings-role-said">{chosen ?? effortNone(judge, role)}</span>
       <span class="settings-role-controls">
-        <Control e={model} value={at(s, model.key)} project={project} scope="machine" />
-        <Control e={effort} value={at(s, effort.key)} project={project} scope="machine" />
+        <Control e={model} value={at(s, model.key)} project={project} scope="machine" judge={judge} />
+        <Control e={effort} value={chosen} project={project} scope="machine" judge={judge} />
       </span>
     </div>
   );
 }
 
-/** One setting's row: its name and what it does (unless `bare`), and its control; a project's own also says every project's and Reset. */
-function Row({ e, s, project, scope, every, bare }: { e: Entry; s: Record<string, unknown> | null | undefined; project: string; scope: 'machine' | 'project'; every?: string; bare?: boolean }) {
+/** One setting's row: its name and what it does, and its control; a project's own also says every project's and Reset. */
+function Row({ e, s, project, scope, every }: { e: Entry; s: Record<string, unknown> | null | undefined; project: string; scope: 'machine' | 'project'; every?: string }) {
   return (
     <div class="settings-row settings-row--setting">
       <label class="settings-text" for={`${scope}-${e.key.join('-')}`}>
@@ -179,7 +228,7 @@ function Row({ e, s, project, scope, every, bare }: { e: Entry; s: Record<string
         {every !== undefined ? (
           <span class="settings-sub">{fill('desktop.project.every', { value: every })}</span>
         ) : (
-          e.what && !bare && <span class="settings-sub">{w(e.what)}</span>
+          e.what && <span class="settings-sub">{w(e.what)}</span>
         )}
       </label>
       <Control e={e} value={at(s, e.key)} project={project} scope={scope} every={every} />

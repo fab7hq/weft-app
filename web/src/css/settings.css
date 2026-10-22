@@ -187,6 +187,18 @@ button.rf-name { cursor: pointer; }
 .settings-role-controls { display: none; flex-basis: 100%; gap: 8px; }
 .settings-role--open .settings-role-controls { display: flex; }
 .settings-role-controls .settings-input { flex: 1; max-width: none; }
+.settings-role { padding-left: 32px; }
+.settings-role-what { display: none; }
+.settings-role-controls .settings-pick { flex: 1; max-width: none; }
+.settings-session { white-space: nowrap; }
+/* How hard they look: one choice for all three judges, and what it changes there. */
+.settings-hard { flex-direction: column; align-items: stretch; gap: 8px; }
+.settings-seg { display: flex; border: 1px solid var(--fab7-line); border-radius: var(--weft-radius-control); overflow: hidden; }
+.settings-seg > * { flex: 1; padding: 8px 0; border: 0; border-right: 1px solid var(--fab7-line); background: none; color: var(--fab7-muted); font: 14px var(--font-sans); text-align: center; cursor: pointer; }
+.settings-seg > *:last-child { border-right: 0; }
+.settings-seg > .settings-seg--on { background: var(--fab7-selected); color: var(--fab7-accent); font-weight: 600; cursor: default; }
+.settings-reach { white-space: normal; }
+.settings-judges { width: 100%; border: 0; border-bottom: 1px solid var(--fab7-line); background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 @media (min-width: 768px) {
   .settings.settings--machine { gap: 0; }
   .settings--machine .fab7-group.settings-group { padding: 14px 0 6px; }
@@ -198,7 +210,20 @@ button.rf-name { cursor: pointer; }
   .settings-role-name { cursor: default; }
   .settings-role-said { display: none; }
   .settings-role-controls { display: flex; flex-basis: auto; }
-  .settings-role-controls .settings-input { width: 150px; flex: none; }
+  .settings-role-controls .settings-input { width: 160px; flex: none; }
+  .settings-role-controls .settings-pick { flex: none; width: 160px; }
+  .settings-role-controls .settings-pick .settings-select { width: 100%; }
+  .settings-judges { flex-direction: row-reverse; justify-content: flex-end; gap: 6px; }
+  .settings-judges .settings-sub { color: var(--fab7-accent); }
+  .settings-role { padding-left: 16px; }
+  .settings-role-what { display: block; }
+  .settings-role-model { display: none; }
+  .settings-hard { flex-direction: row; flex-wrap: wrap; align-items: center; }
+  .settings-hard .settings-text { flex: 1; }
+  .settings-seg { flex: none; }
+  .settings-seg > * { flex: none; padding: 6px 14px; }
+  .settings-reach { flex-basis: 100%; }
+  .settings-judges { color: var(--fab7-accent); }
   .settings-foot--phone { display: none; }
 }
 @media (min-width: 768px) {
@@ -227,6 +252,8 @@ button.rf-name { cursor: pointer; }
 }
 /* A machine's own pages: what a setting does starts as a sentence does ("Studio tells you…"). */
 .settings--machine .settings-sub::first-letter { text-transform: uppercase; }
+/* A model is named as the harness spells it. */
+.settings--machine .settings-role-model::first-letter { text-transform: none; }
 @media (min-width: 768px) {
   .settings--machine .rf-foot--phone { display: none; }
   .rf-pick { padding: 4px 22px 4px 8px; font-size: 13px; }

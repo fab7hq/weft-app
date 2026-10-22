@@ -348,7 +348,7 @@ export class FakeMachine {
     machine: {
       turbo: true,
       routing: { eval: 'claude' },
-      eval: { debate: { harness: 'codex', map: { effort: 'low' }, reduce: { model: 'gpt-6-luna', effort: 'high' }, confirm: { effort: 'xhigh' } } },
+      eval: { debate: { harness: 'codex', reduce: { model: 'gpt-6-luna' } } },
       ringframe: { deltas: { 'practices/software-development': { entries: [{ id: 'practice.hyrum', tier: 'core' }, { id: 'practice.postel', enabled: false }] } } },
     },
     project: { routing: { eval: 'codex' }, ringframe: { deltas: { 'practices/software-development': { entries: [{ id: 'practice.hyrum', tier: 'situational' }] } } } },
@@ -391,10 +391,10 @@ export class FakeMachine {
     }
     if (m.what === 'harnesses') {
       return ok([
-        { harness: 'antigravity', title: 'Antigravity', version: '1.3.5', verified: '1.3.5', mark: '✓', state: 'Ready' },
-        { harness: 'claude-code', title: 'Claude Code', version: '2.1.295', verified: '2.1.300', mark: '↑', state: 'Plugin behind' },
-        { harness: 'codex', title: 'Codex', version: null, verified: '0.163.0', mark: '✗', state: 'Not found' },
-        { harness: 'grok', title: 'Grok Build', version: '1.0.62', verified: '1.0.62', mark: '✓', state: 'Ready' },
+        { harness: 'antigravity', title: 'Antigravity', version: '1.3.5', verified: '1.3.5', mark: '✓', state: 'Ready', eval: { efforts: ['low', 'medium', 'high'], effort: 'lookups', models: ['flash_lite', 'flash', 'pro'], model_typed: false, default: { map: 'low', reduce: 'medium', confirm: 'medium' } } },
+        { harness: 'claude-code', title: 'Claude Code', version: '2.1.295', verified: '2.1.300', mark: '↑', state: 'Plugin behind', eval: { efforts: ['low', 'medium', 'high', 'xhigh', 'max'], effort: 'model', models: ['haiku', 'sonnet', 'opus', 'fable'], model_typed: false, default: { map: 'low', reduce: 'medium', confirm: 'medium' } } },
+        { harness: 'codex', title: 'Codex', version: null, verified: '0.163.0', mark: '✗', state: 'Not found', eval: { efforts: ['low', 'medium', 'high', 'xhigh'], effort: 'model', models: [], model_typed: true, default: { map: 'low', reduce: 'medium', confirm: 'medium' } } },
+        { harness: 'grok', title: 'Grok Build', version: '1.0.62', verified: '1.0.62', mark: '✓', state: 'Ready', eval: { efforts: ['low', 'medium', 'high', 'xhigh'], effort: 'lookups', models: [], model_typed: false, default: { map: 'low', reduce: 'medium', confirm: 'medium' } } },
       ]);
     }
     if (m.what === 'preview') return ok({ text: 'Rules:\nFor this route:\n- Plan As Files: …\n- KISS: …', kept: 5, left_out: 2 });

@@ -61,6 +61,50 @@ describe('Workflow and a project\'s own settings', () => {
   });
 });
 
+import { HOW_HARD, effortChoices, howHard, judgesIn, modelChoices, reachKey, type JudgeEval } from '../src/settings';
+
+describe("Eval's judges", () => {
+  const claude: JudgeEval = {
+    efforts: ['low', 'medium', 'high', 'xhigh', 'max'], effort: 'model', models: ['haiku', 'sonnet'], model_typed: false,
+    default: { map: 'low', reduce: 'medium', confirm: 'medium' },
+  };
+  const efforts = (map?: string, reduce?: string, confirm?: string) => ({
+    eval: { debate: { map: { effort: map }, reduce: { effort: reduce }, confirm: { effort: confirm } } },
+  });
+
+  it('run where the debate is set, else where Eval runs, else nowhere known', () => {
+    expect(judgesIn({ eval: { debate: { harness: 'codex' } }, routing: { eval: 'claude' } })).toBe('codex');
+    expect(judgesIn({ routing: { eval: 'claude' } })).toBe('claude');
+    expect(judgesIn({})).toBeUndefined();
+  });
+
+  it('look Balanced with nothing set, Quick or Thorough when all three say so, else Custom', () => {
+    expect(howHard({})).toBe('balanced');
+    expect(howHard(efforts('low', 'low', 'low'))).toBe('quick');
+    expect(howHard(efforts('high', 'high', 'high'))).toBe('thorough');
+    expect(howHard(efforts('high', undefined, undefined))).toBe('custom');
+    expect(HOW_HARD).toEqual({ quick: 'low', balanced: null, thorough: 'high' });
+  });
+
+  it('offer the efforts the harness takes, a default by its value, and the common ones without a file', () => {
+    expect(effortChoices(claude, 'reduce')).toEqual({ none: ['desktop.settings.effort_default', 'medium'], efforts: claude.efforts });
+    expect(effortChoices(undefined, 'map')).toEqual({ none: ['desktop.settings.own_effort', null], efforts: ['low', 'medium', 'high', 'xhigh'] });
+  });
+
+  it('offer the models the harness takes, a typed one where it takes any, and none where a judge runs on the session', () => {
+    expect(modelChoices(claude)).toEqual({ models: ['haiku', 'sonnet'], typed: false });
+    expect(modelChoices({ ...claude, models: [], model_typed: true })).toEqual({ models: [], typed: true });
+    expect(modelChoices({ ...claude, models: [] })).toEqual({ models: [], typed: false });
+    expect(modelChoices(undefined)).toEqual({ models: [], typed: true });
+  });
+
+  it('say what an effort changes there', () => {
+    expect(reachKey(claude)).toBe('desktop.settings.effort_reaches_model');
+    expect(reachKey({ ...claude, effort: 'lookups' })).toBe('desktop.settings.effort_reaches_lookups');
+    expect(reachKey(undefined)).toBe('desktop.settings.effort_reaches_unknown');
+  });
+});
+
 import { domainName, withDeny, withRule } from '../src/settings';
 
 describe('RingFrame, written as RingFrame reads it', () => {

@@ -5,7 +5,7 @@
 // the machine at once.
 import { useEffect, useState } from 'preact/hooks';
 import * as m from '../machine';
-import { domainName, withDeny, withRule } from '../settings';
+import { type JudgeEval, domainName, withDeny, withRule } from '../settings';
 import { fill, w } from '../words';
 
 const BASE = 'practices/software-development';
@@ -18,10 +18,10 @@ function unanswered(r: { refused?: unknown } | null): string {
   return r?.refused ? fill('desktop.settings.refused', { why: String(r.refused) }) : w('desktop.settings.asking');
 }
 
-type Supported = { harness: string; title: string; version?: string | null; verified: string | null; mark: string; state: string };
+export type Supported = { harness: string; title: string; version?: string | null; verified: string | null; mark: string; state: string; eval?: JudgeEval | null };
 
 /** Every harness this Weft supports and how each stands, as the machine says. */
-function useSupported(project: string): Supported[] | null {
+export function useSupported(project: string): Supported[] | null {
   const [supported, setSupported] = useState<Supported[] | null>(null);
   useEffect(() => {
     void m.readSettings(project, 'harnesses', '').then((r) => setSupported(Array.isArray(r) ? (r as Supported[]) : null));

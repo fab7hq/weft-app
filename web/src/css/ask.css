@@ -68,3 +68,43 @@ main:has(> .ask-panel--docked) > :not(.ask-panel) { flex: 1; min-height: 0; heig
   .pending-acts .spacer { display: block; }
   .pending-acts .tree-act { flex: none; padding: 9px 18px; }
 }
+
+/* The draft (17.1): ROUTE and PLAN, then the route's rules and the practices, each a line. */
+.ask-draft { display: flex; flex-direction: column; gap: 12px; }
+.ask-picks { display: flex; gap: 10px; }
+.ask-pick { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
+.ask-pick--plan { flex: 1.4; }
+.ask-pick select { height: 40px; padding: 0 10px; border: 1px solid var(--fab7-line); background: var(--fab7-surface); color: var(--fab7-text); font: 400 14px var(--font-sans); border-radius: var(--weft-radius-control); min-width: 0; }
+.ask-rules-row { display: flex; flex-direction: column; gap: 6px; }
+.ask-rules { margin: 0; padding: 0; list-style: none; border: 1px solid var(--fab7-line); background: var(--fab7-surface); border-radius: var(--weft-radius-control); }
+.ask-rule { display: flex; gap: 8px; align-items: baseline; padding: 8px 12px; border-bottom: 1px solid var(--fab7-line); font-size: 13px; }
+.ask-rule:last-child { border-bottom: 0; }
+.ask-rule b { font-weight: 600; flex-shrink: 0; }
+.ask-rule-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--fab7-muted); }
+.ask-rule-meta { flex-shrink: 0; color: var(--fab7-faint); }
+.ask-rule-out, .ask-rule-more, .ask-rule-add { padding: 0; border: 0; background: none; font: inherit; cursor: pointer; }
+.ask-rule-out { color: var(--fab7-faint); flex-shrink: 0; }
+.ask-rule-more, .ask-rule-add { color: var(--fab7-accent); font-size: 13px; }
+.ask-rule-add { align-self: flex-end; }
+.ask-rule--out b, .ask-rule--out .ask-rule-text { opacity: 0.6; }
+@media (min-width: 768px) {
+  .ask-picks { gap: 12px; align-items: center; }
+  .ask-pick { flex-direction: row; align-items: center; gap: 12px; }
+  .ask-pick .ask-eyebrow { flex: none; }
+  .ask-pick select { height: 38px; }
+  .ask-rules-row { flex-direction: row; align-items: flex-start; gap: 12px; }
+  .ask-rules-row > .ask-eyebrow { width: 64px; flex: none; padding-top: 9px; }
+  .ask-rules-row .ask-rules { flex: 1; min-width: 0; }
+  .ask-rule { padding: 7px 12px; gap: 10px; }
+  .ask-rule b { width: 120px; }
+  .ask-rule-add { align-self: flex-start; }
+}
+.pending-command { color: var(--fab7-accent); }
+/* The Seal's dialog (17.4, 17.5): VERDICT, DECISION and WHY a row each, the label beside its chips. */
+.seal-kv { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 13px; }
+.seal-kv > .ask-eyebrow { width: 64px; flex: none; }
+.seal-optional { font-size: 12px; color: var(--fab7-faint); }
+.seal-bar .pending-acts { flex-wrap: wrap; }
+.seal-records { flex: 1 1 100%; }
+@media (min-width: 768px) { .seal-records { flex: 1; } }
+#app:has(> .seal-bar) .message-foot, #app:has(> .seal-bar) .tree-bar, #app:has(> .seal-bar) .detail-foot, #app:has(> .seal-bar) .detail-acts { display: none; }

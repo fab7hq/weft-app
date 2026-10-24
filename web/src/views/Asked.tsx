@@ -159,7 +159,7 @@ function SendBar() {
       {why(showing.why).map((s) => (
         <p key={s} class="pending-why">{s}</p>
       ))}
-      <pre class="pending-text">{showing.text}</pre>
+      {showing.text && <pre class="pending-text"><Command text={showing.text} /></pre>}
       {showing.sends ? (
         <SendBarTo rows={destinations(of?.project, showing.agent)} to={keyOf(to ?? { agent: showing.agent })} onPick={setTo}>
           <Acts cancel={() => void answer(false)} go={[w('act.send'), () => void answer(true)]} busy={sending} />
@@ -225,4 +225,11 @@ function Acts({ cancel, go: [label, onGo], busy = false }: { cancel: () => void;
       <button class="tree-act tree-act--go" type="button" onClick={onGo} aria-busy={busy || undefined}>{label}</button>
     </div>
   );
+}
+
+/** A prompt with the route's command at its front, as 17.2 marks it. */
+function Command({ text }: { text: string }) {
+  const command = /^[/$][\w:-]+ /.exec(text)?.[0];
+  if (!command) return <>{text}</>;
+  return <><span class="pending-command">{command}</span>{text.slice(command.length)}</>;
 }

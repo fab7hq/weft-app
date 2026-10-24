@@ -458,7 +458,7 @@ export function RoundDetails({ machine, project, eval: id, wide = false }: { mac
       wide={wide}
       acts={
         <>
-          <button class="tree-act tree-act--go" type="button" aria-busy={acting.value === 'seal' || undefined} onClick={() => void sealRound(project, d.eval, d.seal, evalName(d.n))}>{w('act.seal')}</button>
+          <button class="tree-act tree-act--go" type="button" aria-busy={acting.value === 'seal' || undefined} onClick={() => void sealRound(project, d.eval, d.seal, { title: evalName(d.n), asks: d.asks.length, verdict: d.verdict ?? null })}>{w('act.seal')}</button>
           <button class="tree-act" type="button" onClick={() => to.view(d.eval)}>{w('act.eval_view')}</button>
         </>
       }

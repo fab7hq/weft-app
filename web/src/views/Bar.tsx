@@ -96,20 +96,18 @@ export async function evalWork(project: string, unit: string, why: m.Why | null)
   if (refused) said.value = String(refused.message);
 }
 
-/** The title of the work `unit` is. */
-const titleOf = (project: string, unit: string) =>
-  m.tree.value.find((p) => p.project === project)?.work.units.find((u) => u.unit === unit)?.title ?? '';
-
 /** Seal this unit of work, in its one dialog, unless the machine said why not. */
 export async function sealWork(project: string, unit: string, why: m.Why | null): Promise<void> {
   if (why) return void (said.value = sentence(why));
-  sealing.value = { project, unit, title: titleOf(project, unit) };
+  const row = m.tree.value.find((p) => p.project === project)?.work.units.find((u) => u.unit === unit);
+  const judged = row?.status.state === 'judged' ? row.status : null;
+  sealing.value = { project, unit, title: row?.title ?? '', asks: row?.asks ?? 1, verdict: judged?.verdict ?? null, agreement: judged?.agreement ?? null };
 }
 
 /** Seal this Eval, in its one dialog, unless the machine said why not (it stays drawn, and says so). */
-export async function sealRound(project: string, eval_: string, why: m.Why | null, title: string): Promise<void> {
+export async function sealRound(project: string, eval_: string, why: m.Why | null, of: { title: string; asks: number; verdict: m.Verdict | null }): Promise<void> {
   if (why) return void (said.value = sentence(why));
-  sealing.value = { project, eval: eval_, title };
+  sealing.value = { project, eval: eval_, ...of, agreement: null };
 }
 
 /** The selection as the desktop's bar names it: `claude · 11:29`, `health endpoint`. */

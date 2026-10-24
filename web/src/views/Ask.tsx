@@ -3,13 +3,14 @@
 // it carries, and goes first to the agent that wrote it. A sheet on a
 // phone; on a desktop a panel docked in the main column, under what is open.
 import { signal } from '@preact/signals';
-import { useLayoutEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import * as m from '../machine';
 import { act, acting } from './Asked';
 import { said } from './Bar';
 import { destinations, keyOf, SendTo, type Dest } from './SendTo';
 import { own } from '../textkeys';
-import { w } from '../words';
+import { fill, w } from '../words';
+import { draftOf, routeLabel, shownRules, type Sheet } from '../ask';
 
 export interface Asking {
   /** The agent to send to first. */
@@ -64,15 +65,32 @@ function AskForm({ asked, docked }: { asked: Asking; docked: boolean }) {
     if (docked) box.current?.focus();
   }, [docked]);
   const close = () => (asking.value = null);
+  const project = asked.project ?? m.agents.value.find((x) => x.agent === asked.agent)?.project;
+  const harness = !to ? '' : 'agent' in to ? (m.agents.value.find((a) => a.agent === to.agent)?.harness ?? '') : to.start;
+  // What the machine offers for the words, the harness and the route picked:
+  // asked again as they change, a moment after the last keystroke.
+  const [sheet, setSheet] = useState<Sheet | null>(null);
+  const [route, setRoute] = useState<string | undefined>(undefined);
+  const [plan, setPlan] = useState<string | null | undefined>(undefined);
+  const [removed, setRemoved] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (!project || !harness) return;
+    const t = setTimeout(() => {
+      void m.readSettings(project, 'ask', JSON.stringify({ harness, words: text, route })).then((r) => {
+        if (r && !(r as { refused?: string }).refused) setSheet(r as Sheet);
+      });
+    }, 300);
+    return () => clearTimeout(t);
+  }, [project, harness, text, route]);
   // Open until the machine answers, Ask showing it is working; then the bar
   // takes its place, or the why above the acts says what went wrong.
   const send = async (e: Event) => {
     e.preventDefault();
     if (!text.trim() || !to || acting.value) return;
     // A new agent is started on the machine for it, then asked once it is ready.
-    const project = asked.project ?? m.agents.value.find((x) => x.agent === asked.agent)?.project;
     const where = 'agent' in to ? { agent: to.agent } : { project, start: to.start };
-    const refused = await act(f ? { act: 'follow_up', ...where, unit: f.unit, text } : { act: 'ask', ...where, text });
+    const draft = sheet ? { draft: draftOf(sheet, { plan, removed }) } : {};
+    const refused = await act(f ? { act: 'follow_up', ...where, unit: f.unit, text, ...draft } : { act: 'ask', ...where, text, ...draft });
     close();
     if (refused) said.value = String(refused.message);
   };
@@ -88,6 +106,7 @@ function AskForm({ asked, docked }: { asked: Asking; docked: boolean }) {
       {f && <span class="ask-eyebrow">{`${w('act.follow_up')} · ${f.title} · ${f.follows}`.toUpperCase()}</span>}
       <label class="ask-title" for="ask-text">{w('ask.title')}</label>
       <textarea ref={box} id="ask-text" class={text ? 'ask-text ask-text--said' : 'ask-text'} value={text} onInput={(e) => setText((e.target as HTMLTextAreaElement).value)} onKeyDown={sendOnEnter} />
+      {sheet && <AskDraft sheet={sheet} harness={harness} docked={docked} plan={plan} removed={removed} onRoute={setRoute} onPlan={setPlan} onRemoved={setRemoved} />}
       {docked ? (
         <div class="ask-row">
           <span class="ask-eyebrow" id="ask-to-label">{w('ask.send_to')}</span>
@@ -107,5 +126,65 @@ function AskForm({ asked, docked }: { asked: Asking; docked: boolean }) {
         </>
       )}
     </form>
+  );
+}
+
+/** The draft's ROUTE, PLAN, ROUTE RULES and PRACTICES (17.1): the route is the
+ * person's pick, the harness's default first; route rules are shown and always
+ * sent; a practice's × takes it out, and + rule puts back one taken out. */
+function AskDraft({ sheet, harness, docked, plan, removed, onRoute, onPlan, onRemoved }: {
+  sheet: Sheet; harness: string; docked: boolean; plan: string | null | undefined; removed: Set<string>;
+  onRoute: (r: string) => void; onPlan: (p: string | null) => void; onRemoved: (r: Set<string>) => void;
+}) {
+  const [all, setAll] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const shownPlan = plan === undefined ? (sheet.plan?.path ?? '') : (plan ?? '');
+  const kept = sheet.practices.filter((r) => !removed.has(r.id));
+  const out = sheet.practices.filter((r) => removed.has(r.id));
+  const shown = shownRules(sheet.practices, removed, all);
+  const without = (id: string) => onRemoved(new Set([...removed, id]));
+  const back = (id: string) => onRemoved(new Set([...removed].filter((r) => r !== id)));
+  const named = `${harness} · ${routeLabel(sheet.route)}`;
+  return (
+    <div class="ask-draft">
+      <div class="ask-picks">
+        <label class="ask-pick">
+          <span class="ask-eyebrow">{w('ask.route')}</span>
+          <select value={sheet.route} onChange={(e) => onRoute((e.target as HTMLSelectElement).value)}>
+            {sheet.routes.map((r) => <option key={r} value={r}>{routeLabel(r)}</option>)}
+          </select>
+        </label>
+        <label class="ask-pick ask-pick--plan">
+          <span class="ask-eyebrow">{w('ask.plan')}</span>
+          <select value={shownPlan} onChange={(e) => onPlan((e.target as HTMLSelectElement).value || null)}>
+            <option value="">{w('ask.no_plan')}</option>
+            {sheet.plans.map((p) => <option key={p.path} value={p.path}>{p.path}</option>)}
+          </select>
+        </label>
+      </div>
+      <div class="ask-rules-row">
+        <span class="ask-eyebrow">{docked ? w('ask.route_rules') : `${w('ask.route_rules')} · ${named}`}</span>
+        <ul class="ask-rules">
+          {sheet.route_rules.map((r) => (
+            <li key={r.id} class="ask-rule"><b>{r.label}</b><span class="ask-rule-text">{r.text}</span><span class="ask-rule-meta">{docked ? `${named} · ${w('ask.always')}` : w('ask.always')}</span></li>
+          ))}
+        </ul>
+      </div>
+      <div class="ask-rules-row">
+        <span class="ask-eyebrow">{fill('ask.practices', { n: String(kept.length) })}</span>
+        <ul class="ask-rules">
+          {shown.map((r) => (
+            <li key={r.id} class="ask-rule"><b>{r.label}</b><span class="ask-rule-text">{r.text}</span><button type="button" class="ask-rule-out" aria-label={r.label} onClick={() => without(r.id)}>×</button></li>
+          ))}
+          {!all && kept.length > shown.length && (
+            <li class="ask-rule"><button type="button" class="ask-rule-more" onClick={() => setAll(true)}>{fill('ask.more', { n: String(kept.length - shown.length) })}</button></li>
+          )}
+          {adding && out.map((r) => (
+            <li key={r.id} class="ask-rule ask-rule--out"><b>{r.label}</b><span class="ask-rule-text">{r.text}</span><button type="button" class="ask-rule-more" onClick={() => back(r.id)}>+</button></li>
+          ))}
+        </ul>
+        {out.length > 0 && <button type="button" class="ask-rule-add" onClick={() => setAdding(!adding)}>{w('ask.add_rule')}</button>}
+      </div>
+    </div>
   );
 }

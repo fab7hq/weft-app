@@ -8,6 +8,7 @@ import { AddMachine } from './views/AddMachine';
 import { Agent } from './views/Agent';
 import { PendingBar } from './views/Asked';
 import { AskSheet } from './views/Ask';
+import { SealDialog } from './views/Seal';
 import { Details, RoundDetails, SealDetails, UnitDetails } from './views/Details';
 import { SessionDetails } from './views/Session';
 import { EvalView } from './views/EvalView';
@@ -216,6 +217,7 @@ export function App() {
           {shown}
           <AskSheet />
           <PendingBar />
+          <SealDialog />
         </>
       );
     }

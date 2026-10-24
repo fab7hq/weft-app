@@ -10,6 +10,7 @@ import { asking } from './Ask';
 import { act, acting } from './Asked';
 import { chosen, stateOf, unready, type Chosen } from './Tree';
 import { fill, w } from '../words';
+import { sealing } from './Seal';
 
 /** The pane is active: it has the keys, and a wheel or a finger scrolls its history. */
 export const paneActive = signal(false);
@@ -95,18 +96,20 @@ export async function evalWork(project: string, unit: string, why: m.Why | null)
   if (refused) said.value = String(refused.message);
 }
 
-/** Seal this unit of work, unless the machine said why not. */
+/** The title of the work `unit` is. */
+const titleOf = (project: string, unit: string) =>
+  m.tree.value.find((p) => p.project === project)?.work.units.find((u) => u.unit === unit)?.title ?? '';
+
+/** Seal this unit of work, in its one dialog, unless the machine said why not. */
 export async function sealWork(project: string, unit: string, why: m.Why | null): Promise<void> {
   if (why) return void (said.value = sentence(why));
-  const refused = await act({ act: 'seal', project, unit });
-  if (refused) said.value = String(refused.message);
+  sealing.value = { project, unit, title: titleOf(project, unit) };
 }
 
-/** Seal this Eval, unless the machine said why not (it stays drawn, and says so). */
-export async function sealRound(project: string, eval_: string, why: m.Why | null): Promise<void> {
+/** Seal this Eval, in its one dialog, unless the machine said why not (it stays drawn, and says so). */
+export async function sealRound(project: string, eval_: string, why: m.Why | null, title: string): Promise<void> {
   if (why) return void (said.value = sentence(why));
-  const refused = await act({ act: 'seal', project, eval: eval_ });
-  if (refused) said.value = String(refused.message);
+  sealing.value = { project, eval: eval_, title };
 }
 
 /** The selection as the desktop's bar names it: `claude · 11:29`, `health endpoint`. */

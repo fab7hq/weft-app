@@ -33,7 +33,6 @@
   "desktop.allow.ask": "Allow \"{device}\" to connect to {machine}?",
   "desktop.allow.holding": "Only allow a device you are holding.",
   "desktop.allow.refuse": "Refuse",
-  "desktop.bar.seal_round": "Seal this Eval round",
   "desktop.close.ask": "Close {project}?",
   "desktop.close.what": "Its agents keep running. Weft stops showing it here.",
   "desktop.close.yes": "Close it",

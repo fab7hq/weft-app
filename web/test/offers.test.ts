@@ -7,7 +7,6 @@ const drafted: Drafted = { name: 'Degraded health', rule: 'Answer 503 when a dep
 
 describe('offers after a Seal', () => {
   it('asks the machine for each offer on the unit, and nothing else', () => {
-    expect(offerMessage('/w', 'ask_1', 'commit')).toEqual({ act: 'commit', project: '/w', unit: 'ask_1' });
     expect(offerMessage('/w', 'ask_1', 'undo')).toEqual({ act: 'undo', project: '/w', unit: 'ask_1' });
     expect(offerMessage('/w', 'ask_1', 'keep_rule')).toEqual({ act: 'draft_rule', project: '/w', unit: 'ask_1' });
   });

@@ -9,6 +9,8 @@ import { Agent } from './views/Agent';
 import { PendingBar } from './views/Asked';
 import { AskSheet } from './views/Ask';
 import { SealDialog } from './views/Seal';
+import { sealWork } from './views/Bar';
+import { tapped } from './tapped';
 import { Details, RoundDetails, SealDetails, UnitDetails } from './views/Details';
 import { SessionDetails } from './views/Session';
 import { EvalView } from './views/EvalView';
@@ -42,11 +44,27 @@ const reading = store.get<string>('open', 'open').then((a) => {
 
 /** Open the agent a notification asked for, once the machine lists it. */
 function openWanted(machineId: string): void {
-  if (!wanted || !machine.agents.value.some((a) => a.agent === wanted)) return;
-  const agent = wanted;
+  if (!wanted || !openTapped(machineId, wanted)) return;
   wanted = null;
   void store.del('open', 'open');
-  go({ name: 'agent', machine: machineId, agent });
+}
+
+/** Open what a tapped notification names: its agent, the Seal dialog of
+ * work ready to seal, or the Eval that needs the person. False until the
+ * machine lists it. */
+function openTapped(machineId: string, tag: string): boolean {
+  const t = tapped(tag);
+  if (t.open === 'agent') {
+    if (!machine.agents.value.some((a) => a.agent === t.agent)) return false;
+    go({ name: 'agent', machine: machineId, agent: t.agent });
+    return true;
+  }
+  const p = machine.tree.value.find((x) => x.work.units.some((u) => u.unit === t.unit));
+  const row = p?.work.units.find((u) => u.unit === t.unit);
+  if (!p || !row) return false;
+  if (t.open === 'seal') void sealWork(p.project, t.unit, row.seal);
+  else go({ name: 'eval', machine: machineId, project: p.project, eval: t.eval });
+  return true;
 }
 
 export async function lookWho(): Promise<void> {
@@ -243,7 +261,7 @@ navigator.serviceWorker?.addEventListener('message', (e) => {
   const m = machine.current.value;
   if (msg.type !== 'open' || !msg.agent || !m) return;
   void store.del('open', 'open');
-  go({ name: 'agent', machine: m.id, agent: msg.agent });
+  if (!openTapped(m.id, msg.agent)) wanted = msg.agent;
 });
 
 void lookWho();

@@ -49,9 +49,9 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// A push from a machine (remote.md §10): shown, one per agent (the tag), and
-// the badge set to how many agents need the person. Safari ignores a
-// notification's data, so the agent travels in the tag.
+// A push from a machine (remote.md §10): shown, one per agent or closed Eval
+// (the tag), and the badge set to how many agents need the person. Safari
+// ignores a notification's data, so what to open travels in the tag.
 self.addEventListener('push', (event) => {
   let p = {};
   try {
@@ -59,14 +59,15 @@ self.addEventListener('push', (event) => {
   } catch {
     return;
   }
-  if (!p.agent) return;
-  const shown = self.registration.showNotification(p.title || 'Weft', { body: p.body || 'needs your input', tag: p.agent });
+  const tag = p.tag || p.agent;
+  if (!tag) return;
+  const shown = self.registration.showNotification(p.title || 'Weft', { body: p.body || 'needs your input', tag });
   const badge = 'setAppBadge' in self.navigator ? self.navigator.setAppBadge(p.count || 0).catch(() => {}) : Promise.resolve();
   event.waitUntil(Promise.all([shown, badge]));
 });
 
-// A tap: remember which agent to open, then bring the app forward. It never
-// answers anything.
+// A tap: remember what to open, then bring the app forward. It never answers
+// anything.
 self.addEventListener('notificationclick', (event) => {
   const agent = event.notification.tag;
   event.notification.close();

@@ -9,7 +9,7 @@ import { Agent } from './views/Agent';
 import { PendingBar } from './views/Asked';
 import { AskSheet } from './views/Ask';
 import { SealDialog } from './views/Seal';
-import { KeepDialog } from './views/Keep';
+import { UndoDialog } from './views/Undo';
 import { sealWork } from './views/Bar';
 import { tapped } from './tapped';
 import { Details, RoundDetails, SealDetails, UnitDetails } from './views/Details';
@@ -237,7 +237,7 @@ export function App() {
           <AskSheet />
           <PendingBar />
           <SealDialog />
-          <KeepDialog />
+          <UndoDialog />
         </>
       );
     }

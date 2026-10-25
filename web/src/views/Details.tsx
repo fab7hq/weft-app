@@ -14,8 +14,8 @@ import { asking } from './Ask';
 import { act, acting } from './Asked';
 import { evalWork, said, sealRound, sealWork } from './Bar';
 import { Verdict, evalName, sealName, stateOf } from './Tree';
-import { keepRule } from './Keep';
-import { offerMessage, remedyRead, type Offer } from '../offers';
+import { undo } from './Undo';
+import { remedyRead, type Offer } from '../offers';
 
 /** The record's parts, as a work's breadcrumb names them. */
 interface Crumb {
@@ -287,9 +287,8 @@ function StepRow({ n, step, to }: { n: number; step: Step; to: ReturnType<typeof
 }
 
 /** An offer on sealed work. Follow up opens the Ask sheet with what the Eval
- * found already written; the others ask the machine, and their one dialog follows. */
+ * found already written; Undo opens its one dialog. */
 async function offer(project: string, d: Unit, o: Offer): Promise<void> {
-  if (o === 'keep_rule') return keepRule(project, d.unit, d.harness, d.title);
   if (o === 'follow_up') {
     const answer = await m.request(remedyRead(project, d.unit));
     if (answer?.type !== 'ok') return void (said.value = String(answer?.message ?? w('web.why.not_connected')));
@@ -298,8 +297,7 @@ async function offer(project: string, d: Unit, o: Offer): Promise<void> {
     asking.value = { project, follow: { unit: d.unit, title: d.title, follows: from }, words: r.words };
     return;
   }
-  const refused = await act(offerMessage(project, d.unit, o));
-  if (refused) said.value = String(refused.message);
+  return undo(project, d.unit);
 }
 
 /** A unit of work's Details: its workflow in order, each step opening its own Details, and the unit's acts. */

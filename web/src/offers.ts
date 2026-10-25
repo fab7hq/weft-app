@@ -16,9 +16,11 @@ export function offerMessage(project: string, unit: string, offer: 'keep_rule' |
   return { act: offer === 'keep_rule' ? 'draft_rule' : offer, project, unit };
 }
 
-/** Keep a rule's Save: the rule as the person left it, for the team too when asked. */
-export function keepMessage(project: string, unit: string, drafted: Drafted, rule: string, share: boolean): Record<string, unknown> {
-  return { act: 'keep_rule', project, unit, draft: { rule: { ...drafted, rule: rule.trim() }, ...(share ? { share } : {}) } };
+/** Keep a rule's Save: the agent's draft as the person left it, or their own
+ * rule when no draft came, for the team too when asked. */
+export function keepMessage(project: string, unit: string, drafted: Drafted | null, rule: string, share: boolean): Record<string, unknown> {
+  const base = drafted ?? { name: '', rule: '', when: '', family: '' };
+  return { act: 'keep_rule', project, unit, draft: { rule: { ...base, rule: rule.trim() }, ...(share ? { share } : {}) } };
 }
 
 /** The read of a follow-up's words for rejected work: what its Eval found. */

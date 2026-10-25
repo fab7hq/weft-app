@@ -20,6 +20,12 @@ describe('offers after a Seal', () => {
     expect(keepMessage('/w', 'ask_1', drafted, drafted.rule, true).draft).toEqual({ rule: drafted, share: true });
   });
 
+  it('saves the person\'s own rule when no draft came', () => {
+    expect(keepMessage('/w', 'ask_1', null, 'Name what the check waited on.', false).draft).toEqual({
+      rule: { name: '', rule: 'Name what the check waited on.', when: '', family: '' },
+    });
+  });
+
   it('reads a follow-up\'s words for rejected work', () => {
     expect(remedyRead('/w', 'ask_1')).toEqual({ type: 'read', what: 'remedy', project: '/w', unit: 'ask_1' });
   });

@@ -20,7 +20,8 @@ import { Conversation, ViewSwitch, view } from './Conversation';
  * in, and a press in another calls `onPick`.
  */
 export function Agent({ machine, agent, embedded = false, current = true, onPick, head, side = false }: { machine: Machine; agent: string; embedded?: boolean; current?: boolean; onPick?: (e: PointerEvent) => void; head?: ComponentChildren; side?: boolean }) {
-  const a = m.agents.value.find((x) => x.agent === agent);
+  // A judge opens here too, to be watched.
+  const a = [...m.agents.value, ...m.judges.value].find((x) => x.agent === agent);
   // Nothing goes to an agent that has ended.
   const live = m.link.value === 'connected' && Boolean(a?.running);
   const box = useRef<HTMLDivElement>(null);

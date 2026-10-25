@@ -5,7 +5,9 @@ import { useEffect, useState } from 'preact/hooks';
 import type { Machine } from '../api';
 import * as m from '../machine';
 import { back, go, leave, stack, swap } from '../nav';
+import type { Progress } from '../progress';
 import { w } from '../words';
+import { Running } from './Running';
 
 type State = 'met' | 'not_met' | 'unsettled' | 'judging' | { read: string } | null;
 
@@ -21,7 +23,10 @@ interface Row {
 
 interface View {
   eval_id: string;
+  title: string;
   closed: boolean;
+  /** While it runs, its progress as a picture. */
+  progress: Progress | null;
   header: string;
   by_step: Row[];
   by_file: Row[];
@@ -114,7 +119,9 @@ export function EvalView({ machine, project, eval: id, at, files = false, wide =
   let page = null;
   if (v) {
     const rows = files ? v.by_file : v.by_step;
-    if (!at) {
+    if (!at && v.progress) {
+      page = <Running machine={machine} project={project} eval={id} title={v.title} progress={v.progress} wide={wide} />;
+    } else if (!at) {
       const live = !v.closed;
       const parts = v.header.split(' · ');
       page = (

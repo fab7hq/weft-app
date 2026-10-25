@@ -5,6 +5,7 @@
 import type { Settings } from './settings';
 import { computed, signal } from '@preact/signals';
 import * as api from './api';
+import { apart } from './judges';
 import * as store from './store';
 
 export interface Agent {
@@ -18,6 +19,8 @@ export interface Agent {
   since: number;
   /** Once its turn has really ended, the act its session's latest work needs next. */
   next?: 'eval' | 'seal' | null;
+  /** The Eval it judges, for a judge the machine started. */
+  judge?: string | null;
 }
 
 /** Why an act cannot run: a words key, and the harness and work it names. */
@@ -142,6 +145,8 @@ export const unreachable = signal(false);
 /** A newer Weft installed on the machine, waiting for no agent to run (M13.6). */
 export const update = signal<string | null>(null);
 export const agents = signal<Agent[]>([]);
+/** The judges the machine started for its Evals, which are no agents. */
+export const judges = signal<Agent[]>([]);
 export const tree = signal<Project[]>([]);
 export const harnesses = signal<Start[]>([]);
 export const pendings = signal<Pending[]>([]);
@@ -296,7 +301,7 @@ function heard(s: WebSocket, m: api.Machine, msg: Record<string, unknown>): void
         epoch = String(msg.epoch);
         control.value = {};
       }
-      agents.value = (msg.agents as Agent[]) ?? [];
+      ({ agents: agents.value, judges: judges.value } = apart((msg.agents as Agent[]) ?? []));
       tree.value = (msg.tree as Project[]) ?? [];
       harnesses.value = (msg.harnesses as Start[]) ?? [];
       pendings.value = (msg.pendings as Pending[]) ?? [];
@@ -346,7 +351,7 @@ function heard(s: WebSocket, m: api.Machine, msg: Record<string, unknown>): void
       update.value = (msg.update as { version?: string } | null)?.version ?? null;
       break;
     case 'agents':
-      agents.value = msg.agents as Agent[];
+      ({ agents: agents.value, judges: judges.value } = apart(msg.agents as Agent[]));
       break;
     case 'tree':
       tree.value = msg.tree as Project[];

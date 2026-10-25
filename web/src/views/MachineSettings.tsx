@@ -8,7 +8,7 @@ import { useEffect, useState } from 'preact/hooks';
 import type * as api from '../api';
 import * as m from '../machine';
 import { back, swap } from '../nav';
-import { ENTRIES, type Entry, HOW_HARD, type HowHard, type JudgeEval, KEYS, ROLES, at, differs, effortChoices, howHard, judgesIn, machineSwitch, modelChoices, reachKey, shownValue } from '../settings';
+import { ENTRIES, type Entry, HOW_HARD, type HowHard, type JudgeEval, KEYS, ROLES, at, differs, effortChoices, howHard, judgesIn, machineSwitch, modelChoices, reachKey, shownValue, gitNoteOn } from '../settings';
 import { fill, w } from '../words';
 import { HarnessesTab, ProjectRingFrame, RingFrameTab, ringFrameAddable, useProjectRules, useSupported } from './RingFrameSettings';
 import { Mark } from './Tree';
@@ -260,6 +260,7 @@ export function ProjectSettings({ machine, project, wide }: { machine: api.Machi
           return <Row key={e.name} e={e} s={s?.project} project={project} scope="project" every={every === undefined ? w(said) : said} />;
         })}
         <ProjectRingFrame project={project} rules={rules} adding={adding?.startsWith('ringframe:') ? adding.slice('ringframe:'.length) : null} done={() => setAdding(null)} />
+        <GitNote project={project} on={gitNoteOn(s)} />
         <select class="settings-select settings-add" value="" onChange={(ev) => setAdding((ev.target as HTMLSelectElement).value || null)}>
           <option value="">{w('desktop.project.add')}</option>
           {addable.map((e) => <option key={e.name} value={e.name}>{label(e)}</option>)}
@@ -271,5 +272,45 @@ export function ProjectSettings({ machine, project, wide }: { machine: api.Machi
         </div>
       </div>
     </div>
+  );
+}
+
+/** A project's Git note of each Seal (17.19): off unless turned on here.
+ * Turning it on asks once, showing what a note holds; off needs no dialog. */
+function GitNote({ project, on }: { project: string; on: boolean }) {
+  const [asking, setAsking] = useState(false);
+  const name = project.split('/').pop() ?? project;
+  const flip = () => (on ? void m.setSetting(project, 'project', ['export', 'git_note'], null) : setAsking(true));
+  const turnOn = () => {
+    setAsking(false);
+    void m.setSetting(project, 'project', ['export', 'git_note'], true);
+  };
+  return (
+    <>
+      <div class="fab7-group settings-group">{w('export.section')}</div>
+      <label for="project-git-note" class="settings-row">
+        <span class="settings-text">
+          <span>{w('export.git_note')}</span>
+          <span class="settings-sub">{w('export.git_note_what')}</span>
+        </span>
+        <span class="switch">
+          <input id="project-git-note" type="checkbox" checked={on} onChange={flip} class="switch-input" />
+          <span class="switch-track" aria-hidden="true"><span class="switch-knob" /></span>
+        </span>
+      </label>
+      <p class="settings-sub">{w('export.foot')}</p>
+      {asking && (
+        <div class="pending-bar export-bar" role="dialog" aria-label={w('dialog.export.title')}>
+          <div class="pending-head"><span class="pending-what">{w('dialog.export.title')}</span></div>
+          <span class="pending-why">{fill('dialog.export.why', { project: name })}</span>
+          <pre class="pending-text">{w('dialog.export.sample')}</pre>
+          <div class="pending-acts">
+            <span class="spacer" />
+            <button type="button" class="tree-act" onClick={() => setAsking(false)}>{w('act.cancel')}</button>
+            <button type="button" class="tree-act tree-act--go" onClick={turnOn}>{w('dialog.export.go')}</button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

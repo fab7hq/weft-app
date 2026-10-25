@@ -19,6 +19,8 @@ export interface Asking {
   project?: string;
   /** A follow-up: the work it is about, and the id it carries. */
   follow?: { unit: string; title: string; follows: string };
+  /** The words it starts with, for the person to change. */
+  words?: string;
 }
 
 /** The Ask being written, if any. */
@@ -57,7 +59,7 @@ export function AskDock() {
 function AskForm({ asked, docked }: { asked: Asking; docked: boolean }) {
   const f = asked.follow;
   const rows = destinations(asked.project, f ? asked.agent : undefined);
-  const [text, setText] = useState('');
+  const [text, setText] = useState(asked.words ?? '');
   const [to, setTo] = useState<Dest | null>(asked.agent ? { agent: asked.agent } : (rows[0]?.dest ?? null));
   const box = useRef<HTMLTextAreaElement>(null);
   // On a desktop the panel opens ready to type; on a phone the person taps the box to type or dictate (M4.1 → M4.2).

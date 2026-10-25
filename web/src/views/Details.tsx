@@ -14,6 +14,8 @@ import { asking } from './Ask';
 import { act, acting } from './Asked';
 import { evalWork, said, sealRound, sealWork } from './Bar';
 import { Verdict, evalName, sealName, stateOf } from './Tree';
+import { keepRule } from './Keep';
+import { offerMessage, remedyRead, type Offer } from '../offers';
 
 /** The record's parts, as a work's breadcrumb names them. */
 interface Crumb {
@@ -222,7 +224,7 @@ export function moves(machine: Machine, project: string) {
 type Step =
   | { step: 'ask'; unit: string; title: string; follow_up: boolean; aside: string }
   | { step: 'eval'; eval: string; n: number; verdict: m.Verdict | null; agreement: string | null; aside: string }
-  | { step: 'seal'; seal: string; n: number; decision: string; aside: string }
+  | { step: 'seal'; seal: string; n: number; decision: string; reason?: string | null; aside: string }
   | { step: 'not_sealed' };
 
 /** A unit of work's Details (`read work`). */
@@ -236,6 +238,8 @@ interface Unit {
   follows: string;
   eval: m.Why | null;
   seal: m.Why | null;
+  /** What it offers now it is sealed. */
+  offers?: Offer[];
 }
 
 /** One step: its number, what it is, what it says, and where it leads. */
@@ -252,7 +256,7 @@ function StepRow({ n, step, to }: { n: number; step: Step; to: ReturnType<typeof
             evalName(step.n),
           ]
         : step.step === 'seal'
-          ? [w('act.seal'), step.decision, step.aside, () => to.seal(step.seal), sealName(step.n)]
+          ? [w('act.seal'), [step.decision, step.reason].filter(Boolean).join(' · '), step.aside, () => to.seal(step.seal), sealName(step.n)]
           : [w('act.seal'), <span class="faint">{w('unit.not_sealed')}</span>, null, null, w('unit.not_sealed')];
   const body = (
     <>
@@ -282,6 +286,22 @@ function StepRow({ n, step, to }: { n: number; step: Step; to: ReturnType<typeof
   );
 }
 
+/** An offer on sealed work. Follow up opens the Ask sheet with what the Eval
+ * found already written; the others ask the machine, and their one dialog follows. */
+async function offer(project: string, d: Unit, o: Offer): Promise<void> {
+  if (o === 'keep_rule') return keepRule(project, d.unit, d.harness, d.title);
+  if (o === 'follow_up') {
+    const answer = await m.request(remedyRead(project, d.unit));
+    if (answer?.type !== 'ok') return void (said.value = String(answer?.message ?? w('web.why.not_connected')));
+    const r = answer.remedy as { words: string; eval: string; n: number | null };
+    const from = r.n === null ? r.eval : fill('follow_up.from_eval', { n: String(r.n) });
+    asking.value = { project, follow: { unit: d.unit, title: d.title, follows: from }, words: r.words };
+    return;
+  }
+  const refused = await act(offerMessage(project, d.unit, o));
+  if (refused) said.value = String(refused.message);
+}
+
 /** A unit of work's Details: its workflow in order, each step opening its own Details, and the unit's acts. */
 export function UnitDetails({ machine, project, unit, wide = false }: { machine: Machine; project: string; unit: string; wide?: boolean }) {
   const d = useRead<Unit>({ project, unit }, 'work', [JSON.stringify(m.tree.value.find((p) => p.project === project)?.work)]);
@@ -291,7 +311,14 @@ export function UnitDetails({ machine, project, unit, wide = false }: { machine:
   // The act its status puts forward is the primary one.
   const primary = d.status.state === 'judged' ? 'seal' : d.status.state === 'sealed' ? 'follow_up' : 'eval';
   const tone = (a: string) => (a === primary ? 'tree-act tree-act--go' : 'tree-act');
-  const acts = (
+  const acts = d.offers?.length ? (
+    <>
+      <span class="ask-eyebrow offers-eyebrow">{w('offer.after_seal')}</span>
+      {d.offers.map((o, i) => (
+        <button key={o} class={i === 0 ? 'tree-act tree-act--go' : 'tree-act'} type="button" onClick={() => void offer(project, d, o)}>{w(`offer.${o}`)}</button>
+      ))}
+    </>
+  ) : (
     <>
       <button class={tone('follow_up')} type="button" onClick={followUp}>{w('act.follow_up')}</button>
       <button class={tone('eval')} type="button" aria-busy={acting.value === 'eval' || undefined} onClick={() => void evalWork(project, d.unit, d.eval)}>{w('act.eval')}</button>

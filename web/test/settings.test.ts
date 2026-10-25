@@ -1,6 +1,6 @@
 // A machine's switches, as its settings say them.
 import { describe, expect, it } from 'vitest';
-import { KEYS, machineSwitch, type Settings } from '../src/settings';
+import { KEYS, gitNoteOn, machineSwitch, type Settings } from '../src/settings';
 
 const said = (machine: Record<string, unknown>): Settings => ({ machine, project: null, effective: {} });
 
@@ -125,5 +125,15 @@ describe('RingFrame, written as RingFrame reads it', () => {
 
   it('names a practice in words', () => {
     expect(domainName('autonomous-trading')).toBe('Autonomous trading');
+  });
+});
+
+describe('a project\'s Git note', () => {
+  it('is on only where the project turned it on', () => {
+    const project = (p: Record<string, unknown> | null): Settings => ({ machine: { export: { git_note: true } }, project: p, effective: {} });
+    expect(gitNoteOn(undefined)).toBe(false);
+    expect(gitNoteOn(project(null))).toBe(false);
+    expect(gitNoteOn(project({ export: { git_note: true } }))).toBe(true);
+    expect(gitNoteOn(project({ export: { git_note: false } }))).toBe(false);
   });
 });

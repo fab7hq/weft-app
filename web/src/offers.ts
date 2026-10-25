@@ -1,0 +1,27 @@
+// What sealed work offers (17.11–17.17): each offer is its own act on the
+// unit, asked of the machine; what it types is the machine's to say.
+
+export type Offer = 'keep_rule' | 'commit' | 'follow_up' | 'undo';
+
+/** A rule as the work's agent drafted it. */
+export interface Drafted {
+  name: string;
+  rule: string;
+  when: string;
+  family: string;
+}
+
+/** The act an offer asks for. Keep a rule's opening has the agent draft one. */
+export function offerMessage(project: string, unit: string, offer: 'keep_rule' | 'commit' | 'undo'): Record<string, unknown> {
+  return { act: offer === 'keep_rule' ? 'draft_rule' : offer, project, unit };
+}
+
+/** Keep a rule's Save: the rule as the person left it, for the team too when asked. */
+export function keepMessage(project: string, unit: string, drafted: Drafted, rule: string, share: boolean): Record<string, unknown> {
+  return { act: 'keep_rule', project, unit, draft: { rule: { ...drafted, rule: rule.trim() }, ...(share ? { share } : {}) } };
+}
+
+/** The read of a follow-up's words for rejected work: what its Eval found. */
+export function remedyRead(project: string, unit: string): Record<string, unknown> {
+  return { type: 'read', what: 'remedy', project, unit };
+}

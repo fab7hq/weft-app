@@ -108,3 +108,15 @@ main:has(> .ask-panel--docked) > :not(.ask-panel) { flex: 1; min-height: 0; heig
 .seal-records { flex: 1 1 100%; }
 @media (min-width: 768px) { .seal-records { flex: 1; } }
 #app:has(> .seal-bar) .message-foot, #app:has(> .seal-bar) .tree-bar, #app:has(> .seal-bar) .detail-foot, #app:has(> .seal-bar) .detail-acts { display: none; }
+
+/* Keep a rule (17.14, 17.15): the agent writing, then the rule to change. */
+.keep-rule { width: 100%; box-sizing: border-box; resize: none; padding: 10px 12px; border: 1px solid var(--fab7-accent); border-radius: var(--weft-radius-control); background: var(--fab7-surface); color: var(--fab7-text); font: inherit; font-size: 15px; line-height: 1.45; }
+.keep-writing { display: flex; flex-direction: column; gap: 8px; padding: 14px 12px; border: 1px solid var(--fab7-line); border-radius: var(--weft-radius-control); background: var(--fab7-surface); }
+.keep-writing span { height: 10px; border-radius: var(--weft-radius-control); background: linear-gradient(90deg, var(--fab7-line) 0%, var(--fab7-selected) 50%, var(--fab7-line) 100%); background-size: 200% 100%; animation: keep-writing 1.4s linear infinite; }
+.keep-writing span:first-child { width: 92%; }
+.keep-writing span:last-child { width: 64%; }
+@keyframes keep-writing { from { background-position: 200% 0; } to { background-position: 0 0; } }
+#app:has(> .keep-bar) .message-foot, #app:has(> .keep-bar) .tree-bar, #app:has(> .keep-bar) .detail-foot, #app:has(> .keep-bar) .detail-acts { display: none; }
+
+/* Turning a project's Git note on (17.19): its one dialog, at the foot of the page. */
+.export-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; }

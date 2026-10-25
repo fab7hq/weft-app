@@ -152,6 +152,8 @@ export const judges = signal<Agent[]>([]);
 export const tree = signal<Project[]>([]);
 export const harnesses = signal<Start[]>([]);
 export const pendings = signal<Pending[]>([]);
+/** The rule a sealed unit's agent last drafted, for the Keep dialog. */
+export const drafted = signal<{ project: string; unit: string; harness: string; rule: import('./offers').Drafted } | null>(null);
 export const vapid = signal<string | null>(null);
 /** Who has the keys of each agent this device drove: `you` or `mac`. */
 export const control = signal<Record<string, 'you' | 'mac'>>({});
@@ -366,6 +368,9 @@ function heard(s: WebSocket, m: api.Machine, msg: Record<string, unknown>): void
       break;
     case 'pending':
       pendings.value = [...pendings.value.filter((p) => p.id !== msg.id), msg as unknown as Pending];
+      break;
+    case 'drafted':
+      drafted.value = { project: String(msg.project), unit: String(msg.unit), harness: String(msg.harness), rule: msg.rule as import('./offers').Drafted };
       break;
     case 'resolved':
       pendings.value = pendings.value.filter((p) => p.id !== msg.id);

@@ -168,3 +168,9 @@ export function domainName(id: string): string {
   const words = id.replace(/-/g, ' ');
   return words.charAt(0).toUpperCase() + words.slice(1);
 }
+
+/** Whether this project records each Seal as a Git note: its own setting, never every project's. */
+export function gitNoteOn(s: Settings | undefined): boolean {
+  const e = (s?.project as { export?: { git_note?: unknown } } | null | undefined)?.export;
+  return e?.git_note === true;
+}

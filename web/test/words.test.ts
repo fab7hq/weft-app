@@ -39,8 +39,10 @@ describe('words.json', () => {
             const p = part.trim();
             if (p === '' || (all.length > 1 && p.length <= 16)) return false;
             if (!jsx && /^[a-z_]+$/.test(p)) return false;
-            // A key's name in code (`e.key === 'Tab'`) is a name too.
+            // A key's name in code (`e.key === 'Tab'`) is a name too, and so is
+            // an Ask's recorded state (`'DONE'`).
             if (!jsx && ['Tab', 'Enter', 'Escape'].includes(p)) return false;
+            if (!jsx && span === 'DONE') return false;
             const held = (x: string) => (p.length > 16 ? span.includes(x) : span === x);
             return held(p) || held(p.toUpperCase());
           });

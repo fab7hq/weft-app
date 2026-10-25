@@ -2,8 +2,8 @@
 // session weftd holds, newest first, and its WORK as units of work, with the
 // machine's words. Amber only for an agent that waits for you. A tap selects
 // a row, and the bar's acts follow the selection; › opens its Details. The
-// earlier sealed units and the earlier sessions travel as counts: each unfolds
-// in the tree a page at a time, read as it scrolls. One search at the top (M11.8, D11.8) narrows
+// earlier sessions travel as a count and unfold in the tree a page at a time,
+// read as it scrolls; the earlier sealed units open Done in its place. One search at the top (M11.8, D11.8) narrows
 // every project to what matches.
 import { signal } from '@preact/signals';
 import { useEffect, useRef } from 'preact/hooks';
@@ -13,6 +13,7 @@ import * as m from '../machine';
 import { go, here } from '../nav';
 import { fill, statusTone, statusWord, turnWord, w } from '../words';
 import { TreeBar, askOn, evalOn, sealOn } from './Bar';
+import { DoneList, doneOf } from './Done';
 import { HeaderPills, Strips } from './Status';
 
 /** What the bar's acts are on: a row of the tree, by what it is. */
@@ -21,9 +22,6 @@ export type Selected =
   | { kind: 'work'; project: string; unit: string };
 
 export const selected = signal<Selected | null>(null);
-
-/** What the earlier sealed units have read of each project: its pages so far, the `after` of the next, and the count it was read at. */
-const sealed = signal<Record<string, { rows: m.WorkRow[]; next: string | null; count: number }>>({});
 
 /** One of the earlier sessions (`read sessions`). */
 interface Earlier {
@@ -96,7 +94,7 @@ export function chosen(): Chosen | null {
       return row ? { kind: 'agent', p, row } : null;
     }
     case 'work': {
-      const row = p.work.units.find((r) => r.unit === s.unit) ?? sealed.value[p.project]?.rows.find((r) => r.unit === s.unit);
+      const row = p.work.units.find((r) => r.unit === s.unit);
       return row ? { kind: 'work', p, row } : null;
     }
   }
@@ -261,6 +259,7 @@ interface Moves {
 
 export function TreeList({ machine, onAgent, wide = false }: { machine: Machine; onAgent: (agent: string) => void; wide?: boolean }) {
   if (!m.welcomed.value) return <Skeleton />;
+  if (doneOf.value) return <DoneList machine={machine} project={doneOf.value} wide={wide} />;
   if (m.tree.value.every((p) => bare(p) && !p.setup)) return <Empty machine={machine} onAgent={onAgent} wide={wide} />;
   return <Searched machine={machine} onAgent={onAgent} wide={wide} />;
 }
@@ -482,7 +481,7 @@ function Work({ p, moves }: { p: m.Project; moves: Moves }) {
       {/* M2.5: nothing asked yet. A harness not set up says so by its ⚠ instead (M7.1). */}
       {nothing && !p.agents.rows.some((s) => unready(p, s.harness)) && <p class="tree-next">{w('web.tree.ask_for_something')}</p>}
       {p.work.units.map((u) => <WorkRowView key={u.unit} p={p} row={u} moves={moves} />)}
-      {!moves.searching && p.work.earlier > 0 && <SealedEarlier p={p} moves={moves} />}
+      {!moves.searching && p.work.earlier > 0 && <SealedEarlier p={p} />}
     </>
   );
 }
@@ -518,45 +517,13 @@ function WorkRowView({ p, row, moves }: { p: m.Project; row: m.WorkRow; moves: M
   );
 }
 
-/** `n sealed earlier`, a fold: unfolded, those units follow it a page at a time from `read sealed`, the next page read as the last comes into view. */
-function SealedEarlier({ p, moves }: { p: m.Project; moves: Moves }) {
-  const key = `${p.project}/sealed`;
-  const open = isOpen(key, false);
-  const count = p.work.earlier;
-  const had = sealed.value[p.project];
-  const reading = useRef(false);
-  const more = async (after: string | null) => {
-    if (reading.current) return;
-    reading.current = true;
-    const answer = await m.request({ type: 'read', what: 'sealed', project: p.project, ...(after ? { after } : {}) });
-    reading.current = false;
-    if (answer?.type !== 'ok') return;
-    const page = answer.sealed as { units: m.WorkRow[]; next: string | null };
-    const before = after ? sealed.value[p.project]?.rows ?? [] : [];
-    sealed.value = { ...sealed.value, [p.project]: { rows: [...before, ...page.units], next: page.next, count } };
-  };
-  // Read from the first page when it unfolds, and again when the count moves on.
-  useEffect(() => {
-    if (open && had?.count !== count) void more(null);
-  }, [open, count]);
-  const end = useRef<HTMLDivElement>(null);
-  const next = had?.next ?? null;
-  useEffect(() => {
-    const el = end.current;
-    if (!open || !el || !next) return;
-    const seen = new IntersectionObserver((e) => e.some((x) => x.isIntersecting) && void more(next));
-    seen.observe(el);
-    return () => seen.disconnect();
-  }, [open, next]);
-  const said = fill('tree.sealed_earlier', { n: String(count) });
+/** `n sealed earlier ›`: opens Done in the tree's place (17.18). */
+function SealedEarlier({ p }: { p: m.Project }) {
+  const said = fill('tree.sealed_earlier', { n: String(p.work.earlier) });
   return (
-    <>
-      <div class="tree-row tree-row--earlier" role="treeitem" aria-label={said} aria-expanded={open} onClick={() => fold(key)}>
-        <span class="tree-name">{`${said} ${open ? '▾' : '›'}`}</span>
-      </div>
-      {open && had?.rows.map((u) => <WorkRowView key={u.unit} p={p} row={u} moves={moves} />)}
-      {open && next && <div ref={end} class="tree-more-rows" aria-hidden="true" />}
-    </>
+    <div class="tree-row tree-row--earlier" role="treeitem" aria-label={said} onClick={() => (doneOf.value = p.project)}>
+      <span class="tree-name">{`${said} ›`}</span>
+    </div>
   );
 }
 

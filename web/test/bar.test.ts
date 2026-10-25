@@ -16,3 +16,13 @@ describe('the bar', () => {
     expect(why(waiting)).toHaveLength(2);
   });
 });
+
+describe('a dialog\'s yes', () => {
+  it('is Send, or the button the machine names, amber when it stops something', async () => {
+    const { yesOf } = await import('../src/bar');
+    use({ 'act.send': 'Send', 'act.eval': 'Eval', 'dialog.stop_eval.go': 'Stop Eval' });
+    expect(yesOf({ go: null })).toEqual({ label: 'Send', tone: 'go' });
+    expect(yesOf({ go: { word: 'act.eval', warn: false } })).toEqual({ label: 'Eval', tone: 'go' });
+    expect(yesOf({ go: { word: 'dialog.stop_eval.go', warn: true } })).toEqual({ label: 'Stop Eval', tone: 'warn' });
+  });
+});

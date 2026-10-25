@@ -121,6 +121,8 @@ export interface Pending {
   text: string;
   /** The work whose prompt this sends: it can go to another agent, or a new one. */
   sends?: string | null;
+  /** Its yes button, when not Send. */
+  go?: import('./bar').Go | null;
 }
 
 export interface Frame {

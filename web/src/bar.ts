@@ -38,3 +38,16 @@ export function stamp(at: number): string {
 export function weekday(at: number): string {
   return `${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][new Date(at).getUTCDay()]} ${clock(at)}`;
 }
+
+/** A dialog's yes button, as the machine names it. */
+export interface Go {
+  word: string;
+  /** It stops something: amber. */
+  warn: boolean;
+}
+
+/** A dialog's yes: Send, or the button the machine names, amber when it stops something. */
+export function yesOf(pending: { go?: Go | null }): { label: string; tone: 'go' | 'warn' } {
+  const go = pending.go;
+  return { label: w(go?.word ?? 'act.send'), tone: go?.warn ? 'warn' : 'go' };
+}

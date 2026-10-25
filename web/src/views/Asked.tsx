@@ -8,7 +8,7 @@ import { signal } from '@preact/signals';
 import { useEffect, useState } from 'preact/hooks';
 import * as m from '../machine';
 import { go, here, swap, type View } from '../nav';
-import { clock, why } from '../bar';
+import { clock, why, yesOf } from '../bar';
 import { notice, said as whyNot } from './Bar';
 import { destinations, keyOf, SendTo, type Dest } from './SendTo';
 import { fill, w } from '../words';
@@ -141,6 +141,7 @@ function SendBar() {
     );
   }
   const of = m.agents.value.find((a) => a.agent === showing.agent);
+  const yes = yesOf(showing);
   const harness = of?.harness ?? '';
   if (answered) {
     return (
@@ -154,7 +155,7 @@ function SendBar() {
     <div class="pending-bar" role="dialog" aria-label={showing.what}>
       <div class="pending-head">
         <span class="pending-what">{showing.what}</span>
-        {!showing.sends && <span class="pending-into">{fill('web.bar.into', { harness })}</span>}
+        {!showing.sends && showing.text && <span class="pending-into">{fill('web.bar.into', { harness })}</span>}
       </div>
       {why(showing.why).map((s) => (
         <p key={s} class="pending-why">{s}</p>
@@ -165,7 +166,7 @@ function SendBar() {
           <Acts cancel={() => void answer(false)} go={[w('act.send'), () => void answer(true)]} busy={sending} />
         </SendBarTo>
       ) : (
-        <Acts cancel={() => void answer(false)} go={[w('act.send'), () => void answer(true)]} busy={sending} />
+        <Acts cancel={() => void answer(false)} go={[yes.label, () => void answer(true)]} tone={yes.tone} busy={sending} />
       )}
     </div>
   );
@@ -217,12 +218,12 @@ function GoneBar({ gone: g }: { gone: Gone }) {
   );
 }
 
-function Acts({ cancel, go: [label, onGo], busy = false }: { cancel: () => void; go: [string, () => void]; busy?: boolean }) {
+function Acts({ cancel, go: [label, onGo], tone = 'go', busy = false }: { cancel: () => void; go: [string, () => void]; tone?: 'go' | 'warn'; busy?: boolean }) {
   return (
     <div class="pending-acts">
       <span class="spacer" />
       <button class="tree-act" type="button" onClick={cancel}>{w('act.cancel')}</button>
-      <button class="tree-act tree-act--go" type="button" onClick={onGo} aria-busy={busy || undefined}>{label}</button>
+      <button class={`tree-act tree-act--${tone}`} type="button" onClick={onGo} aria-busy={busy || undefined}>{label}</button>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 // A machine's own settings (M9.8, M9.9, D9.8, D9.9), from Settings › Machines:
-// General (every project's Turbo, Start at login, Notifications and
-// Suggestions) and Workflow (who runs each step, Eval's judges). And a
+// General (every project's Turbo, Start at login and Notifications) and
+// Workflow (who runs each step, Eval's judges). And a
 // project's own settings (M9.12, D9.12), from its row's ⋯: what differs from
 // every project's. Each is the machine's, changed there at once; every device
 // is told.
@@ -13,7 +13,7 @@ import { fill, w } from '../words';
 import { HarnessesTab, ProjectRingFrame, RingFrameTab, ringFrameAddable, useProjectRules, useSupported } from './RingFrameSettings';
 import { Mark } from './Tree';
 
-type Which = 'turbo' | 'login' | 'notify' | 'suggest';
+type Which = 'turbo' | 'login' | 'notify';
 type Tab = 'general' | 'workflow' | 'ringframe' | 'harnesses';
 
 /** The machine's rows, each a switch the cards draw. */
@@ -21,7 +21,6 @@ const ROWS: [Which, string, string][] = [
   ['turbo', 'desktop.menu.turbo', 'desktop.settings.turbo_what'],
   ['login', 'desktop.menu.login', 'web.machine.login_what'],
   ['notify', 'desktop.settings.notify', 'web.machine.notify_what'],
-  ['suggest', 'desktop.settings.suggest', 'web.machine.suggest_what'],
 ];
 
 /** The project the machine answers for: any open one says its settings. */

@@ -254,8 +254,6 @@ export class FakeMachine {
   onResolve: ((m: Record<string, unknown>) => Record<string, unknown>[]) | null = null;
   /** How a `text` is answered; else plain `ok`. */
   onText: ((m: Record<string, unknown>) => Record<string, unknown>) | null = null;
-  /** What `suggest` answers: the text to show after the draft, or nothing. */
-  onSuggest: ((m: Record<string, unknown>) => string | null) | null = null;
   /** How a `start` is answered; else `ok` with a new agent. */
   onStart: ((m: Record<string, unknown>) => Record<string, unknown>[]) | null = null;
   /** Answer `pair` with `asking`, then `paired` at once. */
@@ -323,9 +321,6 @@ export class FakeMachine {
           this.following.set(ws, new Set([m.agent, ...also.map((a) => a.agent)].filter((a): a is string => typeof a === 'string')));
         } else if (m.type === 'read') {
           ws.send(JSON.stringify(this.onRead?.(m) ?? this.read(m)));
-        } else if (m.type === 'suggest') {
-          const text = this.onSuggest?.(m) ?? null;
-          ws.send(JSON.stringify(text === null ? { type: 'ok', req: m.req } : { type: 'ok', req: m.req, text, score: 0.8 }));
         } else if (m.type === 'text' && this.onText) {
           ws.send(JSON.stringify(this.onText(m)));
         } else if (m.type === 'resolve' && this.onResolve) {

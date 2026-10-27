@@ -448,18 +448,7 @@ const SCREENS: Screen[] = [
   } },
   { ids: ['M3.4', 'D3.4'], sample: () => ({ ...calm(), agents: atlas().agents.slice(0, 2) }), run: (at) => onClaude(at, ASKING) },
 
-  // 16 · Suggestions from the person's own words: the rest of a draft, the next prompt, the next act.
-  { ids: ['M16.1', 'D16.1'], sample: calm, run: async (at) => {
-    at.machine.onSuggest = (m) => (m.draft === 'run the login' ? ' tests and paste the failures' : null);
-    await onClaude(at);
-    await at.page.getByLabel('Message').fill('run the login');
-    await expect(at.page.locator('.message-ghost')).toHaveText(' tests and paste the failures');
-  } },
-  { ids: ['M16.2', 'D16.2'], sample: done, run: async (at) => {
-    at.machine.onSuggest = (m) => (m.draft === '' ? 'commit these changes' : null);
-    await onClaude(at, DONE);
-    await expect(at.page.locator('.message-ghost')).toHaveText('commit these changes');
-  } },
+  // 16 · The next act.
   { ids: ['D16.3'], sample: done, run: async (at) => {
     await onClaude(at, DONE);
     await expect(at.page.locator('.tree-act--put-eval')).toBeVisible();

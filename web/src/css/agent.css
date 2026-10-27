@@ -94,12 +94,7 @@
 .message-row { display: flex; gap: 8px; align-items: flex-end; }
 .message-input { flex: 1; min-width: 0; box-sizing: border-box; margin: 0; padding: 10px 14px; border: 1px solid var(--fab7-line); background: var(--fab7-surface); color: var(--fab7-text); font: 400 13px/18px var(--font-sans); outline: none; resize: none; overflow-y: auto; max-height: calc(5lh + 22px); border-radius: var(--weft-radius-control); }
 .message-input::placeholder { color: var(--fab7-faint); opacity: 1; }
-/* A suggestion: the same box drawn over the field, the words unseen and the rest dim after them. */
 .message-field { position: relative; flex: 1; min-width: 0; display: flex; }
-.message-mirror { position: absolute; inset: 0; pointer-events: none; background: transparent; border-color: transparent; white-space: pre-wrap; overflow-wrap: break-word; overflow: hidden; }
-.message-typed { color: transparent; }
-.message-ghost { color: var(--fab7-faint); }
-.message-take { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); padding: 0 5px; border: 1px solid var(--fab7-line); border-radius: var(--weft-radius-control); background: var(--fab7-surface); color: var(--fab7-dim); font: 400 10px/16px var(--font-mono); cursor: pointer; }
 .message-input:focus { border-color: var(--fab7-accent); }
 /* A phone zooms into a box under 16 px when it takes the focus: the words
    typed are drawn at 16, the placeholder at the card's 13. */

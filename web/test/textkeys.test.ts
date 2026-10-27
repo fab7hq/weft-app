@@ -1,6 +1,6 @@
 // The web's text fields do what Weft's one key table says, the table the
-// desktop's fields read too: Enter sends, Shift+Enter adds a line, Tab takes a
-// suggestion, Escape drops it, and every other key is the browser field's own.
+// desktop's fields read too: Enter sends, Shift+Enter adds a line, and every
+// other key is the browser field's own.
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -42,10 +42,10 @@ describe('the text key table', () => {
     expect(system('Linux x86_64')).toBe('linux');
   });
 
-  it('leaves every edit but sending and the suggestion to the browser field', () => {
+  it('leaves every edit but sending to the browser field', () => {
     for (const on of systems) {
       const mine = Object.entries(tables[on]).filter(([chord]) => own(press(chord), on) !== null).map(([, name]) => name);
-      expect(new Set(mine)).toEqual(new Set(['send', 'take', 'drop']));
+      expect(new Set(mine)).toEqual(new Set(['send']));
       expect(own(press('shift-enter'), on)).toBeNull();
     }
   });

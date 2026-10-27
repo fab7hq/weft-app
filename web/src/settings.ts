@@ -9,8 +9,8 @@ export interface Settings {
 }
 
 /** A machine switch: Turbo and Start at login are off until turned on;
- * Notifications and Suggestions are on until turned off. */
-export function machineSwitch(s: Settings | undefined, which: 'turbo' | 'login' | 'notify' | 'suggest'): boolean {
+ * Notifications are on until turned off. */
+export function machineSwitch(s: Settings | undefined, which: 'turbo' | 'login' | 'notify'): boolean {
   const m = s?.machine ?? {};
   switch (which) {
     case 'turbo':
@@ -18,17 +18,15 @@ export function machineSwitch(s: Settings | undefined, which: 'turbo' | 'login' 
     case 'login':
       return (m.service as { start_at_login?: unknown } | undefined)?.start_at_login === true;
     case 'notify':
-    case 'suggest':
-      return m[which] !== false;
+      return m.notify !== false;
   }
 }
 
 /** Where each switch is kept in the machine's settings. */
-export const KEYS: Record<'turbo' | 'login' | 'notify' | 'suggest', string[]> = {
+export const KEYS: Record<'turbo' | 'login' | 'notify', string[]> = {
   turbo: ['turbo'],
   login: ['service', 'start_at_login'],
   notify: ['notify'],
-  suggest: ['suggest'],
 };
 
 /** What a Workflow setting takes. */

@@ -34,8 +34,7 @@ export function edit(e: Press, on: System = system()): string | null {
   return tables[on][chord(e)] ?? null;
 }
 
-/** The app's part of a text key: sending and the suggestion. The browser's own field does the rest. */
-export function own(e: Press, on: System = system()): 'send' | 'take' | 'drop' | null {
-  const d = edit(e, on);
-  return d === 'send' || d === 'take' || d === 'drop' ? d : null;
+/** The app's part of a text key: sending. The browser's own field does the rest. */
+export function own(e: Press, on: System = system()): 'send' | null {
+  return edit(e, on) === 'send' ? 'send' : null;
 }

@@ -1,7 +1,7 @@
 // Done: the sealed units of a project, read from the machine with a search,
 // each row saying what was decided, why, and the verdict it was sealed on.
 import { describe, expect, it } from 'vitest';
-import { doneLine, doneRead, type Done } from '../src/done';
+import { doneLine, doneRead, sealedWhen, type Done } from '../src/done';
 
 const row = (over: Partial<Done>): Done => ({
   unit: 'ask_1', title: 'health endpoint', harness: 'codex', verdict: 'drifted',
@@ -18,5 +18,12 @@ describe('Done', () => {
     expect(doneLine(row({}))).toBe('rejected · broke something · drifted');
     expect(doneLine(row({ decision: 'accepted', reason: null, verdict: 'aligned' }))).toBe('accepted · aligned');
     expect(doneLine(row({ decision: 'parked', reason: null, verdict: null }))).toBe('parked');
+  });
+
+  it('says when a row was sealed: the time today, else the month and day', () => {
+    const now = Date.parse('2026-10-25T18:00:00Z');
+    expect(sealedWhen('2026-10-25T11:32:00Z', now)).toBe('11:32');
+    expect(sealedWhen('2026-10-24T09:40:00Z', now)).toBe('Oct 24');
+    expect(sealedWhen('not a time', now)).toBe('not a time');
   });
 });

@@ -74,7 +74,10 @@ main:has(> .ask-panel--docked) > :not(.ask-panel) { flex: 1; min-height: 0; heig
 .ask-picks { display: flex; gap: 10px; }
 .ask-pick { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
 .ask-pick--plan { flex: 1.4; }
-.ask-pick select { height: 40px; padding: 0 10px; border: 1px solid var(--fab7-line); background: var(--fab7-surface); color: var(--fab7-text); font: 400 14px var(--font-sans); border-radius: var(--weft-radius-control); min-width: 0; }
+.ask-pick--to { flex: none; }
+.ask-select { position: relative; display: flex; flex: 1; min-width: 0; }
+.ask-select::after { content: '▾'; position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 13px; color: var(--fab7-muted); pointer-events: none; }
+.ask-pick select { flex: 1; width: 100%; height: 40px; padding: 0 28px 0 12px; border: 1px solid var(--fab7-line); background: var(--fab7-surface); color: var(--fab7-text); font: 400 15px var(--font-sans); border-radius: var(--weft-radius-control); min-width: 0; appearance: none; -webkit-appearance: none; text-overflow: ellipsis; }
 .ask-rules-row { display: flex; flex-direction: column; gap: 6px; }
 .ask-rules { margin: 0; padding: 0; list-style: none; border: 1px solid var(--fab7-line); background: var(--fab7-surface); border-radius: var(--weft-radius-control); }
 .ask-rule { display: flex; gap: 8px; align-items: baseline; padding: 8px 12px; border-bottom: 1px solid var(--fab7-line); font-size: 13px; }
@@ -85,7 +88,8 @@ main:has(> .ask-panel--docked) > :not(.ask-panel) { flex: 1; min-height: 0; heig
 .ask-rule-out, .ask-rule-more, .ask-rule-add { padding: 0; border: 0; background: none; font: inherit; cursor: pointer; }
 .ask-rule-out { color: var(--fab7-faint); flex-shrink: 0; }
 .ask-rule-more, .ask-rule-add { color: var(--fab7-accent); font-size: 13px; }
-.ask-rule-add { align-self: flex-end; }
+.ask-practices { display: flex; align-items: baseline; }
+.ask-practices .ask-rule-add { margin-left: auto; font: 400 13px var(--font-sans); letter-spacing: 0; }
 .ask-rule--out b, .ask-rule--out .ask-rule-text { opacity: 0.6; }
 .ask-pick select.ask-pick--unpicked { border-color: var(--fab7-amber); color: var(--fab7-amber-text); }
 .ask-hint { color: var(--fab7-amber-text); font-size: 13px; }
@@ -99,27 +103,48 @@ main:has(> .ask-panel--docked) > :not(.ask-panel) { flex: 1; min-height: 0; heig
 .ask-sensing-dots i { width: 8px; height: 8px; border-radius: var(--weft-radius-control); background: var(--fab7-accent); animation: ask-pulse 1.2s ease-in-out infinite; }
 .ask-sensing-dots i:nth-child(2) { animation-delay: 0.2s; }
 .ask-sensing-dots i:nth-child(3) { animation-delay: 0.4s; }
-.ask-pick-yourself { align-self: flex-start; }
+.ask-pick-yourself { align-self: center; }
+.ask-sensing-bars { display: flex; gap: 10px; }
+.ask-sensing-bars i { width: 80px; height: 6px; border-radius: var(--weft-radius-control); background: var(--fab7-line); }
+.ask-follow-act { text-transform: uppercase; }
 .tree-act--waiting { opacity: 0.4; }
 @keyframes ask-sweep { 0% { background-position: 120% 0; } 100% { background-position: -120% 0; } }
 @keyframes ask-pulse { 0%, 100% { opacity: 0.2; } 50% { opacity: 1; } }
 @media (min-width: 768px) {
-  .ask-picks { gap: 12px; align-items: center; }
+  .ask-picks { gap: 20px; align-items: center; }
   .ask-pick { flex-direction: row; align-items: center; gap: 12px; }
   .ask-pick .ask-eyebrow { flex: none; }
-  .ask-pick select { height: 38px; }
+  .ask-pick > .ask-eyebrow:first-child { min-width: 64px; }
+  .ask-pick + .ask-pick > .ask-eyebrow:first-child { min-width: 0; }
+  .ask-pick select { height: 38px; font-size: 15px; }
+  .ask-pick--to .ask-to { width: 194px; box-sizing: content-box; padding: 9px 12px; }
+  .ask-pick--to .ask-to--open { padding: 4px 0; }
+  .ask-pick--to .ask-to-option { padding: 9px 12px; }
+  .ask-pick--plan { flex: 1.3; }
+  .ask-row { align-items: center; }
+  .ask-row > .ask-rule-add { margin-left: 76px; }
   .ask-rules-row { flex-direction: row; align-items: flex-start; gap: 12px; }
   .ask-rules-row > .ask-eyebrow { width: 64px; flex: none; padding-top: 9px; }
   .ask-rules-row .ask-rules { flex: 1; min-width: 0; }
   .ask-rule { padding: 7px 12px; gap: 10px; }
   .ask-rule b { width: 120px; }
-  .ask-rule-add { align-self: flex-start; }
 }
 .pending-command { color: var(--fab7-accent); }
 /* The Seal's dialog (17.4, 17.5): VERDICT, DECISION and WHY a row each, the label beside its chips. */
 .seal-kv { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 13px; }
 .seal-kv > .ask-eyebrow { width: 64px; flex: none; }
 .seal-optional { font-size: 12px; color: var(--fab7-faint); }
+/* "optional": beside WHY on a phone, after the reasons on a desktop. */
+.seal-optional--inline { font: 400 10px var(--font-mono); letter-spacing: 0.04em; }
+.seal-optional--after { display: none; }
+.seal-kv:has(.seal-optional--inline) { flex-direction: column; align-items: flex-start; }
+.seal-kv:has(.seal-optional--inline) > .ask-eyebrow { width: auto; }
+@media (min-width: 768px) {
+  .seal-optional--inline { display: none; }
+  .seal-optional--after { display: inline; }
+  .seal-kv:has(.seal-optional--inline) { flex-direction: row; align-items: center; }
+  .seal-kv:has(.seal-optional--inline) > .ask-eyebrow { width: 64px; }
+}
 .seal-bar .pending-acts { flex-wrap: wrap; }
 .seal-records { flex: 1 1 100%; }
 @media (min-width: 768px) { .seal-records { flex: 1; } }
@@ -150,7 +175,10 @@ main:has(> .ask-panel--docked) > :not(.ask-panel) { flex: 1; min-height: 0; heig
 .undo-short { grid-column: 2; grid-row: 2; }
 .undo-when { grid-column: 3; grid-row: 2; }
 .undo-started { grid-column: 4; grid-row: 2; }
+/* On a phone the commit's id, time and start read as one line. */
+.undo-when::before, .undo-started::before { content: '· '; }
 @media (min-width: 768px) {
+  .undo-when::before, .undo-started::before { content: none; }
   .undo-put { flex-direction: row; align-items: flex-start; gap: 10px; }
   .undo-label { flex-direction: column; gap: 4px; width: 96px; flex: none; padding-top: 10px; }
   .undo-commits { flex: 1; min-width: 0; max-height: 156px; }
@@ -161,3 +189,7 @@ main:has(> .ask-panel--docked) > :not(.ask-panel) { flex: 1; min-height: 0; heig
   .undo-started { grid-column: 4; grid-row: 1; margin-left: 0; }
   .undo-when { grid-column: 5; grid-row: 1; }
 }
+@media (min-width: 768px) { .ask-rules-row > .ask-practices { display: block; } }
+/* A dialog that stops something is amber at its top (17.10); a prompt's section heads are dim (17.2). */
+.pending-bar--warn { border-top-color: var(--fab7-amber); }
+.pending-head-line { color: var(--fab7-faint); }

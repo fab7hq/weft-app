@@ -532,6 +532,8 @@ export const sealName = (n: number) => fill('tree.seal', { n: String(n) });
 
 /** The phone's tree: the bar on top, the tree under it. */
 export function TreePage({ machine }: { machine: Machine }) {
+  // Done (17.18) is a page of its own: its head in the bar's place.
+  if (doneOf.value) return <div class="app done-page"><TreeList machine={machine} onAgent={(agent) => go({ name: 'agent', machine: machine.id, agent })} /></div>;
   return (
     <div class="app">
       <div class="appbar">

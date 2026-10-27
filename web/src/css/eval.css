@@ -52,7 +52,12 @@
 .running-head .dim { font-size: 13px; }
 .running-picture { display: flex; flex-direction: column; gap: 18px; }
 .running--wide .running-picture { flex-direction: row; align-items: center; gap: 36px; }
+.running:not(.running--wide) .running-picture { flex-direction: row; align-items: center; gap: 18px; }
 .running-ring { position: relative; width: 132px; height: 132px; flex: none; align-self: center; }
+.running-aside { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; font-size: 13px; }
+.running-along { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 22px; }
+.running-bar { height: 6px; border-radius: var(--weft-radius-control); background: var(--fab7-line); overflow: hidden; }
+.running-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--fab7-teal), var(--fab7-accent)); transition: width .6s ease; }
 .running-ring svg { position: absolute; inset: 0; }
 .running-track, .running-fill, .running-sweep { fill: none; stroke-width: 10; }
 .running-track { stroke: var(--fab7-line); }
@@ -85,7 +90,6 @@
 .running-name { font-size: 15px; line-height: 22px; }
 .running-stage--next .running-name { color: var(--fab7-muted); }
 .running-note { font-size: 12px; color: var(--fab7-muted); }
-.running-stage--running .running-note { color: var(--fab7-amber-text); }
 .running-label { padding-top: 4px; }
 .running-judges { display: flex; gap: 10px; flex-wrap: wrap; }
 .running-judge { flex: 1; min-width: 140px; max-width: 200px; display: flex; flex-direction: column; gap: 4px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--fab7-line); border-radius: var(--weft-radius-panel); background: var(--fab7-surface); color: var(--fab7-text); font: inherit; text-align: left; cursor: pointer; }
@@ -93,5 +97,6 @@
 .running-beat i { font-style: normal; font-size: 7px; margin-right: 2px; color: var(--fab7-teal); animation: running-dot 1.2s infinite; }
 .running-beat i:nth-child(2) { animation-delay: .2s; }
 .running-beat i:nth-child(3) { animation-delay: .4s; }
-.running-stop { align-self: stretch; }
-.running--wide .running-stop { align-self: flex-end; }
+.running-judge-dot { font-style: normal; font-size: 9px; margin-right: 6px; vertical-align: 2px; color: var(--fab7-teal); }
+.tree-act.running-stop { flex: 1; background: none; }
+.detail-acts--wide .tree-act.running-stop { flex: none; }

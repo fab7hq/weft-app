@@ -294,7 +294,9 @@ async function offer(project: string, d: Unit, o: Offer): Promise<void> {
     if (answer?.type !== 'ok') return void (said.value = String(answer?.message ?? w('web.why.not_connected')));
     const r = answer.remedy as { words: string; eval: string; n: number | null };
     const from = r.n === null ? r.eval : fill('follow_up.from_eval', { n: String(r.n) });
-    asking.value = { project, follow: { unit: d.unit, title: d.title, follows: from }, words: r.words };
+    // First to an agent of the harness that did the work, as a follow-up from its Details goes.
+    const agent = m.agents.value.find((a) => a.running && a.project === project && a.harness === d.harness)?.agent;
+    asking.value = { project, agent, follow: { unit: d.unit, title: d.title, follows: from }, words: r.words };
     return;
   }
   return undo(project, d.unit);
@@ -309,14 +311,16 @@ export function UnitDetails({ machine, project, unit, wide = false }: { machine:
   // The act its status puts forward is the primary one.
   const primary = d.status.state === 'judged' ? 'seal' : d.status.state === 'sealed' ? 'follow_up' : 'eval';
   const tone = (a: string) => (a === primary ? 'tree-act tree-act--go' : 'tree-act');
-  const acts = d.offers?.length ? (
+  // Sealed work offers only what it offers: accepted work, nothing (17.11).
+  const sealed = d.status.state === 'sealed' && d.offers !== undefined;
+  const acts = sealed ? (d.offers!.length > 0 && (
     <>
       <span class="ask-eyebrow offers-eyebrow">{w('offer.after_seal')}</span>
-      {d.offers.map((o, i) => (
+      {d.offers!.map((o, i) => (
         <button key={o} class={i === 0 ? 'tree-act tree-act--go' : 'tree-act'} type="button" onClick={() => void offer(project, d, o)}>{w(`offer.${o}`)}</button>
       ))}
     </>
-  ) : (
+  )) : (
     <>
       <button class={tone('follow_up')} type="button" onClick={followUp}>{w('act.follow_up')}</button>
       <button class={tone('eval')} type="button" aria-busy={acting.value === 'eval' || undefined} onClick={() => void evalWork(project, d.unit, d.eval)}>{w('act.eval')}</button>
@@ -363,10 +367,12 @@ export function UnitDetails({ machine, project, unit, wide = false }: { machine:
         {head}
         <div class="unit-body">{flow}</div>
       </div>
-      <div class="detail-foot">
-        {said.value && <p class="tree-said" role="status">{said.value}</p>}
-        <div class="detail-acts">{acts}</div>
-      </div>
+      {(acts || said.value) && (
+        <div class="detail-foot">
+          {said.value && <p class="tree-said" role="status">{said.value}</p>}
+          {acts && <div class="detail-acts">{acts}</div>}
+        </div>
+      )}
     </div>
   );
 }

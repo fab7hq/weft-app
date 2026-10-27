@@ -1,6 +1,6 @@
 // A running Eval as a picture (17.6): a ring that fills as the checking comes
 // in, each stage lighting up in turn, and the judges as live cards that open
-// their pane. Stop Eval asks the machine's one Stop dialog.
+// their pane. Stop Eval, at the view's foot, asks the machine's one Stop dialog.
 import type { Machine } from '../api';
 import { judgesOf } from '../judges';
 import * as m from '../machine';
@@ -21,15 +21,29 @@ function Node({ light }: { light: Light }) {
   );
 }
 
-export function Running({ machine, project, eval: id, title, progress, wide }: { machine: Machine; project: string; eval: string; title: string; progress: Progress; wide: boolean }) {
+export function Running({ machine, eval: id, title, progress, wide }: { machine: Machine; eval: string; title: string; progress: Progress; wide: boolean }) {
   const judges = judgesOf(m.judges.value, id);
   const box = RADIUS * 2 + 20;
   const c = box / 2;
+  const reading = judges.length > 0 ? fill('eval_view.reading', { n: String(judges.length) }) : '';
+  // How much is checked, as a line too: beside the ring on a phone, under the stages on a desktop.
+  const bar = <div class="running-bar" aria-hidden="true"><i style={{ width: `${Math.min(progress.percent, 100)}%` }} /></div>;
+  const stages = (
+    <ol class="running-stages">
+      {progress.stages.map((s) => (
+        <li key={s.name} class={`running-stage running-stage--${s.light}`}>
+          <Node light={s.light} />
+          <span class="running-name">{s.name}</span>
+          <span class="running-note">{s.note}</span>
+        </li>
+      ))}
+    </ol>
+  );
   return (
     <div class={wide ? 'running running--wide' : 'running'}>
       <div class="running-head">
         <strong>{w('eval_view.checking')}</strong>
-        <span class="dim">{title}{judges.length > 0 && ` · ${fill('eval_view.reading', { n: String(judges.length) })}`}</span>
+        <span class="dim">{wide && reading ? `${title} · ${reading}` : title}</span>
       </div>
       <div class="running-picture">
         <div class="running-ring" role="img" aria-label={`${progress.percent}% ${w('eval_view.checked')}`}>
@@ -42,30 +56,27 @@ export function Running({ machine, project, eval: id, title, progress, wide }: {
           </svg>
           <div class="running-percent"><b>{`${progress.percent}%`}</b><span class="dim">{w('eval_view.checked')}</span></div>
         </div>
-        <ol class="running-stages">
-          {progress.stages.map((s) => (
-            <li key={s.name} class={`running-stage running-stage--${s.light}`}>
-              <Node light={s.light} />
-              <span class="running-name">{s.name}</span>
-              <span class="running-note">{s.note}</span>
-            </li>
-          ))}
-        </ol>
+        {wide ? <div class="running-along">{stages}{bar}</div> : <div class="running-aside">{reading && <span class="dim">{reading}</span>}{bar}</div>}
       </div>
+      {!wide && stages}
       {judges.length > 0 && (
         <>
-          <span class="eval-label running-label">{`${w('eval_view.judges')} · ${w('eval_view.watch')}`}</span>
+          <span class="eval-label running-label">{`${w('eval_view.judges')} · ${w('eval_view.watch')}`.toUpperCase()}</span>
           <div class="running-judges">
             {judges.map((j) => (
               <button key={j.agent} class="running-judge" type="button" onClick={() => go({ name: 'agent', machine: machine.id, agent: j.agent })}>
-                <b>{j.harness}</b>
+                <b><i class="running-judge-dot" aria-hidden="true">●</i>{j.harness}</b>
                 <span class="running-beat"><i>●</i><i>●</i><i>●</i> {w(`turn.${j.turn}`)}</span>
               </button>
             ))}
           </div>
         </>
       )}
-      <button class="tree-act tree-act--warn running-stop" type="button" onClick={() => void act({ act: 'stop', project, eval: id })}>{w('dialog.stop_eval.go')}</button>
     </div>
   );
+}
+
+/** Stop Eval, at the foot of the view: it asks the machine's one Stop dialog (17.10). */
+export function StopEval({ project, eval: id }: { project: string; eval: string }) {
+  return <button class="tree-act tree-act--warn running-stop" type="button" onClick={() => void act({ act: 'stop', project, eval: id })}>{w('dialog.stop_eval.go')}</button>;
 }

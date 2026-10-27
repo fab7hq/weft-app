@@ -24,6 +24,8 @@ export interface Agent {
   turn: 'ready' | 'working' | 'waiting' | 'ended';
   running: boolean;
   since: number;
+  /** The Eval it judges, for a judge the machine started. */
+  judge?: string;
 }
 
 /** A why-not: a words key, and the harness and work its sentence names. */
@@ -160,7 +162,7 @@ export interface SessionDetail {
 export type Step =
   | { step: 'ask'; unit: string; title: string; follow_up: boolean; aside: string }
   | { step: 'eval'; eval: string; n: number; verdict: Verdict | null; agreement: string | null; aside: string }
-  | { step: 'seal'; seal: string; n: number; decision: string; aside: string }
+  | { step: 'seal'; seal: string; n: number; decision: string; reason?: string | null; aside: string }
   | { step: 'not_sealed' };
 
 /** A unit of work's Details, as `read work` answers them. */
@@ -174,6 +176,8 @@ export interface UnitDetail {
   follows: string;
   eval: Why | null;
   seal: Why | null;
+  /** What it offers now it is sealed. */
+  offers?: ('follow_up' | 'undo')[];
 }
 export interface Earlier {
   session: string;
@@ -250,6 +254,9 @@ export class FakeMachine {
   reads: Reads = noReads();
   /** How a `read` is answered; else, or where it answers null, from `reads`. */
   onRead: ((m: Record<string, unknown>) => Record<string, unknown> | null) | null = null;
+  /** The Ask sheet the machine offers for these words, harness and route; null
+   * leaves it unanswered, as while Sense reads the words. None set, it has none. */
+  sheet: ((q: { harness: string; words: string; route?: string }) => Record<string, unknown> | null) | null = null;
   /** How a `resolve` is answered; else plain `ok`. */
   onResolve: ((m: Record<string, unknown>) => Record<string, unknown>[]) | null = null;
   /** How a `text` is answered; else plain `ok`. */
@@ -314,6 +321,10 @@ export class FakeMachine {
           for (const out of this.onAct(m)) ws.send(JSON.stringify(out));
         } else if (m.type === 'read' && m.what === 'conversation' && !this.onRead?.(m)) {
           for (const out of this.conversation(m)) ws.send(JSON.stringify(out));
+        } else if (m.type === 'settings' && m.what === 'ask') {
+          const sheet = this.sheet ? this.sheet(JSON.parse(String(m.unit))) : undefined;
+          if (sheet) ws.send(JSON.stringify({ type: 'ok', req: m.req, settings: sheet }));
+          else if (sheet === undefined) ws.send(JSON.stringify({ type: 'error', req: m.req, code: 'no_sheet', message: 'no Ask sheet here' }));
         } else if (m.type === 'settings' || m.type === 'set') {
           ws.send(JSON.stringify(this.setting(m)));
         } else if (m.type === 'follow') {

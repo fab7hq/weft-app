@@ -6,7 +6,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { card } from './card';
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
-import { FakeMachine, atlas, project, sessionOf, type Agent, type Detail, type Project } from './fake-machine';
+import { FakeMachine, atlas, project, sessionOf, type Agent, type Detail, type Project, type Step, type UnitDetail, type WorkRow } from './fake-machine';
 import { pull, swipeLeft } from './touch';
 import { drawWithDom, openAgent } from './open';
 import { person, signIn } from './seed';
@@ -344,6 +344,112 @@ async function drawn(at: At, agent: string) {
   await expect.poll(() => watched(at.machine.of('watch').at(-1))).toBe(true);
   at.machine.send({ type: 'screen', agent, seq: 1, full: true, rows: 30, cols: 60, bytes: Buffer.from(ACROSS[agent].join('\r\n')).toString('base64') });
 }
+
+/** The 17 cards' Ask sheet: a rule or practice as the machine offers it. */
+const rule = (id: string, label: string, text: string) => ({ id, label, text, family: null, layer: 'practice' });
+const PLAN = { slug: 'build-number', path: 'plans/build-number/plan.md', title: 'Build number' };
+const ROUTES = ['native_goal', 'native_plan', 'native_direct'];
+const PRACTICES = [
+  rule('practice.yagni', 'YAGNI', 'Add a capability only when a present requirement needs it; leave out options, parameters, and extension points that nobody has asked for.'),
+  rule('practice.testing_pyramid', 'Testing Pyramid', 'Write the failing test from the requirement first and make it pass with the smallest change.'),
+  rule('practice.knuth', 'Knuth', 'Do not optimize on suspicion; measure first, and optimize the measured bottleneck only.'),
+  rule('practice.kiss', 'KISS', 'Write readable code: choose clear names and short functions.'),
+  rule('practice.dry', 'DRY', 'Keep one source for each piece of knowledge.'),
+];
+/** 17.1: the route, plan and practices picked for the words. */
+const SHEET = {
+  routes: ROUTES, route: 'native_goal', tasks: ['implement'], task: 'implement', plan: PLAN, plans: [PLAN],
+  route_rules: [
+    rule('claude.step_loop', 'Step Loop', 'Work the plan’s steps one at a time, in its order.'),
+    rule('claude.done_check', 'Done Check', 'Show each check as you run it: the command and its result.'),
+  ],
+  practices: PRACTICES, proposed: null, senses: false,
+};
+/** 17.22: no route picked for the words; two practices proposed of nine. */
+const UNSURE = {
+  ...SHEET, route: null, plan: null, route_rules: [], senses: true, proposed: ['practice.root_cause', 'practice.testing_pyramid'],
+  practices: [rule('practice.root_cause', 'Root Cause', 'Prove the failing mechanism and remove it; no retries, watchdogs or restarts that hide it.'), ...PRACTICES,
+    rule('practice.postel', 'Postel', 'Be strict in what you produce.'), rule('practice.hyrum', 'Hyrum', 'Treat every observable behaviour as relied on.'), rule('practice.gall', 'Gall', 'Grow a working simple system.')],
+};
+/** 17.13: a fix's sheet, for codex. */
+const FIX_SHEET = {
+  ...SHEET, plan: null, plans: [], route_rules: [], proposed: null,
+  practices: [rule('practice.minimal_diff', 'Minimal diff', 'For a fix, change only what the fix needs.'), rule('practice.verify', 'Verify', 'Run the checks before you say it is done.')],
+};
+const UNKNOWN = 'The health check sometimes says the build is unknown. Can you look at it?';
+/** 17.2: the exact prompt RingFrame composed. */
+const PROMPT = `/goal ${BUILD}\n\nPlan: plans/build-number/plan.md\n\nRules:\nWhile implementing:\n- YAGNI: Add a capability only when a present requirement needs it; leave out options, parameters, and extension points that nobody has asked for, and remove code that no current path uses.\n- Testing Pyramid: Write the failing test from the requirement first and make it pass with the smallest change.\n- Knuth: Do not optimize on suspicion; measure first, and optimize the measured bottleneck only.\nFor this route:\n- Step Loop: Work the plan's steps one at a time, in its order.\n- Done Check: Show each check as you run it: the command and its result.`;
+
+/** Ask, over claude's view, with these words, to claude. */
+async function asked(at: At, words: string) {
+  await askOpen(at);
+  await sheet(at).getByRole('textbox').fill(words);
+  if (at.wide) await sendTo(at, 'claude');
+}
+
+/** A dialog the machine stages for an act, which types nothing; its yes as it names it. */
+const staged = (agent: string, what: string, why: string, go: { word: string; warn: boolean }) => (m: Record<string, unknown>) => [
+  { type: 'pending', id: 'pnd_1', agent, what, why, text: '', sends: null, go },
+  { type: 'ok', req: m.req, pending: 'pnd_1' },
+];
+
+/** health endpoint's Details, as 17.4–17.17 draw it: two Asks, Eval 2, and its Seal or none. */
+const ALIGNED = { step: 'eval', eval: 'evl_2', n: 2, verdict: 'aligned', agreement: '0.92', aside: 'judged 11:20 · 5 met' } as const;
+const DRIFTED = { step: 'eval', eval: 'evl_2', n: 2, verdict: 'drifted', agreement: '0.75', aside: 'judged 11:20 · 4 met · 1 not met' } as const;
+const health = (status: WorkRow['status'], judged: Step, sealed: Step | null, offers?: ('follow_up' | 'undo')[]): UnitDetail => ({
+  unit: 'ask_3', title: 'health endpoint', harness: 'codex', status, aside: '2 Asks · codex · since 10:52',
+  steps: [
+    { step: 'ask', unit: 'ask_3', title: 'Add a health endpoint that reports the build number', follow_up: false, aside: 'codex · sent 10:52' },
+    { step: 'ask', unit: 'ask_5', title: 'Return 503 while the database is down', follow_up: true, aside: 'codex · sent 11:04' },
+    judged, sealed ?? { step: 'not_sealed' },
+  ],
+  follows: 'evl_2', eval: null, seal: null, ...(offers ? { offers } : {}),
+});
+/** The sample with health endpoint sealed. */
+const sealedAs = (decision: string) => () => withTree((t) => (t[0].work.units[1].status = { state: 'sealed', decision }));
+/** 17.13: a follow-up's words, from what Eval 2 found. */
+const REMEDY = { words: 'Fix what the last Eval found:\n- not met: Return 503 while the database is down\n- unexplained change: src/db/pool.rs rewrites the retry loop', eval: 'evl_2', n: 2 };
+/** 17.17: the commits Undo offers, newest first, down to where the work started. */
+const COMMITS = ([
+  ['e81b7c2', 'Return 503 while the database is down', '11:18'],
+  ['a40c9f3', "Fix the probe's timeout", '11:17'],
+  ['2d8e6b1', 'Retry the database probe once before answering 503, with a short back-off so a blip does not page anyone', '11:16'],
+  ['c03f5aa', "Log the health check's database probe", '11:15'],
+  ['91d4e07', 'Wire the build number into the release script', '11:11'],
+  ['5be2a19', "Test the health endpoint's JSON", '11:07'],
+  ['7ab3d10', 'Add a health endpoint that reports the build number', '11:02'],
+  ['4f2a9c1', 'Tidy the router before the health work', '10:49'],
+] as const).map(([short, subject, when]) => ({ id: `${short}${'0'.repeat(33)}`, short, subject, when, start: short === '4f2a9c1' }));
+/** 17.18: the Done list, parked first. */
+const DONE_ROWS = ([
+  ['readme fix', 'claude', 'parked', 'waiting on something', 'aligned', '2026-10-24T09:40:00Z', true],
+  ['health endpoint', 'codex', 'rejected', 'broke something', 'drifted', '2026-10-25T11:32:00Z', false],
+  ['build number', 'codex', 'accepted', null, 'aligned', '2026-10-25T10:40:00Z', false],
+  ['login redirect', 'claude', 'dropped', 'superseded', 'incomplete', '2026-10-24T16:10:00Z', false],
+  ['rate limit headers', 'codex', 'rejected', 'not what I asked', 'drifted', '2026-10-23T15:02:00Z', false],
+  ['telemetry opt-out', 'claude', 'accepted', null, 'aligned', '2026-10-23T10:12:00Z', false],
+  ['session timeout', 'codex', 'accepted', null, 'aligned', '2026-10-22T14:30:00Z', false],
+  ['dark mode tokens', 'claude', 'rejected', 'wrong approach', 'drifted', '2026-10-21T11:05:00Z', false],
+  ['retry the upload', 'codex', 'accepted', null, 'aligned', '2026-10-20T09:15:00Z', false],
+] as const).map(([title, harness, decision, reason, verdict, when, parked], i) => ({
+  unit: title === 'health endpoint' ? 'ask_3' : `ask_d${i}`, title, harness, decision, reason, verdict, at: when, parked,
+}));
+/** 17.6: an Eval running, as a picture, with two judges at work. */
+const RUNNING = {
+  ...VIEW, closed: false, title: 'Build account erasure',
+  progress: { percent: 40, stages: [
+    { name: 'Gather changes', note: '15 changes gathered', light: 'done' },
+    { name: 'Compare to your tasks', note: 'under way', light: 'now' },
+    { name: 'Double-check', note: 'next', light: 'next' },
+    { name: 'Run your tests', note: 'npm test · running', light: 'running' },
+  ] },
+};
+const judging = () => {
+  const s = atlas();
+  const since = Date.now() - 60_000;
+  s.agents.push(...[1, 2].map((n): Agent => ({ agent: `j0b1c2d3e4f5-${n}`, project: 'weft', harness: 'codex', title: 'Codex', turn: 'working', running: true, since, judge: 'evl_3' })));
+  return s;
+};
 
 interface Screen {
   ids: string[];
@@ -1017,6 +1123,109 @@ const SCREENS: Screen[] = [
     await expect(at.page.getByRole('dialog', { name: 'Agents' })).toBeVisible();
   } },
 
+  // 17 · Ask with a route, plan and rules; Eval and Seal in one dialog each; after a Seal.
+  ...(['M17.1', 'D17.1'] as const).map((id): Screen => ({ ids: [id], run: async (at) => {
+    at.machine.sheet = () => SHEET;
+    await asked(at, BUILD);
+    await expect(sheet(at).getByText('Step Loop')).toBeVisible();
+  } })),
+  ...(['M17.2', 'D17.2'] as const).map((id): Screen => ({ ids: [id], run: async (at) => {
+    at.machine.sheet = () => SHEET;
+    at.machine.onAct = staging(CLAUDE, 'Ask claude?', 'This is exactly what claude will receive.', PROMPT);
+    await asked(at, BUILD);
+    await expect(sheet(at).getByText('Step Loop')).toBeVisible();
+    await sheet(at).getByRole('button', { name: 'Ask', exact: true }).click();
+    await expect(at.page.getByRole('dialog', { name: 'Ask claude?' })).toBeVisible();
+  } })),
+  ...(['M17.3', 'D17.3'] as const).map((id): Screen => ({ ids: [id], run: async (at) => {
+    at.machine.onAct = staged(CODEX, 'Eval this work?', 'health endpoint · 2 Asks\nclaude and codex check the change against what you asked.\nNothing is typed into the agent’s pane.', { word: 'act.eval', warn: false });
+    await folded(at);
+    if (at.wide) await agentOpen(at, 'codex');
+    else await tree(at);
+    await item(at, 'health endpoint').click();
+    await at.page.locator('.tree-acts').getByRole('button', { name: 'Eval', exact: true }).click();
+    await expect(at.page.getByRole('dialog', { name: 'Eval this work?' })).toBeVisible();
+  } })),
+  ...([['M17.4', false], ['D17.4', false], ['M17.5', true], ['D17.5', true]] as const).map(([id, why]): Screen => ({
+    ids: [id],
+    sample: () => withTree((t) => (t[0].work.units[1].status = { state: 'judged', verdict: 'drifted', agreement: 0.75 })),
+    run: async (at) => {
+      at.machine.reads.units.ask_3 = health({ state: 'judged', verdict: 'drifted', agreement: 0.75 }, DRIFTED, null);
+      if (at.wide) {
+        await workOpen(at, 'health endpoint');
+        await at.page.locator('.detail-acts').getByRole('button', { name: 'Seal', exact: true }).click();
+      } else {
+        await tree(at);
+        await item(at, 'health endpoint').click();
+        await at.page.locator('.tree-acts').getByRole('button', { name: 'Seal', exact: true }).click();
+      }
+      const dialog = at.page.getByRole('dialog', { name: 'Seal this work?' });
+      await expect(dialog).toBeVisible();
+      if (why) {
+        await dialog.getByRole('radio', { name: 'rejected' }).click();
+        await dialog.getByRole('radio', { name: 'broke something' }).click();
+      }
+    },
+  })),
+  ...(['M17.6', 'D17.6'] as const).map((id): Screen => ({ ids: [id], sample: judging, run: (at) => evalView(at, RUNNING) })),
+  ...(['M17.10', 'D17.10'] as const).map((id): Screen => ({ ids: [id], sample: judging, run: async (at) => {
+    at.machine.onAct = staged(CODEX, 'Stop this Eval?', 'The judges of Build account erasure stop, and the Eval is voided.', { word: 'dialog.stop_eval.go', warn: true });
+    await evalView(at, RUNNING);
+    await button(at, 'Stop Eval').click();
+    await expect(at.page.getByRole('dialog', { name: 'Stop this Eval?' })).toBeVisible();
+  } })),
+  ...(['M17.11', 'D17.11'] as const).map((id): Screen => ({ ids: [id], sample: sealedAs('accepted'), run: async (at) => {
+    at.machine.reads.units.ask_3 = health({ state: 'sealed', decision: 'accepted' }, ALIGNED, { step: 'seal', seal: 'sel_8k2', n: 2, decision: 'accepted', aside: '11:32 · by you' }, []);
+    await workOpen(at, 'health endpoint');
+  } })),
+  ...(['M17.12', 'D17.12', 'M17.13', 'D17.13', 'M17.17', 'D17.17'] as const).map((id): Screen => ({ ids: [id], sample: sealedAs('rejected'), run: async (at) => {
+    at.machine.reads.units.ask_3 = health({ state: 'sealed', decision: 'rejected' }, DRIFTED, { step: 'seal', seal: 'sel_8k2', n: 2, decision: 'rejected', reason: 'broke something', aside: '11:32 · by you' }, ['follow_up', 'undo']);
+    at.machine.onRead = (m) => (m.what === 'remedy' ? { type: 'ok', req: m.req, remedy: REMEDY } : m.what === 'commits' ? { type: 'ok', req: m.req, commits: { commits: COMMITS } } : null);
+    at.machine.sheet = () => FIX_SHEET;
+    await workOpen(at, 'health endpoint');
+    if (id.endsWith('17.13')) {
+      await button(at, 'Follow up').click();
+      await expect(sheet(at).getByText('Minimal diff')).toBeVisible();
+    }
+    if (id.endsWith('17.17')) {
+      await button(at, 'Undo').click();
+      await expect(at.page.getByRole('dialog', { name: 'Undo this work?' })).toBeVisible();
+    }
+  } })),
+  ...(['M17.18', 'D17.18'] as const).map((id): Screen => ({ ids: [id], run: async (at) => {
+    at.machine.onRead = (m) => (m.what === 'done' ? { type: 'ok', req: m.req, done: { total: DONE_ROWS.length, rows: DONE_ROWS, next: null } } : null);
+    await tree(at);
+    await at.page.getByRole('treeitem', { name: /sealed earlier/ }).click();
+    await expect(at.page.getByRole('tree', { name: 'Done' })).toBeVisible();
+    // The desktop card has the first sealed row's work open beside the list.
+    if (at.wide) {
+      at.machine.reads.units.ask_3 = health({ state: 'sealed', decision: 'rejected' }, DRIFTED, { step: 'seal', seal: 'sel_8k2', n: 2, decision: 'rejected', reason: 'broke something', aside: '11:32 · by you' }, ['follow_up', 'undo']);
+      await item(at, 'health endpoint').click();
+      await expect(at.page.locator('.workflow')).toBeVisible();
+    }
+  } })),
+  ...(['M17.19', 'D17.19'] as const).map((id): Screen => ({ ids: [id], run: async (at) => {
+    await settingsOpen(at);
+    await at.page.getByRole('button', { name: "weft's settings" }).first().click();
+    await at.page.getByText('Git note', { exact: true }).click();
+    await expect(at.page.getByRole('dialog', { name: 'Record Seals as Git notes?' })).toBeVisible();
+  } })),
+  ...(['M17.22', 'D17.22'] as const).map((id): Screen => ({ ids: [id], run: async (at) => {
+    at.machine.sheet = () => UNSURE;
+    await asked(at, UNKNOWN);
+    await expect(sheet(at).getByText('Pick a route to ask.')).toBeVisible();
+  } })),
+  ...(['M17.23', 'D17.23'] as const).map((id): Screen => ({ ids: [id], run: async (at) => {
+    // Sense answers the empty sheet, then reads the words and has not answered yet.
+    at.machine.sheet = (q) => (q.words ? null : UNSURE);
+    await askOpen(at);
+    if (at.wide) await sendTo(at, 'claude');
+    await expect.poll(() => at.machine.of('settings').some((m) => m.what === 'ask' && String(m.unit).includes('"claude"'))).toBe(true);
+    await expect(sheet(at).getByText('Pick a route to ask.')).toBeVisible();
+    await sheet(at).getByRole('textbox').fill(UNKNOWN);
+    await expect(sheet(at).getByText('Sensing your best fit…')).toBeVisible();
+  } })),
+  { ids: ['M17.20', 'M17.21'], note: 'A push notification, drawn by the phone itself; e2e/desktop-push.spec.ts checks that a push shows and opens where it says.' },
   { ids: ['M10.4'], note: 'A push notification, drawn by the phone itself; e2e/desktop-push.spec.ts checks that it shows and opens the agent.' },
   { ids: ['D10.3'], note: 'A browser notification, drawn by the system; e2e/desktop-push.spec.ts checks that it shows and opens the agent.' },
 ];

@@ -1,4 +1,5 @@
-// A confirmation is a bar, Cancel beside Send (M4.5–M4.10, D4.5–D4.10).
+// A confirmation is a bar, Cancel beside Send (M4.5–M4.10, D4.5–D4.10); its head names
+// the project and agent it types into, as 17.2 does.
 import { expect, test } from '@playwright/test';
 import { FakeMachine, atlas } from './fake-machine';
 import { person, signIn } from './seed';
@@ -10,17 +11,17 @@ const GATHERED = "Weft has gathered the change. The agent will run RingFrame's\n
 /** Each card: what the machine stages, and what the bar says of it. */
 const CARDS = [
   { id: 'M4.5 D4.5', agent: CLAUDE, what: 'Ready to ask claude', why: 'Weft will type  /rf:ask  into claude.\nThe agent will ask you which approach to take, in its own pane.',
-    text: 'Read the build number from the environment and show it on /health', into: 'into claude', said: ['The agent will ask you which approach to take, in its own pane.'] },
+    text: 'Read the build number from the environment and show it on /health', into: 'into weft · claude', said: ['The agent will ask you which approach to take, in its own pane.'] },
   { id: 'M4.6 D4.6', agent: CODEX, what: 'Ready to send', why: 'This is the exact wording. Weft will not change it.', sends: 'ask_3',
     text: 'Implement /health: read BUILD_NUMBER from the environment at startup; fall back to "unknown".', into: null, said: ['This is the exact wording. Weft will not change it.'] },
   { id: 'M4.7 D4.7', agent: CODEX, what: 'Ready to send', sends: 'ask_3', why: 'This is the exact wording. Weft will not change it.\ncodex asked you about this and never got an answer, so it is still waiting. Sending it records your yes first.',
     text: 'Implement /health: read BUILD_NUMBER …', into: null, said: ['This is the exact wording. Weft will not change it.', 'codex asked you about this and never got an answer, so it is still waiting. Sending it records your yes first.'] },
   { id: 'M4.8 D4.8', agent: CODEX, what: 'Eval this work?', why: `Weft will type  /rf:eval debate evl_2  into codex.\n${GATHERED}`,
-    text: '/rf:eval debate evl_2 coverage contract', into: 'into codex', said: ["Weft has gathered the change. The agent will run RingFrame's judging tasks on it; none of the judges did the work."] },
+    text: '/rf:eval debate evl_2 coverage contract', into: 'into weft · codex', said: ["Weft has gathered the change. The agent will run RingFrame's judging tasks on it; none of the judges did the work."] },
   { id: 'M4.9 D4.9', agent: CODEX, what: 'Seal this work?', why: 'Weft will type  /rf:seal evl_2  into codex.\nThe agent will ask what you decided, and write a receipt.',
-    text: '/rf:seal evl_2', into: 'into codex', said: ['The agent will ask what you decided, and write a receipt.'] },
+    text: '/rf:seal evl_2', into: 'into weft · codex', said: ['The agent will ask what you decided, and write a receipt.'] },
   { id: 'M4.10 D4.10', agent: CLAUDE, what: 'Eval this work?', why: `Weft will type  /rf:eval debate evl_2  into claude.\n${GATHERED}\nclaude did not do this work. Both acts read the record.`,
-    text: '/rf:eval debate evl_2 coverage contract', into: 'into claude', said: ["Weft has gathered the change. The agent will run RingFrame's judging tasks on it; none of the judges did the work.", 'claude did not do this work. Both acts read the record.'] },
+    text: '/rf:eval debate evl_2 coverage contract', into: 'into weft · claude', said: ["Weft has gathered the change. The agent will run RingFrame's judging tasks on it; none of the judges did the work.", 'claude did not do this work. Both acts read the record.'] },
 ];
 
 for (const card of CARDS) {

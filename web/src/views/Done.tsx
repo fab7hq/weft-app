@@ -4,25 +4,25 @@
 import { signal } from '@preact/signals';
 import { useEffect, useRef } from 'preact/hooks';
 import type { Machine } from '../api';
-import { stamp } from '../bar';
-import { type Done, doneRead } from '../done';
+import { type Done, doneRead, sealedWhen } from '../done';
 import * as m from '../machine';
-import { go } from '../nav';
+import { go, here } from '../nav';
 import { fill, w } from '../words';
+import { selected } from './Tree';
 
 /** The project whose Done list stands in the tree's place, if any. */
 export const doneOf = signal<string | null>(null);
 
 /** What was read: the rows so far, the `after` of the next page, and the search they answer. */
-const read = signal<{ rows: Done[]; next: string | null; q: string } | null>(null);
+const read = signal<{ rows: Done[]; next: string | null; q: string; total: number | null } | null>(null);
 const typed = signal('');
 
 async function load(project: string, q: string, after: string | null): Promise<void> {
   const answer = await m.request(doneRead(project, q, after));
   if (answer?.type !== 'ok' || doneOf.value !== project || typed.value.trim() !== q.trim()) return;
-  const page = answer.done as { rows: Done[]; next: string | null };
+  const page = answer.done as { rows: Done[]; next: string | null; total?: number };
   const before = after ? read.value?.rows ?? [] : [];
-  read.value = { rows: [...before, ...page.rows], next: page.next, q };
+  read.value = { rows: [...before, ...page.rows], next: page.next, q, total: page.total ?? null };
 }
 
 /** Back to the tree. */
@@ -49,7 +49,14 @@ export function DoneList({ machine, project, wide }: { machine: Machine; project
   }, [next]);
   const rows = read.value?.rows ?? [];
   const name = m.tree.value.find((p) => p.project === project)?.project.split('/').pop() ?? project;
-  const open = (d: Done) => go({ name: 'work', machine: machine.id, project, unit: d.unit });
+  const open = (d: Done) => {
+    selected.value = { kind: 'work', project, unit: d.unit };
+    go({ name: 'work', machine: machine.id, project, unit: d.unit });
+  };
+  // The row whose work is open beside the list (D17.18).
+  const view = here();
+  const on = view?.name === 'work' && view.project === project ? view.unit : null;
+  const total = read.value?.total;
   const section = (key: string) => (
     <div class="tree-section" role="none"><span class="tree-section-name">{w(key)}</span></div>
   );
@@ -60,6 +67,8 @@ export function DoneList({ machine, project, wide }: { machine: Machine; project
       <div class="done-head">
         <button class="done-back" type="button" onClick={leaveDone}>{`‹ ${name}`}</button>
         <span class="done-title">{w('done.title')}</span>
+        <span class="spacer" />
+        {total != null && <span class="done-count">{total}</span>}
       </div>
       <div class={q ? 'tree-search tree-search--on' : 'tree-search'}>
         <span class="tree-glass" aria-hidden="true">⌕</span>
@@ -68,19 +77,19 @@ export function DoneList({ machine, project, wide }: { machine: Machine; project
         {q && <button class="tree-clear" type="button" aria-label={w('web.search.clear')} onClick={() => (typed.value = '')}>✕</button>}
       </div>
       {parked.length > 0 && section('done.parked')}
-      {parked.map((d) => <DoneRow key={d.unit} d={d} wide={wide} onOpen={open} />)}
+      {parked.map((d) => <DoneRow key={d.unit} d={d} wide={wide} on={d.unit === on} onOpen={open} />)}
       {sealed.length > 0 && section('done.sealed')}
-      {sealed.map((d) => <DoneRow key={d.unit} d={d} wide={wide} onOpen={open} />)}
+      {sealed.map((d) => <DoneRow key={d.unit} d={d} wide={wide} on={d.unit === on} onOpen={open} />)}
       {read.value && rows.length === 0 && q && <p class="tree-next">{fill('done.none', { q })}</p>}
       {next && <div ref={end} class="tree-more-rows" aria-hidden="true" />}
     </div>
   );
 }
 
-function DoneRow({ d, wide, onOpen }: { d: Done; wide: boolean; onOpen: (d: Done) => void }) {
+function DoneRow({ d, wide, on, onOpen }: { d: Done; wide: boolean; on: boolean; onOpen: (d: Done) => void }) {
   const verdict = d.verdict === 'aligned' ? 'good' : d.verdict === 'drifted' ? 'needs' : '';
   return (
-    <div class="tree-row done-row" role="treeitem" aria-label={d.title} onClick={() => onOpen(d)}>
+    <div class="tree-row done-row" role="treeitem" aria-label={d.title} aria-selected={on} onClick={() => onOpen(d)}>
       <span class="done-lines">
         <span class="work-line">
           <span class="work-title">{d.title}</span>
@@ -89,11 +98,11 @@ function DoneRow({ d, wide, onOpen }: { d: Done; wide: boolean; onOpen: (d: Done
         </span>
         <span class="done-said">
           <span class={d.parked ? 'needs' : ''}>{[d.decision, d.reason].filter(Boolean).join(' · ')}</span>
-          {d.verdict && <span class="agent-sep">·</span>}
+          {d.verdict && ' · '}
           {d.verdict && <span class={verdict}>{d.verdict}</span>}
         </span>
       </span>
-      <span class="agent-at">{stamp(Date.parse(d.at)).slice(0, 10)}</span>
+      <span class="agent-at">{sealedWhen(d.at)}</span>
       {!wide && <span class="tree-more" aria-hidden="true">›</span>}
     </div>
   );

@@ -143,6 +143,13 @@ function SendBar() {
   const of = m.agents.value.find((a) => a.agent === showing.agent);
   const yes = yesOf(showing);
   const harness = of?.harness ?? '';
+  // Where it types, as the desktop app names it: `weft · claude`.
+  const target = of ? `${of.project.split('/').pop()} · ${harness}` : harness;
+  // A dialog that types nothing names its work in its head, and says the rest in one line (17.3, 17.10).
+  const raw = showing.why.split('\n').map((l) => l.trim()).filter(Boolean);
+  const work = !showing.text && raw.length > 1 && !/[.?!:]$/.test(raw[0]) ? raw[0] : null;
+  const said = why(work ? raw.slice(1).join('\n') : showing.why);
+  const lines = showing.text ? said : [said.join(' ')];
   if (answered) {
     return (
       <div class="pending-bar pending-bar--answered" role="dialog" aria-label={showing.what}>
@@ -152,12 +159,13 @@ function SendBar() {
     );
   }
   return (
-    <div class="pending-bar" role="dialog" aria-label={showing.what}>
+    <div class={yes.tone === 'warn' ? 'pending-bar pending-bar--warn' : 'pending-bar'} role="dialog" aria-label={showing.what}>
       <div class="pending-head">
         <span class="pending-what">{showing.what}</span>
-        {!showing.sends && showing.text && <span class="pending-into">{fill('web.bar.into', { harness })}</span>}
+        {!showing.sends && showing.text && <span class="pending-into">{fill('web.bar.into', { harness: target })}</span>}
+        {work && <span class="pending-into">{work}</span>}
       </div>
-      {why(showing.why).map((s) => (
+      {lines.filter(Boolean).map((s) => (
         <p key={s} class="pending-why">{s}</p>
       ))}
       {showing.text && <pre class="pending-text"><Command text={showing.text} /></pre>}
@@ -230,7 +238,11 @@ function Acts({ cancel, go: [label, onGo], tone = 'go', busy = false }: { cancel
 
 /** A prompt with the route's command at its front, as 17.2 marks it. */
 function Command({ text }: { text: string }) {
-  const command = /^[/$][\w:-]+ /.exec(text)?.[0];
-  if (!command) return <>{text}</>;
-  return <><span class="pending-command">{command}</span>{text.slice(command.length)}</>;
+  const command = /^[/$][\w:-]+ /.exec(text)?.[0] ?? '';
+  // A line that only heads a section, as `Rules:`, is dim.
+  const rest = text.slice(command.length).split('\n').map((line, i, all) => {
+    const end = i < all.length - 1 ? '\n' : '';
+    return /^[^\s-][^:]*:$/.test(line) ? <span key={i} class="pending-head-line">{line + end}</span> : line + end;
+  });
+  return <>{command && <span class="pending-command">{command}</span>}{rest}</>;
 }

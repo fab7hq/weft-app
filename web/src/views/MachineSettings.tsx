@@ -297,7 +297,7 @@ function GitNote({ project, on }: { project: string; on: boolean }) {
           <span class="switch-track" aria-hidden="true"><span class="switch-knob" /></span>
         </span>
       </label>
-      <p class="settings-sub">{w('export.foot')}</p>
+      <p class="settings-sub export-foot">{w('export.foot')}</p>
       {asking && (
         <div class="pending-bar export-bar" role="dialog" aria-label={w('dialog.export.title')}>
           <div class="pending-head"><span class="pending-what">{w('dialog.export.title')}</span></div>

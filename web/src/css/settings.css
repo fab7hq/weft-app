@@ -273,3 +273,4 @@ button.rf-name { cursor: pointer; }
   .rf-pick + .rf-pick { width: auto; max-width: 110px; }
   .rf-preview-show .rf-said { font-size: 12px; }
 }
+@media (max-width: 767px) { .export-foot { margin: 0; padding: 12px 16px; } }

@@ -122,7 +122,18 @@
 .done-head { display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 16px; border-bottom: 1px solid var(--fab7-line); }
 .done-back { background: none; border: 0; padding: 0; font: inherit; font-size: 13px; color: var(--fab7-accent); cursor: pointer; }
 .done-title { font-weight: 600; }
+.done-count { font: 400 11px var(--font-mono); color: var(--fab7-faint); }
 .done-row { height: auto; min-height: 44px; padding: 7px 16px 7px 32px; }
+.done-row .tree-more { min-height: 0; }
+/* On a phone, Done is its own page (M17.18): its head in the bar's place, the rows from the edge. */
+.done-page .done { flex: 1; min-height: 0; overflow-y: auto; }
+.done-page .done-head { height: 48px; flex: none; }
+.done-page .done-back { font-size: 15px; }
+.done-page .done-title { font-size: 17px; }
+.done-page .done-row { padding-left: 16px; }
+/* On a desktop the date stands by the title. */
+.done-row:has(> .agent-at:last-child) { align-items: flex-start; }
+.done-row > .agent-at:last-child { margin-top: 3px; }
 .done-lines { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .done-said { font: 400 11px var(--font-mono); color: var(--fab7-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .done-said .good { color: var(--fab7-teal); }

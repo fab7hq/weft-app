@@ -7,7 +7,7 @@ import * as m from '../machine';
 import { back, go, leave, stack, swap } from '../nav';
 import type { Progress } from '../progress';
 import { w } from '../words';
-import { Running } from './Running';
+import { Running, StopEval } from './Running';
 
 type State = 'met' | 'not_met' | 'unsettled' | 'judging' | { read: string } | null;
 
@@ -120,7 +120,7 @@ export function EvalView({ machine, project, eval: id, at, files = false, wide =
   if (v) {
     const rows = files ? v.by_file : v.by_step;
     if (!at && v.progress) {
-      page = <Running machine={machine} project={project} eval={id} title={v.title} progress={v.progress} wide={wide} />;
+      page = <Running machine={machine} eval={id} title={v.title} progress={v.progress} wide={wide} />;
     } else if (!at) {
       const live = !v.closed;
       const parts = v.header.split(' · ');
@@ -238,11 +238,14 @@ export function EvalView({ machine, project, eval: id, at, files = false, wide =
     }
   }
 
+  // While it runs, the picture alone: no id, and Stop Eval at its foot (17.6).
+  const running = !at && !!v?.progress;
+  const stop = running && <StopEval project={project} eval={id} />;
   const top = (
     <div class={wide ? 'detail-top eval-top' : 'appbar eval-top'}>
       <button class="back" type="button" onClick={back}>{`‹ ${crumb}`}</button>
       <span class="spacer" />
-      <span class="dim eval-id">{v?.eval_id}</span>
+      {!running && <span class="dim eval-id">{v?.eval_id}</span>}
     </div>
   );
   if (wide) {
@@ -251,8 +254,9 @@ export function EvalView({ machine, project, eval: id, at, files = false, wide =
         {top}
         <div class="detail eval eval--wide">{page}</div>
         <div class="detail-acts detail-acts--wide">
-          <span class="dim eval-hint">{w('web.eval.click')}</span>
+          {!running && <span class="dim eval-hint">{w('web.eval.click')}</span>}
           <span class="spacer" />
+          {stop}
           <button class="tree-act" type="button" onClick={() => leave(['eval', 'round', 'seal', 'detail', 'work', 'session'])}>{w('act.close')}</button>
         </div>
       </div>
@@ -264,6 +268,7 @@ export function EvalView({ machine, project, eval: id, at, files = false, wide =
       <div class="page eval-page" role="region" aria-label={w('act.eval_view')}>
         <div class="detail eval">{page}</div>
       </div>
+      {stop && <div class="detail-foot"><div class="detail-acts">{stop}</div></div>}
     </div>
   );
 }

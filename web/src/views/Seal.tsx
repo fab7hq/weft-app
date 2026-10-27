@@ -69,13 +69,13 @@ export function SealDialog() {
       </div>
       {reasonsFor(disposition).length > 0 && (
         <div class="seal-kv">
-          <span class="ask-eyebrow">{w('dialog.seal.why')}</span>
+          <span class="ask-eyebrow">{w('dialog.seal.why')}<span class="seal-optional seal-optional--inline">{` · ${w('dialog.seal.optional')}`}</span></span>
           <div class="sure-chips" role="radiogroup">
             {reasonsFor(disposition).map((r) => (
               <button key={r} type="button" class="sure-chip" role="radio" aria-checked={r === reason} onClick={() => setReason(r === reason ? null : r)}>{w(`seal.r.${r}`)}</button>
             ))}
           </div>
-          <span class="seal-optional">{w('dialog.seal.optional')}</span>
+          <span class="seal-optional seal-optional--after">{w('dialog.seal.optional')}</span>
         </div>
       )}
       <div class="pending-acts">

@@ -4,9 +4,17 @@
 export interface Rule { id: string; label: string; text: string; family: string | null; layer: string }
 export interface Plan { slug: string; path: string; title: string }
 export interface Sheet {
-  routes: string[]; route: string; tasks: string[]; task: string;
+  /** No route when the machine could not pick one: the person picks. */
+  routes: string[]; route: string | null; tasks: string[]; task: string;
   plan: Plan | null; plans: Plan[]; practices: Rule[]; route_rules: Rule[];
+  /** The practices proposed for these words; none sent, every one is kept. */
+  proposed?: string[] | null;
+  /** Whether the machine reads the words to fill the sheet. */
+  senses?: boolean;
 }
+
+/** A practice the person put in (true) or took out (false), by id. */
+export type Picked = Map<string, boolean>;
 
 /** A route as the sheet names it: `native_goal` is "Goal", `human_handoff` "Human handoff". */
 export function routeLabel(id: string): string {
@@ -17,19 +25,41 @@ export function routeLabel(id: string): string {
 /** How many practices show before "+ N more". */
 export const SHOWN = 3;
 
-/** The practices still in, the first few unless all are shown. */
-export function shownRules(practices: Rule[], removed: Set<string>, all: boolean): Rule[] {
-  const kept = practices.filter((r) => !removed.has(r.id));
+/** Whether a practice is kept: the person's pick, else whether it was proposed. */
+export function isIn(sheet: Sheet, picked: Picked, id: string): boolean {
+  return picked.get(id) ?? (sheet.proposed ? sheet.proposed.includes(id) : true);
+}
+
+/** The practices kept, the first few unless all are shown. */
+export function shownRules(sheet: Sheet, picked: Picked, all: boolean): Rule[] {
+  const kept = sheet.practices.filter((r) => isIn(sheet, picked, r.id));
   return all ? kept : kept.slice(0, SHOWN);
 }
 
+/** What "+ N more" holds: the kept ones not shown, and those to add. */
+export function moreCount(sheet: Sheet, picked: Picked, all: boolean): number {
+  return sheet.practices.length - shownRules(sheet, picked, all).length;
+}
+
+/** Whether Ask may be sent: not while the sheet waits for the person's route. */
+export function canAsk(sheet: Sheet | null): boolean {
+  return !sheet || sheet.route !== null;
+}
+
+/** Whether the sheet shows the machine reading the words: it does read them,
+ * there are words, the sheet shown is for others, and the person has not
+ * chosen to pick themselves. */
+export function sensing(sheet: Sheet | null, sheetFor: string | null, text: string, picking: boolean): boolean {
+  return !!sheet?.senses && !picking && text.trim() !== '' && sheetFor !== text;
+}
+
 /** What Ask sends: the route and task, the plan (the one offered unless the person
- * picked another or none), and every practice they did not take out. */
-export function draftOf(sheet: Sheet, chosen: { plan: string | null | undefined; removed: Set<string> }) {
+ * picked another or none), and every practice kept. */
+export function draftOf(sheet: Sheet, chosen: { plan: string | null | undefined; picked: Picked }) {
   return {
     route: sheet.route,
     task: sheet.task,
     plan: chosen.plan === undefined ? (sheet.plan?.path ?? null) : chosen.plan,
-    rules: sheet.practices.filter((r) => !chosen.removed.has(r.id)).map((r) => r.id),
+    rules: sheet.practices.filter((r) => isIn(sheet, chosen.picked, r.id)).map((r) => r.id),
   };
 }

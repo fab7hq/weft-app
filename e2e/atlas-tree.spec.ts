@@ -101,9 +101,10 @@ test('M11.1 D11.1: the bar follows the selection; an act that does not apply say
   await row(page, 'health endpoint').click();
   if (wide) await page.getByRole('region', { name: 'health endpoint' }).waitFor();
   await bar(page, 'Seal').click();
-  await expect.poll(() => machine.of('act').length).toBe(2);
-  expect(machine.of('act')[1]).toMatchObject({ act: 'seal', project: 'weft', unit: 'ask_3' });
-  await page.getByRole('dialog', { name: 'Eval this work?' }).getByRole('button', { name: 'Cancel', exact: true }).click();
+  // Seal is its own dialog, naming the work: nothing is sent until its Seal.
+  await expect(page.getByRole('dialog', { name: 'Seal this work?' })).toContainText('health endpoint');
+  expect(machine.of('act')).toHaveLength(1);
+  await page.getByRole('dialog', { name: 'Seal this work?' }).getByRole('button', { name: 'Cancel', exact: true }).click();
 
   // An ended session: Ask says to resume it.
   await row(page, 'claude · readme fix').click();
@@ -116,7 +117,7 @@ test('M11.1 D11.1: the bar follows the selection; an act that does not apply say
   await row(page, 'readme fix').click();
   await bar(page, 'Seal').click();
   await expect(said(page)).toHaveText('readme fix is closed. Follow up asks again.');
-  expect(machine.of('act')).toHaveLength(2);
+  expect(machine.of('act')).toHaveLength(1);
   await noneDisabled(page);
   await machine.close();
 });
@@ -168,30 +169,44 @@ test('M11.1 D11.1: › on a session and a unit of work open their Details', asyn
   await machine.close();
 });
 
-test('M11.1 D11.1: the earlier sealed units unfold a page at a time from read sealed, the next as it scrolls', async ({ page, context }) => {
+/** A project's sealed units as Done reads them, newest first. */
+const doneRows = (n: number) => Array.from({ length: n }, (_, i) => ({
+  unit: `ask_${String(n - i).padStart(6, '0')}`, title: `sealed ${n - i}`, harness: 'codex', verdict: 'aligned', decision: 'accepted', reason: null, at: '2026-10-08T10:00:00Z', parked: false,
+}));
+/** `read done` a page of 50 at a time, from `after` on. */
+const doneReads = (rows: ReturnType<typeof doneRows>) => (m: Record<string, unknown>) => {
+  if (m.what !== 'done') return null;
+  const from = m.after ? rows.findIndex((r) => r.unit === m.after) + 1 : 0;
+  const page = rows.slice(from, from + 50);
+  const next = from + 50 < rows.length ? page.at(-1)!.unit : null;
+  return { type: 'ok', req: m.req, done: { total: rows.length, rows: page, next } };
+};
+
+test('M11.1 D17.18: the earlier sealed units open Done in the tree\'s place, read a page at a time as it scrolls', async ({ page, context }) => {
   const big = large();
   const sample = atlas();
   sample.tree = [{ ...project('weft', big.sessions.slice(0, 5)), work: { units: [], earlier: 120 } }];
   sample.tree[0].agents = { running: 2, ended: 298, rows: big.sessions.slice(0, 5), earlier: 295 };
   sample.agents = [];
-  sample.reads.sealed = { weft: big.sealed };
   const machine = await opened(page, context, sample);
+  machine.onRead = doneReads(doneRows(120));
   // Folded, they are a count.
   await expect(row(page, '120 sealed earlier')).toHaveText('120 sealed earlier ›');
-  expect(machine.of('read')).toHaveLength(0);
+  const reads = () => machine.of('read').filter((r) => r.what === 'done');
+  expect(reads()).toHaveLength(0);
   await row(page, '120 sealed earlier').click();
-  await expect(row(page, 'sealed 120')).toBeVisible();
-  await expect(page.locator('.tree-row--work')).toHaveCount(50);
-  expect(machine.of('read')).toEqual([expect.objectContaining({ what: 'sealed', project: 'weft' })]);
-  expect(machine.of('read')[0]).not.toHaveProperty('after');
+  await expect(page.getByRole('tree', { name: 'Done' })).toBeVisible();
+  await expect(page.locator('.done-row')).toHaveCount(50);
+  expect(reads()[0]).toMatchObject({ what: 'done', project: 'weft' });
+  expect(reads()[0]).not.toHaveProperty('after');
   await row(page, 'sealed 71').scrollIntoViewIfNeeded();
-  await expect(page.locator('.tree-row--work')).toHaveCount(100);
-  expect(machine.of('read')[1]).toMatchObject({ what: 'sealed', after: 'ask_000071' });
+  await expect(page.locator('.done-row')).toHaveCount(100);
+  expect(reads()[1]).toMatchObject({ what: 'done', after: 'ask_000071' });
   await row(page, 'sealed 21').scrollIntoViewIfNeeded();
-  await expect(page.locator('.tree-row--work')).toHaveCount(120);
+  await expect(page.locator('.done-row')).toHaveCount(120);
   await expect(row(page, 'sealed 1')).toBeAttached();
   await page.waitForTimeout(300);
-  expect(machine.of('read')).toHaveLength(3);
+  expect(reads()).toHaveLength(3);
   await machine.close();
 });
 
@@ -213,17 +228,18 @@ test('M11.1 D11.1: the tree follows the machine', async ({ page, context }) => {
   await machine.close();
 });
 
-test('M11.1 D11.1: ▾ ▸ fold a project or the earlier sealed units, and this browser keeps it', async ({ page, context }) => {
+test('M11.1 D11.1: ▾ ▸ fold a project, and this browser keeps it; its sealed earlier open Done and ‹ comes back', async ({ page, context }) => {
   const machine = await opened(page, context);
+  machine.onRead = doneReads(doneRows(4));
   await row(page, 'docs').click();
   await expect(row(page, 'docs')).toHaveAttribute('aria-expanded', 'false');
   await row(page, '4 sealed earlier').click();
-  await expect(row(page, 'lint pass')).toBeVisible();
+  await expect(page.getByRole('tree', { name: 'Done' })).toBeVisible();
+  await expect(page.locator('.done-row')).toHaveCount(4);
+  await page.getByRole('button', { name: '‹ weft' }).click();
+  await expect(row(page, '4 sealed earlier')).toBeVisible();
   await page.reload();
   await expect(row(page, 'docs')).toHaveAttribute('aria-expanded', 'false');
-  await expect(row(page, 'lint pass')).toBeVisible();
-  await row(page, '4 sealed earlier').click();
-  await expect(row(page, 'lint pass')).toHaveCount(0);
   await machine.close();
 });
 

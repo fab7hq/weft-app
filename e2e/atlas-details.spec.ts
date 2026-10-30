@@ -64,8 +64,10 @@ test('a unit of work opens as its workflow: its Asks, its Eval and its Seal, eac
   await expect(view.locator('.step-aside')).toHaveText(['codex · sent 10:31', 'codex · sent 10:40', 'judged 10:58 · 1 met · 1 not met']);
   // Judged, Seal is its act put forward.
   await expect(act(page, 'Seal')).toHaveClass(/tree-act--go/);
+  // Seal is its own dialog (17.4): nothing is sent until its Seal.
   await act(page, 'Seal').click();
-  await expect.poll(() => machine.of('act')).toEqual([expect.objectContaining({ act: 'seal', project: 'weft', unit: 'ask_3' })]);
+  await expect(page.getByRole('dialog', { name: 'Seal this work?' })).toBeVisible();
+  expect(machine.of('act')).toEqual([]);
   await page.getByRole('dialog', { name: 'Seal this work?' }).getByRole('button', { name: 'Cancel', exact: true }).click();
   await act(page, 'Follow up').click();
   await expect(page.getByRole('dialog', { name: 'What do you want done?' }).getByText('FOLLOW UP · HEALTH ENDPOINT · EVL_3')).toBeVisible();
@@ -218,7 +220,8 @@ test('M11.3 D11.3: an Eval\'s Details, once: verdict, agreement, judges, finding
   // "Not sealed", the round's word capitalised as a heading.
   await expect(view.locator('.detail-note-head')).toHaveText('not sealed');
   await act(page, 'Seal').click();
-  await expect.poll(() => machine.of('act')).toEqual([expect.objectContaining({ act: 'seal', project: 'weft', eval: 'evl_3' })]);
+  await expect(page.getByRole('dialog', { name: 'Seal this work?' })).toBeVisible();
+  expect(machine.of('act')).toEqual([]);
   await page.getByRole('dialog', { name: 'Seal this work?' }).getByRole('button', { name: 'Cancel', exact: true }).click();
   await view.getByRole('button', { name: /^Findings/ }).click();
   await expect(page.getByText('what RingFrame noticed beside the steps')).toBeVisible();

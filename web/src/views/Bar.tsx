@@ -5,7 +5,7 @@ import { effect, signal } from '@preact/signals';
 import type { Machine } from '../api';
 import * as m from '../machine';
 import { here } from '../nav';
-import { clock } from '../bar';
+import { clock, isSetup, sentence as sentenceOn } from '../bar';
 import { asking } from './Ask';
 import { act, acting } from './Asked';
 import { chosen, stateOf, unready, type Chosen } from './Tree';
@@ -41,11 +41,7 @@ effect(() => {
 });
 
 /** A why-not, in the web's words; a harness not set up says where to set it up (M7.1). */
-export function sentence(why: m.Why): string {
-  const name = m.current.value?.name ?? '';
-  const s = fill(why.key, { harness: why.harness ?? '', title: why.title ?? '', machine: name });
-  return why.key === 'why.not_set_up' ? `${s} ${fill('web.why.set_up_on', { machine: name })}` : s;
-}
+export const sentence = (why: m.Why): string => sentenceOn(why, m.current.value?.name ?? '');
 
 /** The agent an Ask goes to first when no agent is selected: the open one, else one of the project's running. */
 function fallback(project: string | undefined, harness?: string): string | undefined {
@@ -55,11 +51,12 @@ function fallback(project: string | undefined, harness?: string): string | undef
   return open?.agent ?? (mine.find((a) => a.harness === harness) ?? mine[0])?.agent;
 }
 
-/** Ask, on the selection: an agent takes it, or says why it cannot; on a unit of work, an agent of its harness. */
+/** Ask, on the selection: an agent takes it, or says why it cannot; on a unit of work, an agent of its harness.
+ * What Weft reads of a harness's setup is said in the sheet instead. */
 export function askOn(): void {
   const s = chosen();
   if (s?.kind === 'agent') {
-    if (s.row.ask) return void (said.value = sentence(s.row.ask));
+    if (s.row.ask && !isSetup(s.row.ask)) return void (said.value = sentence(s.row.ask));
     if (!s.row.agent) return void (said.value = fill('why.elsewhere', { harness: s.row.harness }));
     asking.value = { agent: s.row.agent, project: s.p.project };
     return;
@@ -67,11 +64,10 @@ export function askOn(): void {
   const project = s?.p.project;
   const agent = fallback(project, s?.row.harness);
   if (!agent) return void (said.value = fill('web.why.start_an_agent', { machine: m.current.value?.name ?? '' }));
-  // Its harness not set up for RingFrame, nothing it is asked is written down (M7.1).
   const of = m.agents.value.find((a) => a.agent === agent);
   const p = of && m.tree.value.find((x) => x.project === of.project);
   const why = p && unready(p, of.harness);
-  if (why) return void (said.value = sentence(why));
+  if (why && !isSetup(why)) return void (said.value = sentence(why));
   asking.value = { agent, project: project ?? of?.project };
 }
 
@@ -89,25 +85,28 @@ export async function sealOn(): Promise<void> {
   await sealWork(s.p.project, s.row.unit, s.row.seal);
 }
 
-/** Eval this unit of work, unless the machine said why not. */
+/** What Weft read of the harness's setup, said in the act's dialog; null for any other why. */
+const warning = (why: m.Why | null) => (isSetup(why) ? sentence(why) : null);
+
+/** Eval this unit of work, unless the machine said why not; what Weft reads of the harness's setup only warns, in its dialog. */
 export async function evalWork(project: string, unit: string, why: m.Why | null): Promise<void> {
-  if (why) return void (said.value = sentence(why));
-  const refused = await act({ act: 'eval', project, unit });
+  if (why && !isSetup(why)) return void (said.value = sentence(why));
+  const refused = await act({ act: 'eval', project, unit }, warning(why));
   if (refused) said.value = String(refused.message);
 }
 
-/** Seal this unit of work, in its one dialog, unless the machine said why not. */
+/** Seal this unit of work, in its one dialog, unless the machine said why not; a setup why warns in the dialog. */
 export async function sealWork(project: string, unit: string, why: m.Why | null): Promise<void> {
-  if (why) return void (said.value = sentence(why));
+  if (why && !isSetup(why)) return void (said.value = sentence(why));
   const row = m.tree.value.find((p) => p.project === project)?.work.units.find((u) => u.unit === unit);
   const judged = row?.status.state === 'judged' ? row.status : null;
-  sealing.value = { project, unit, title: row?.title ?? '', asks: row?.asks ?? 1, verdict: judged?.verdict ?? null, agreement: judged?.agreement ?? null };
+  sealing.value = { project, unit, title: row?.title ?? '', asks: row?.asks ?? 1, verdict: judged?.verdict ?? null, agreement: judged?.agreement ?? null, warning: warning(why) };
 }
 
-/** Seal this Eval, in its one dialog, unless the machine said why not (it stays drawn, and says so). */
+/** Seal this Eval, in its one dialog, unless the machine said why not (it stays drawn, and says so); a setup why warns in the dialog. */
 export async function sealRound(project: string, eval_: string, why: m.Why | null, of: { title: string; asks: number; verdict: m.Verdict | null }): Promise<void> {
-  if (why) return void (said.value = sentence(why));
-  sealing.value = { project, eval: eval_, ...of, agreement: null };
+  if (why && !isSetup(why)) return void (said.value = sentence(why));
+  sealing.value = { project, eval: eval_, ...of, agreement: null, warning: warning(why) };
 }
 
 /** The selection as the desktop's bar names it: `claude · 11:29`, `health endpoint`. */

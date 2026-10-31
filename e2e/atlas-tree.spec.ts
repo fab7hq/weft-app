@@ -299,7 +299,7 @@ test('M2.8: a tree longer than the screen scrolls, with no markers', async ({ pa
   await machine.close();
 });
 
-test('M7.1 D7.1: a harness not set up is marked ⚠ on its sessions; Ask on one says where to set it up', async ({ page, context }) => {
+test('M7.1 D7.1: a harness not set up is marked ⚠ on its sessions; Ask on one opens and says where to set it up', async ({ page, context }) => {
   const sample = oneClaude({ key: 'why.not_set_up', harness: 'claude' });
   sample.tree[0].agents.rows[0].ask = { key: 'why.not_set_up', harness: 'claude' };
   const machine = await opened(page, context, sample);
@@ -309,7 +309,13 @@ test('M7.1 D7.1: a harness not set up is marked ⚠ on its sessions; Ask on one 
   await row(page, 'claude · no Ask yet').click();
   await expect(row(page, 'claude · no Ask yet')).toHaveAttribute('aria-selected', 'true');
   await bar(page, 'Ask').click();
-  await expect(said(page)).toHaveText('claude is not set up for RingFrame. Set it up on studio from ☰ › Updates…');
+  // The reading may be wrong: it warns in the sheet, and the Ask still goes.
+  const sheet = page.getByRole('dialog', { name: 'What do you want done?' });
+  await expect(sheet.locator('.ask-hint')).toHaveText('claude is not set up for RingFrame. Set it up on studio from ☰ › Updates…');
+  await expect(said(page)).toHaveCount(0);
+  await sheet.getByLabel('What do you want done?').fill('add /health');
+  await sheet.getByRole('button', { name: 'Ask', exact: true }).click();
+  await expect.poll(() => machine.of('act')).toEqual([expect.objectContaining({ act: 'ask', text: 'add /health' })]);
   await machine.close();
 });
 

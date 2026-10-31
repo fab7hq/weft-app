@@ -113,3 +113,45 @@ test('D4.1: with a keyboard, Enter asks and Shift+Enter adds a line', async ({ p
   await expect.poll(() => machine.of('act')).toEqual([expect.objectContaining({ act: 'ask', text: 'Fix the login\nthen run its tests' })]);
   await machine.close();
 });
+
+test('M4.1 D4.1: a sheet the machine will not draft says why in one line, and Ask still asks', async ({ page, context }) => {
+  const machine = await opened(page, context);
+  machine.sheetRefused = { claude: 'claude has no RingFrame plugin.' };
+  await page.getByRole('button', { name: 'Ask', exact: true }).click();
+  const sheet = page.getByRole('dialog', { name: 'What do you want done?' });
+  const warning = sheet.locator('.ask-hint');
+  await expect(warning).toHaveText('This agent may not take an Ask: claude has no RingFrame plugin.');
+  await expect(sheet.getByRole('button', { name: 'Ask', exact: true })).not.toHaveClass(/tree-act--waiting/);
+  // Another SEND TO: the line goes; back to claude, the machine refuses again and says so.
+  const to = sheet.getByRole('button', { name: /^SEND TO / });
+  await to.click();
+  await sheet.getByRole('option', { name: 'weft · codex', exact: true }).first().click();
+  await expect(warning).toHaveCount(0);
+  await to.click();
+  await sheet.getByRole('option', { name: 'weft · claude', exact: true }).click();
+  await expect(warning).toHaveText('This agent may not take an Ask: claude has no RingFrame plugin.');
+  await sheet.getByLabel('What do you want done?').fill('Fix the login');
+  await sheet.getByRole('button', { name: 'Ask', exact: true }).click();
+  await expect.poll(() => machine.of('act')).toEqual([expect.objectContaining({ act: 'ask', agent: '3f9a1c07b2de-0', text: 'Fix the login' })]);
+  await machine.close();
+});
+
+test('M7.1 D7.1: an agent whose harness has no plugin still opens the Ask, which says where to set it up, before the machine\'s refusal', async ({ page, context }) => {
+  const machine = await opened(page, context);
+  machine.sheetRefused = { claude: 'claude has no RingFrame plugin.' };
+  const tree = atlas().tree;
+  tree[0].ask = { key: 'why.not_set_up', harness: 'claude' };
+  tree[0].agents.rows.filter((r) => r.harness === 'claude').forEach((r) => (r.ask = { key: 'why.not_set_up', harness: 'claude' }));
+  machine.send({ type: 'tree', tree });
+  await page.getByRole('treeitem', { name: 'claude · fix login', exact: true }).click();
+  await page.locator('.tree-acts').getByRole('button', { name: 'Ask', exact: true }).click();
+  const sheet = page.getByRole('dialog', { name: 'What do you want done?' });
+  await expect(sheet.getByRole('button', { name: /^SEND TO / })).toHaveAccessibleName('SEND TO weft · claude');
+  // One warning: Weft's own reading of the harness, not RingFrame's reason as well.
+  await expect.poll(() => machine.of('settings').filter((m) => m.what === 'ask').length).toBeGreaterThan(0);
+  await expect(sheet.locator('.ask-hint')).toHaveText(['claude is not set up for RingFrame. Set it up on studio from ☰ › Updates…']);
+  await sheet.getByLabel('What do you want done?').fill('Fix the login');
+  await sheet.getByRole('button', { name: 'Ask', exact: true }).click();
+  await expect.poll(() => machine.of('act')).toEqual([expect.objectContaining({ act: 'ask', agent: '3f9a1c07b2de-0', text: 'Fix the login' })]);
+  await machine.close();
+});

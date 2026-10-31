@@ -750,7 +750,7 @@ const SCREENS: Screen[] = [
   }, run: async (at) => {
     await tree(at);
     await selected(at, 'claude · no Ask yet');
-    // On the phone the bar says it; on a desktop the agent beside the tree does.
+    // On the phone the Ask sheet says it, and asks anyway; on a desktop the agent beside the tree does.
     if (!at.wide) {
       await at.page.locator('.tree-acts').getByRole('button', { name: 'Ask', exact: true }).click();
       await expect(at.page.getByText('claude is not set up for RingFrame. Set it up on studio from ☰ › Updates…')).toBeVisible();

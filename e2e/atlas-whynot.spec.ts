@@ -32,7 +32,8 @@ test('M10.1 D10.1 M11.1: Eval with nothing picked says what to select, and the n
 
 test('M10.1 D10.1: each why-not on a unit of work is said in its sentence', async ({ page, context }) => {
   const machine = await opened(page, context);
-  const keys = Object.keys(WORDS).filter((k) => k.startsWith('why.') && k !== 'why.not_set_up');
+  // What Weft reads of a harness's setup only warns (atlas-bar.spec.ts), and where to set one up is no why-not.
+  const keys = Object.keys(WORDS).filter((k) => k.startsWith('why.') && !['why.not_set_up', 'why.cannot_ask', 'why.set_up_here'].includes(k));
   expect(keys.length).toBeGreaterThan(5);
   await page.getByRole('treeitem', { name: 'fix login', exact: true }).click();
   for (const key of keys) {

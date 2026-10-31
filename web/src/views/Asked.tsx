@@ -63,15 +63,22 @@ export async function resume(project: string, harness: string, session: string, 
 /** The project a unit of work is in, as the tree shows it. */
 const projectOf = (unit: unknown) => m.tree.value.find((p) => p.work.units.some((u) => u.unit === unit))?.project ?? '';
 
-/** An act; the pending it staged is shown when the machine answers. Its error, if any. */
-export async function act(message: Record<string, unknown>): Promise<Record<string, unknown> | null> {
+/** What Weft read of a harness's setup, said in the dialog of the pending its act staged. */
+const warned = signal<{ pending: string; text: string } | null>(null);
+
+/** An act; the pending it staged is shown when the machine answers, with its
+ * warning, if any. Its error, if any. */
+export async function act(message: Record<string, unknown>, warning: string | null = null): Promise<Record<string, unknown> | null> {
   if (acting.value) return null;
   acting.value = String(message.act);
   const answer = await m.request({ type: 'act', ...message });
   acting.value = null;
   // Not sent at all: say so, rather than nothing.
   if (!answer) return { type: 'error', code: 'not_connected', message: w('web.why.not_connected') };
-  if (answer.type === 'ok' && answer.pending) shown.value = String(answer.pending);
+  if (answer.type === 'ok' && answer.pending) {
+    shown.value = String(answer.pending);
+    warned.value = warning ? { pending: shown.value, text: warning } : null;
+  }
   if (answer.type === 'error' && answer.code === 'not_running') {
     const project = typeof message.project === 'string' ? message.project : projectOf(message.unit);
     gone.value = { project, harness: String(answer.harness), session: (answer.session as m.Session | null) ?? null, said: String(answer.message), again: message };
@@ -168,6 +175,7 @@ function SendBar() {
       {lines.filter(Boolean).map((s) => (
         <p key={s} class="pending-why">{s}</p>
       ))}
+      {warned.value?.pending === id && <p class="pending-why ask-hint">{warned.value.text}</p>}
       {showing.text && <pre class="pending-text"><Command text={showing.text} /></pre>}
       {showing.sends ? (
         <SendBarTo rows={destinations(of?.project, showing.agent)} to={keyOf(to ?? { agent: showing.agent })} onPick={setTo}>

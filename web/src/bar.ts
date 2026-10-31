@@ -1,5 +1,6 @@
 // The confirmation bar's words, from the machine's own.
-import { w } from './words';
+import type { Project, Why } from './machine';
+import { fill, w } from './words';
 
 /**
  * The machine's why, as the bar says it: its wrapped lines joined into
@@ -50,4 +51,31 @@ export interface Go {
 export function yesOf(pending: { go?: Go | null }): { label: string; tone: 'go' | 'warn' } {
   const go = pending.go;
   return { label: w(go?.word ?? 'act.send'), tone: go?.warn ? 'warn' : 'go' };
+}
+
+/** What Weft reads of a harness's setup: said where the act is, never a stop,
+ * since the reading may be wrong. Every other why-not stops its act. */
+export function isSetup(why: Why | null | undefined): why is Why {
+  return why?.key === 'why.not_set_up' || why?.key === 'why.cannot_ask';
+}
+
+/** A why-not in the web's words; a harness not set up says where to set it up. */
+export function sentence(why: Why, machine: string): string {
+  const s = fill(why.key, { harness: why.harness ?? '', title: why.title ?? '', machine });
+  return why.key === 'why.not_set_up' ? `${s} ${fill('web.why.set_up_on', { machine })}` : s;
+}
+
+/** What Weft read of the setup of the harness an Ask goes to: on its agent's row, else on the project. */
+export function setupOf(p: Pick<Project, 'ask' | 'agents'> | undefined, harness: string, agent?: string): Why | null {
+  const rows = p?.agents.rows.filter((r) => r.harness === harness) ?? [];
+  const mine = agent ? rows.filter((r) => r.agent === agent) : rows;
+  const said = [...mine.map((r) => r.ask), p?.ask].find((why) => isSetup(why) && why.harness === harness);
+  return said ?? null;
+}
+
+/** The Ask sheet's one warning: Weft's own reading of the harness first, else
+ * why the machine would not draft the Ask. Either way the Ask can still go. */
+export function askWarning(setup: Why | null, refused: string | null, machine: string): string | null {
+  if (setup) return sentence(setup, machine);
+  return refused ? `${fill('ask.may_not', { why: refused.trim().replace(/\.$/, '') })}.` : null;
 }

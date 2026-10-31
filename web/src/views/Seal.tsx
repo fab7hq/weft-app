@@ -14,6 +14,8 @@ import { Verdict } from './Tree';
 export const sealing = signal<{
   project: string; unit?: string; eval?: string;
   title: string; asks: number; verdict: m.Verdict | null; agreement: number | null;
+  /** What Weft read of the harness's setup: said here, and the Seal can still go. */
+  warning?: string | null;
 } | null>(null);
 
 /** The work as the dialogs name it: `health endpoint · 2 Asks`. */
@@ -53,6 +55,7 @@ export function SealDialog() {
         <span class="pending-what">{w('dialog.seal.title')}</span>
         <span class="pending-into">{work}</span>
       </div>
+      {on.warning && <p class="pending-why ask-hint">{on.warning}</p>}
       {on.verdict && (
         <div class="seal-kv">
           <span class="ask-eyebrow">{w('dialog.seal.verdict')}</span>

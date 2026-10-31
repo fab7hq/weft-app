@@ -257,6 +257,8 @@ export class FakeMachine {
   /** The Ask sheet the machine offers for these words, harness and route; null
    * leaves it unanswered, as while Sense reads the words. None set, it has none. */
   sheet: ((q: { harness: string; words: string; route?: string }) => Record<string, unknown> | null) | null = null;
+  /** Why the machine will not draft an Ask for a harness, by harness: its sheet's read is refused. */
+  sheetRefused: Record<string, string> = {};
   /** How a `resolve` is answered; else plain `ok`. */
   onResolve: ((m: Record<string, unknown>) => Record<string, unknown>[]) | null = null;
   /** How a `text` is answered; else plain `ok`. */
@@ -322,9 +324,13 @@ export class FakeMachine {
         } else if (m.type === 'read' && m.what === 'conversation' && !this.onRead?.(m)) {
           for (const out of this.conversation(m)) ws.send(JSON.stringify(out));
         } else if (m.type === 'settings' && m.what === 'ask') {
-          const sheet = this.sheet ? this.sheet(JSON.parse(String(m.unit))) : undefined;
-          if (sheet) ws.send(JSON.stringify({ type: 'ok', req: m.req, settings: sheet }));
-          else if (sheet === undefined) ws.send(JSON.stringify({ type: 'error', req: m.req, code: 'no_sheet', message: 'no Ask sheet here' }));
+          const q = JSON.parse(String(m.unit));
+          const sheet = this.sheet ? this.sheet(q) : undefined;
+          const refused = this.sheetRefused[q.harness];
+          if (refused) ws.send(JSON.stringify({ type: 'error', req: m.req, code: 'refused', message: refused }));
+          else if (sheet) ws.send(JSON.stringify({ type: 'ok', req: m.req, settings: sheet }));
+          // None set, it offers none, and refuses nothing.
+          else if (sheet === undefined) ws.send(JSON.stringify({ type: 'ok', req: m.req, settings: null }));
         } else if (m.type === 'settings' || m.type === 'set') {
           ws.send(JSON.stringify(this.setting(m)));
         } else if (m.type === 'follow') {

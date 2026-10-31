@@ -38,14 +38,41 @@ test('M10.1 D10.1: Eval and Seal with nothing selected say what to select, until
 
 test('M10.1 D10.1: a unit of work that cannot be judged says why, and nothing is sent', async ({ page, context }) => {
   const sample = atlas();
-  sample.tree[0].work.units[0].eval = { key: 'why.not_set_up', harness: 'codex' };
+  sample.tree[0].work.units[0].eval = { key: 'why.judging', harness: 'codex', title: 'fix login' };
   const machine = await opened(page, context, sample);
   await work(page, 'fix login').click();
   await button(page, 'Eval').click();
-  await expect(page.getByRole('status')).toHaveText('codex is not set up for RingFrame. Set it up on studio from ☰ › Updates…');
+  await expect(page.getByRole('status')).toHaveText('fix login is not judged yet: Eval goes on with it.');
   expect(machine.of('act')).toHaveLength(0);
   await machine.close();
 });
+
+// What Weft reads of a harness's setup may be wrong: it warns in the act's dialog and never stops the act.
+for (const [why, warning] of [
+  [{ key: 'why.not_set_up', harness: 'codex' }, 'codex is not set up for RingFrame. Set it up on studio from ☰ › Updates…'],
+  [{ key: 'why.cannot_ask', harness: 'codex' }, 'Weft could not ask codex whether it is set up.'],
+] as const) {
+  test(`M7.1 D7.1: ${why.key} on a unit of work still Evals and Seals, and its dialogs say it`, async ({ page, context }) => {
+    const sample = atlas();
+    Object.assign(sample.tree[0].work.units[0], { eval: why, seal: why });
+    const machine = await opened(page, context, sample);
+    const acts = page.locator('.tree-acts');
+    await work(page, 'fix login').click();
+    await acts.getByRole('button', { name: 'Eval', exact: true }).click();
+    await expect.poll(() => machine.of('act')).toEqual([expect.objectContaining({ act: 'eval', unit: sample.tree[0].work.units[0].unit })]);
+    const evalDialog = page.getByRole('dialog', { name: 'Eval this work?' });
+    await expect(evalDialog.locator('.ask-hint')).toHaveText(warning);
+    await expect(page.locator('.tree-said')).toHaveCount(0);
+    await evalDialog.getByRole('button', { name: 'Cancel', exact: true }).click();
+    await expect(evalDialog).toHaveCount(0);
+    await work(page, 'fix login').click();
+    await acts.getByRole('button', { name: 'Seal', exact: true }).click();
+    const seal = page.getByRole('dialog', { name: 'Seal this work?' });
+    await expect(seal.locator('.ask-hint')).toHaveText(warning);
+    await expect(seal.getByRole('button', { name: 'Seal', exact: true })).toBeVisible();
+    await machine.close();
+  });
+}
 
 test('M11.1 D11.1: NEEDS YOU opens the agent that needs you', async ({ page, context }) => {
   const machine = await opened(page, context);

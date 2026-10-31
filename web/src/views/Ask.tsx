@@ -7,6 +7,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import * as m from '../machine';
 import { act, acting } from './Asked';
 import { said } from './Bar';
+import { askWarning, setupOf } from '../bar';
 import { destinations, keyOf, SendTo, type Dest } from './SendTo';
 import { own } from '../textkeys';
 import { fill, w } from '../words';
@@ -78,19 +79,28 @@ function AskForm({ asked, docked }: { asked: Asking; docked: boolean }) {
   const [route, setRoute] = useState<string | undefined>(undefined);
   const [plan, setPlan] = useState<string | null | undefined>(undefined);
   const [kept, setKept] = useState<Picked>(new Map());
+  const picked = to ? keyOf(to) : '';
+  // Why the machine would not draft an Ask for the agent picked: said, and the Ask can still go.
+  const [refused, setRefused] = useState<{ to: string; why: string } | null>(null);
   useEffect(() => {
     if (!project || !harness) return;
     const words = text;
     const t = setTimeout(() => {
       void m.readSettings(project, 'ask', JSON.stringify({ harness, words, route })).then((r) => {
-        if (r && !(r as { refused?: string }).refused) {
+        const no = (r as { refused?: string } | null)?.refused;
+        if (no) return setRefused({ to: picked, why: no });
+        if (r) {
           setSheet(r as Sheet);
           setSheetFor(words);
+          setRefused(null);
         }
       });
     }, 300);
     return () => clearTimeout(t);
   }, [project, harness, text, route]);
+  // One warning: what Weft read of the harness's setup first, else the machine's refusal.
+  const setup = setupOf(m.tree.value.find((p) => p.project === project), harness, to && 'agent' in to ? to.agent : undefined);
+  const warning = askWarning(setup, refused?.to === picked ? refused.why : null, m.current.value?.name ?? '');
   const reading = sensing(sheet, sheetFor, text, picking || route !== undefined);
   const askable = canAsk(sheet) && !reading;
   // Open until the machine answers, Ask showing it is working; then the bar
@@ -105,7 +115,6 @@ function AskForm({ asked, docked }: { asked: Asking; docked: boolean }) {
     close();
     if (refused) said.value = String(refused.message);
   };
-  const picked = to ? keyOf(to) : '';
   // Every practice listed, once the person asks for more or for another rule.
   const [all, setAll] = useState(false);
   const drafting = !!sheet && !reading;
@@ -119,6 +128,7 @@ function AskForm({ asked, docked }: { asked: Asking; docked: boolean }) {
   const routePick = drafting && <RoutePick sheet={sheet} onRoute={setRoute} />;
   const addRule = drafting && !all && <button type="button" class="ask-rule-add" onClick={() => setAll(true)}>{w('ask.add_rule')}</button>;
   const hint = drafting && sheet.route === null && <span class="ask-hint">{w('ask.pick_to_ask')}</span>;
+  const warn = warning && <span class="ask-hint">{warning}</span>;
   const go = <button class={askable ? 'tree-act tree-act--go' : 'tree-act tree-act--go tree-act--waiting'} type="submit" aria-busy={acting.value ? true : undefined}>{w('act.ask')}</button>;
   const cancel = <button class="tree-act" type="button" onClick={close}>{w('act.cancel')}</button>;
   return (
@@ -148,6 +158,7 @@ function AskForm({ asked, docked }: { asked: Asking; docked: boolean }) {
       )}
       {reading && <Sensing onPick={() => setPicking(true)} />}
       {drafting && <AskDraft sheet={sheet} harness={harness} docked={docked} picked={kept} all={all} onAll={setAll} onPicked={setKept} addRule={docked ? null : addRule} />}
+      {warn}
       {docked ? (
         <div class="ask-row">
           {addRule}

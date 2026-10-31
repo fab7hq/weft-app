@@ -158,10 +158,12 @@ function AskForm({ asked, docked }: { asked: Asking; docked: boolean }) {
       )}
       {reading && <Sensing onPick={() => setPicking(true)} />}
       {drafting && <AskDraft sheet={sheet} harness={harness} docked={docked} picked={kept} all={all} onAll={setAll} onPicked={setKept} addRule={docked ? null : addRule} />}
-      {warn}
+      {/* The warning beside the acts on a desktop, over them on a phone. */}
+      {!docked && warn}
       {docked ? (
         <div class="ask-row">
           {addRule}
+          {warn}
           <span class="spacer" />
           {hint}
           {cancel}

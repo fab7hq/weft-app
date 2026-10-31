@@ -51,6 +51,8 @@ main:has(> .ask-panel--docked) > :not(.ask-panel) { flex: 1; min-height: 0; heig
 .pending-acts { display: flex; gap: 10px; align-items: center; }
 .pending-acts .spacer { display: none; }
 .pending-acts .tree-act { flex: 1; }
+.pending-acts:has(> .pending-warn) { flex-wrap: wrap; }
+.pending-warn { flex-basis: 100%; }
 .pending-bar--answered { gap: 6px; padding: 18px 16px calc(34px + env(safe-area-inset-bottom, 0px)); }
 .pending-answered { margin: 0; font-size: 15px; color: var(--fab7-teal); }
 /* A send's SEND TO: label, list, then the acts; on a desktop one row, the list 240 wide (M4.6, D4.6). */
@@ -67,6 +69,8 @@ main:has(> .ask-panel--docked) > :not(.ask-panel) { flex: 1; min-height: 0; heig
   .pending-head::after { content: ''; flex: 1; }
   .pending-acts .spacer { display: block; }
   .pending-acts .tree-act { flex: none; padding: 9px 18px; }
+  .pending-acts:has(> .pending-warn) { flex-wrap: nowrap; }
+  .pending-warn { flex-basis: auto; }
 }
 
 /* The draft (17.1): ROUTE and PLAN, then the route's rules and the practices, each a line. */

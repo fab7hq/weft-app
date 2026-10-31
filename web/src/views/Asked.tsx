@@ -148,6 +148,7 @@ function SendBar() {
     );
   }
   const of = m.agents.value.find((a) => a.agent === showing.agent);
+  const warning = warned.value?.pending === id ? warned.value.text : null;
   const yes = yesOf(showing);
   const harness = of?.harness ?? '';
   // Where it types, as the desktop app names it: `weft · claude`.
@@ -175,14 +176,14 @@ function SendBar() {
       {lines.filter(Boolean).map((s) => (
         <p key={s} class="pending-why">{s}</p>
       ))}
-      {warned.value?.pending === id && <p class="pending-why ask-hint">{warned.value.text}</p>}
+      {showing.sends && warning && <p class="pending-why ask-hint">{warning}</p>}
       {showing.text && <pre class="pending-text"><Command text={showing.text} /></pre>}
       {showing.sends ? (
         <SendBarTo rows={destinations(of?.project, showing.agent)} to={keyOf(to ?? { agent: showing.agent })} onPick={setTo}>
           <Acts cancel={() => void answer(false)} go={[w('act.send'), () => void answer(true)]} busy={sending} />
         </SendBarTo>
       ) : (
-        <Acts cancel={() => void answer(false)} go={[yes.label, () => void answer(true)]} tone={yes.tone} busy={sending} />
+        <Acts cancel={() => void answer(false)} go={[yes.label, () => void answer(true)]} tone={yes.tone} busy={sending} warn={warning} />
       )}
     </div>
   );
@@ -234,9 +235,11 @@ function GoneBar({ gone: g }: { gone: Gone }) {
   );
 }
 
-function Acts({ cancel, go: [label, onGo], tone = 'go', busy = false }: { cancel: () => void; go: [string, () => void]; tone?: 'go' | 'warn'; busy?: boolean }) {
+/** A dialog's acts; what Weft read of the harness's setup beside them on a desktop, over them on a phone. */
+function Acts({ cancel, go: [label, onGo], tone = 'go', busy = false, warn = null }: { cancel: () => void; go: [string, () => void]; tone?: 'go' | 'warn'; busy?: boolean; warn?: string | null }) {
   return (
     <div class="pending-acts">
+      {warn && <span class="pending-why ask-hint pending-warn">{warn}</span>}
       <span class="spacer" />
       <button class="tree-act" type="button" onClick={cancel}>{w('act.cancel')}</button>
       <button class={`tree-act tree-act--${tone}`} type="button" onClick={onGo} aria-busy={busy || undefined}>{label}</button>

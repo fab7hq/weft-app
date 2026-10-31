@@ -55,7 +55,6 @@ export function SealDialog() {
         <span class="pending-what">{w('dialog.seal.title')}</span>
         <span class="pending-into">{work}</span>
       </div>
-      {on.warning && <p class="pending-why ask-hint">{on.warning}</p>}
       {on.verdict && (
         <div class="seal-kv">
           <span class="ask-eyebrow">{w('dialog.seal.verdict')}</span>
@@ -81,6 +80,8 @@ export function SealDialog() {
           <span class="seal-optional seal-optional--after">{w('dialog.seal.optional')}</span>
         </div>
       )}
+      {/* What Weft read of the harness's setup, by the acts. */}
+      {on.warning && <p class="pending-why ask-hint">{on.warning}</p>}
       <div class="pending-acts">
         <span class="pending-why seal-records">{records}</span>
         <button type="button" class="tree-act" onClick={close}>{w('act.cancel')}</button>

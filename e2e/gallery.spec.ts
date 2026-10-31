@@ -1225,6 +1225,42 @@ const SCREENS: Screen[] = [
     await sheet(at).getByRole('textbox').fill(UNKNOWN);
     await expect(sheet(at).getByText('Sensing your best fit…')).toBeVisible();
   } })),
+  // 17.24: one amber line beside the acts, never a stop. Weft reads codex as not set up
+  // (as the card), or RingFrame alone will not draft its Ask; and the same line in 17.3 and 17.4.
+  ...(['M17.24', 'D17.24', 'M17.24-refused', 'D17.24-refused'] as const).map((id): Screen => ({ ids: [id],
+    sample: () => withTree((t) => {
+      if (id.endsWith('refused')) return;
+      t[0].agents.rows.filter((r) => r.harness === 'codex').forEach((r) => (r.ask = { key: 'why.not_set_up', harness: 'codex' }));
+    }),
+    run: async (at) => {
+      at.machine.sheetRefused = { codex: 'codex has no RingFrame plugin.' };
+      await folded(at);
+      await agentOpen(at, 'codex');
+      if (at.wide) await at.page.locator('.tree-acts').getByRole('button', { name: 'Ask', exact: true }).click();
+      else await at.page.locator('.appbar').getByRole('button', { name: 'Ask', exact: true }).click();
+      await sheet(at).getByRole('textbox').fill(UNKNOWN);
+      await expect(sheet(at).locator('.ask-hint')).toHaveText(id.endsWith('refused')
+        ? 'This agent may not take an Ask: codex has no RingFrame plugin.'
+        : 'codex is not set up for RingFrame. Set it up on studio from ☰ › Updates…');
+    },
+  })),
+  ...(['M17.24-eval', 'D17.24-eval', 'M17.24-seal', 'D17.24-seal'] as const).map((id): Screen => ({ ids: [id],
+    sample: () => withTree((t) => {
+      const u = t[0].work.units[1];
+      u.status = { state: 'judged', verdict: 'drifted', agreement: 0.75 };
+      Object.assign(u, { eval: { key: 'why.not_set_up', harness: 'codex' }, seal: { key: 'why.not_set_up', harness: 'codex' } });
+    }),
+    run: async (at) => {
+      const name = id.endsWith('eval') ? 'Eval this work?' : 'Seal this work?';
+      at.machine.onAct = staged(CODEX, 'Eval this work?', 'health endpoint · 2 Asks\nclaude and codex check the change against what you asked.\nNothing is typed into the agent’s pane.', { word: 'act.eval', warn: false });
+      await folded(at);
+      if (at.wide) await agentOpen(at, 'codex');
+      else await tree(at);
+      await item(at, 'health endpoint').click();
+      await at.page.locator('.tree-acts').getByRole('button', { name: id.endsWith('eval') ? 'Eval' : 'Seal', exact: true }).click();
+      await expect(at.page.getByRole('dialog', { name }).locator('.ask-hint')).toHaveText('codex is not set up for RingFrame. Set it up on studio from ☰ › Updates…');
+    },
+  })),
   { ids: ['M17.20', 'M17.21'], note: 'A push notification, drawn by the phone itself; e2e/desktop-push.spec.ts checks that a push shows and opens where it says.' },
   { ids: ['M10.4'], note: 'A push notification, drawn by the phone itself; e2e/desktop-push.spec.ts checks that it shows and opens the agent.' },
   { ids: ['D10.3'], note: 'A browser notification, drawn by the system; e2e/desktop-push.spec.ts checks that it shows and opens the agent.' },

@@ -80,10 +80,12 @@ export function SealDialog() {
           <span class="seal-optional seal-optional--after">{w('dialog.seal.optional')}</span>
         </div>
       )}
-      {/* What Weft read of the harness's setup, by the acts. */}
-      {on.warning && <p class="pending-why ask-hint">{on.warning}</p>}
+      {/* What Weft read of the harness's setup takes the note's place by the acts, as the Ask's does; the note goes above. */}
+      {on.warning && <p class="pending-why seal-records">{records}</p>}
       <div class="pending-acts">
-        <span class="pending-why seal-records">{records}</span>
+        {on.warning
+          ? <><span class="pending-why ask-hint pending-warn">{on.warning}</span><span class="spacer" /></>
+          : <span class="pending-why seal-records">{records}</span>}
         <button type="button" class="tree-act" onClick={close}>{w('act.cancel')}</button>
         <button type="button" class="tree-act tree-act--go" onClick={() => void seal()}>{w('act.seal')}</button>
       </div>

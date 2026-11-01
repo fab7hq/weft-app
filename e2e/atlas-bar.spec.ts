@@ -68,7 +68,10 @@ for (const [why, warning] of [
     await work(page, 'fix login').click();
     await acts.getByRole('button', { name: 'Seal', exact: true }).click();
     const seal = page.getByRole('dialog', { name: 'Seal this work?' });
-    await expect(seal.locator('.ask-hint')).toHaveText(warning);
+    // Beside the acts, as the Ask's warning (17.24); what Seal records goes above them.
+    await expect(seal.locator('.pending-acts .ask-hint')).toHaveText(warning);
+    await expect(seal.locator('.pending-acts .seal-records')).toHaveCount(0);
+    await expect(seal.locator('.seal-records')).toContainText('Seal records accepted on fix login');
     await expect(seal.getByRole('button', { name: 'Seal', exact: true })).toBeVisible();
     await machine.close();
   });

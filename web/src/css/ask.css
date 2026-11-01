@@ -11,7 +11,7 @@
 .ask-eyebrow { font: 600 11px var(--font-mono); letter-spacing: 0.08em; color: var(--fab7-faint); }
 .ask-text { height: 134px; box-sizing: border-box; padding: 12px; border: 1px solid var(--fab7-line); background: var(--fab7-surface); color: var(--fab7-text); font: 400 15px var(--font-sans); resize: none; outline: none; border-radius: var(--weft-radius-control); }
 .ask-text:focus, .ask-text--said { border-color: var(--fab7-accent); }
-.ask-panel--docked .ask-text { height: 108px; }
+.ask-panel--docked .ask-text { height: 72px; }
 .ask-acts { display: flex; gap: 10px; }
 .ask-row { display: flex; gap: 10px; align-items: flex-start; }
 .ask-row .tree-act { flex: none; padding: 9px 18px; }
@@ -152,6 +152,8 @@ main:has(> .ask-panel--docked) > :not(.ask-panel) { flex: 1; min-height: 0; heig
 .seal-bar .pending-acts { flex-wrap: wrap; }
 .seal-records { flex: 1 1 100%; }
 @media (min-width: 768px) { .seal-records { flex: 1; } }
+/* Above the acts when a warning takes its place there. */
+.seal-bar > .seal-records { flex: none; }
 #app:has(> .seal-bar) .message-foot, #app:has(> .seal-bar) .tree-bar, #app:has(> .seal-bar) .detail-foot, #app:has(> .seal-bar) .detail-acts { display: none; }
 
 /* Turning a project's Git note on (17.19): its one dialog, at the foot of the page. */

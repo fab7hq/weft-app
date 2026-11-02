@@ -47,10 +47,16 @@ export function canAsk(sheet: Sheet | null): boolean {
 }
 
 /** Whether the sheet shows the machine reading the words: it does read them,
- * there are words, the sheet shown is for others, and the person has not
- * chosen to pick themselves. */
-export function sensing(sheet: Sheet | null, sheetFor: string | null, text: string, picking: boolean): boolean {
-  return !!sheet?.senses && !picking && text.trim() !== '' && sheetFor !== text;
+ * there are words, and the sheet shown is for others. The person picks once
+ * Sense has answered, or failed to. */
+export function sensing(sheet: Sheet | null, sheetFor: string | null, text: string): boolean {
+  return !!sheet?.senses && text.trim() !== '' && sheetFor !== text;
+}
+
+/** How long the words rest before they are read, in ms: Sense waits for the
+ * person to stop typing. No words are read at once. */
+export function askPause(words: string): number {
+  return words.trim() ? 1500 : 0;
 }
 
 /** What Ask sends: the route and task, the plan (the one offered unless the person

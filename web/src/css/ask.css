@@ -107,7 +107,6 @@ main:has(> .ask-panel--docked) > :not(.ask-panel) { flex: 1; min-height: 0; heig
 .ask-sensing-dots i { width: 8px; height: 8px; border-radius: var(--weft-radius-control); background: var(--fab7-accent); animation: ask-pulse 1.2s ease-in-out infinite; }
 .ask-sensing-dots i:nth-child(2) { animation-delay: 0.2s; }
 .ask-sensing-dots i:nth-child(3) { animation-delay: 0.4s; }
-.ask-pick-yourself { align-self: center; }
 .ask-sensing-bars { display: flex; gap: 10px; }
 .ask-sensing-bars i { width: 80px; height: 6px; border-radius: var(--weft-radius-control); background: var(--fab7-line); }
 .ask-follow-act { text-transform: uppercase; }

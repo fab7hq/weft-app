@@ -1,6 +1,6 @@
 // The Ask sheet: what it sends from the route, plan and rules the person kept.
 import { describe, expect, it } from 'vitest';
-import { canAsk, draftOf, isIn, moreCount, routeLabel, sensing, shownRules, type Sheet } from '../src/ask';
+import { askPause, canAsk, draftOf, isIn, moreCount, routeLabel, sensing, shownRules, type Sheet } from '../src/ask';
 
 const rule = (id: string) => ({ id, label: id, text: `${id} text`, family: null, layer: 'shipped' });
 const ids = (n: number) => Array.from({ length: n }, (_, i) => `r${i}`);
@@ -55,13 +55,17 @@ describe('the Ask sheet', () => {
     expect(canAsk(null)).toBe(true);
   });
 
-  it('shows Sense at work while the sheet is for other words, unless the person picks', () => {
+  it('shows Sense at work while the sheet is for other words', () => {
     const s = { ...sensed(1), senses: true };
-    expect(sensing(s, 'old words', 'new words', false)).toBe(true);
-    expect(sensing(s, 'new words', 'new words', false)).toBe(false);
-    expect(sensing(s, 'old words', 'new words', true)).toBe(false);
-    expect(sensing(s, 'old', '   ', false)).toBe(false);
-    expect(sensing({ ...s, senses: false }, 'old', 'new', false)).toBe(false);
-    expect(sensing(null, null, 'new', false)).toBe(false);
+    expect(sensing(s, 'old words', 'new words')).toBe(true);
+    expect(sensing(s, 'new words', 'new words')).toBe(false);
+    expect(sensing(s, 'old', '   ')).toBe(false);
+    expect(sensing({ ...s, senses: false }, 'old', 'new')).toBe(false);
+    expect(sensing(null, null, 'new')).toBe(false);
+  });
+
+  it('reads words once the person stops typing, and no words at once', () => {
+    expect(askPause('fix the login')).toBe(1500);
+    expect(askPause('  ')).toBe(0);
   });
 });

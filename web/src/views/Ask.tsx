@@ -11,7 +11,7 @@ import { askWarning, setupOf } from '../bar';
 import { destinations, keyOf, SendTo, type Dest } from './SendTo';
 import { own } from '../textkeys';
 import { fill, w } from '../words';
-import { canAsk, draftOf, isIn, moreCount, routeLabel, sensing, shownRules, type Picked, type Sheet } from '../ask';
+import { askPause, canAsk, draftOf, isIn, moreCount, routeLabel, sensing, shownRules, type Picked, type Sheet } from '../ask';
 
 export interface Asking {
   /** The agent to send to first. */
@@ -71,11 +71,10 @@ function AskForm({ asked, docked }: { asked: Asking; docked: boolean }) {
   const project = asked.project ?? m.agents.value.find((x) => x.agent === asked.agent)?.project;
   const harness = !to ? '' : 'agent' in to ? (m.agents.value.find((a) => a.agent === to.agent)?.harness ?? '') : to.start;
   // What the machine offers for the words, the harness and the route picked:
-  // asked again as they change, a moment after the last keystroke.
+  // asked again as they change, once the person stops typing.
   const [sheet, setSheet] = useState<Sheet | null>(null);
   // The words the sheet shown was made for: while they differ, Sense reads the new ones (17.23).
   const [sheetFor, setSheetFor] = useState<string | null>(null);
-  const [picking, setPicking] = useState(false);
   const [route, setRoute] = useState<string | undefined>(undefined);
   const [plan, setPlan] = useState<string | null | undefined>(undefined);
   const [kept, setKept] = useState<Picked>(new Map());
@@ -95,13 +94,13 @@ function AskForm({ asked, docked }: { asked: Asking; docked: boolean }) {
           setRefused(null);
         }
       });
-    }, 300);
+    }, askPause(words));
     return () => clearTimeout(t);
   }, [project, harness, text, route]);
   // One warning: what Weft read of the harness's setup first, else the machine's refusal.
   const setup = setupOf(m.tree.value.find((p) => p.project === project), harness, to && 'agent' in to ? to.agent : undefined);
   const warning = askWarning(setup, refused?.to === picked ? refused.why : null, m.current.value?.name ?? '');
-  const reading = sensing(sheet, sheetFor, text, picking || route !== undefined);
+  const reading = sensing(sheet, sheetFor, text);
   const askable = canAsk(sheet) && !reading;
   // Open until the machine answers, Ask showing it is working; then the bar
   // takes its place, or the why above the acts says what went wrong.
@@ -118,13 +117,13 @@ function AskForm({ asked, docked }: { asked: Asking; docked: boolean }) {
   // Every practice listed, once the person asks for more or for another rule.
   const [all, setAll] = useState(false);
   const drafting = !!sheet && !reading;
-  const sendTo = (
+  const sendTo = !reading && (
     <div class="ask-pick ask-pick--to">
       <span class="ask-eyebrow" id="ask-to-label">{w('ask.send_to')}</span>
       <SendTo rows={rows} to={picked} onPick={setTo} />
     </div>
   );
-  const planPick = sheet && <PlanPick sheet={sheet} plan={plan} onPlan={setPlan} />;
+  const planPick = drafting && <PlanPick sheet={sheet} plan={plan} onPlan={setPlan} />;
   const routePick = drafting && <RoutePick sheet={sheet} onRoute={setRoute} />;
   const addRule = drafting && !all && <button type="button" class="ask-rule-add" onClick={() => setAll(true)}>{w('ask.add_rule')}</button>;
   const hint = drafting && sheet.route === null && <span class="ask-hint">{w('ask.pick_to_ask')}</span>;
@@ -147,16 +146,16 @@ function AskForm({ asked, docked }: { asked: Asking; docked: boolean }) {
       )}
       <label class="ask-title" for="ask-text">{w('ask.title')}</label>
       <textarea ref={box} id="ask-text" class={text ? 'ask-text ask-text--said' : 'ask-text'} value={text} onInput={(e) => setText((e.target as HTMLTextAreaElement).value)} onKeyDown={sendOnEnter} />
-      {/* SEND TO first; on a desktop ROUTE and PLAN beside it, on a phone under it. */}
+      {/* SEND TO first; on a desktop ROUTE and PLAN beside it, on a phone under it. All wait for Sense. */}
       {docked ? (
-        <div class="ask-picks">{sendTo}{routePick}{planPick}</div>
+        sendTo && <div class="ask-picks">{sendTo}{routePick}{planPick}</div>
       ) : (
         <>
           {sendTo}
           {(routePick || planPick) && <div class="ask-picks">{routePick}{planPick}</div>}
         </>
       )}
-      {reading && <Sensing onPick={() => setPicking(true)} />}
+      {reading && <Sensing />}
       {drafting && <AskDraft sheet={sheet} harness={harness} docked={docked} picked={kept} all={all} onAll={setAll} onPicked={setKept} addRule={docked ? null : addRule} />}
       {/* The warning beside the acts on a desktop, over them on a phone. */}
       {!docked && warn}
@@ -194,7 +193,7 @@ function RoutePick({ sheet, onRoute }: { sheet: Sheet; onRoute: (r: string) => v
   );
 }
 
-/** PLAN: the one offered, another, or none; there while Sense reads the words too (17.23). */
+/** PLAN: the one offered, another, or none. */
 function PlanPick({ sheet, plan, onPlan }: { sheet: Sheet; plan: string | null | undefined; onPlan: (p: string | null) => void }) {
   const shown = plan === undefined ? (sheet.plan?.path ?? '') : (plan ?? '');
   return (
@@ -211,8 +210,8 @@ function PlanPick({ sheet, plan, onPlan }: { sheet: Sheet; plan: string | null |
 }
 
 /** Sense reading the words (17.23): one panel where the route, its rules and
- * the practices will be; the person may pick a route themselves instead. */
-function Sensing({ onPick }: { onPick: () => void }) {
+ * the practices will be, with SEND TO and PLAN; the person picks once it answers. */
+function Sensing() {
   return (
     <div class="ask-sensing-wrap">
       <div class="ask-sensing" role="status">
@@ -221,7 +220,6 @@ function Sensing({ onPick }: { onPick: () => void }) {
         <span class="ask-sensing-line">{w('ask.sensing_line')}</span>
         <span class="ask-sensing-bars" aria-hidden="true"><i /><i /><i /></span>
       </div>
-      <button type="button" class="ask-rule-add ask-pick-yourself" onClick={onPick}>{w('ask.pick_yourself')}</button>
     </div>
   );
 }

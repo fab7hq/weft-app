@@ -20,6 +20,8 @@
 .tab-shape.good { color: var(--fab7-teal); }
 .tab-shape.needs { color: var(--fab7-amber-text); }
 .tab-turbo { font-size: 11px; color: var(--fab7-amber-text); }
+.tab-close { margin-left: 4px; font-size: 11px; color: var(--fab7-faint); }
+.tab[aria-current="page"] .tab-close { color: var(--fab7-muted); }
 /* The layout button, a four-pane icon with ▾, and its menu. */
 .layout-at { position: relative; flex: none; margin-left: auto; }
 .layout-button { font: inherit; display: flex; gap: 6px; align-items: center; padding: 4px 8px; border: 1px solid var(--fab7-line); background: var(--fab7-surface); color: var(--fab7-text); cursor: pointer; border-radius: var(--weft-radius-control); }

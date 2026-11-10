@@ -68,12 +68,14 @@ effect(() => {
   if (!same(next, layout.peek())) layout.value = next;
 });
 
-// The open agent, shown in the pane that holds it, which gets the keys.
+// The open agent, shown in the pane that holds it, which gets the keys; one
+// whose tab was hidden, picked in the tree, shows again.
 effect(() => {
   const v = here();
   const l = layout.value;
-  if (v?.name !== 'agent' || L.showing(L.active(l)) === v.agent || L.paneOf(l, v.agent) === undefined) return;
-  layout.value = L.show(l, v.agent);
+  if (v?.name !== 'agent' || L.showing(L.active(l)) === v.agent) return;
+  const next = L.show(l, v.agent);
+  if (next !== l) layout.value = next;
 });
 
 effect(() => {
@@ -102,6 +104,13 @@ export const joinAll = (machine: string) => change(machine, L.join);
 export const focusPane = (machine: string, pane: number) => change(machine, (l) => L.focus(l, pane));
 export const dropTab = (machine: string, agent: string, to: L.Drop) =>
   change(machine, (l) => L.drop(l, agent, to, room.value, most.value));
+
+/** Hide an agent's tab: it runs on, stays in the tree, and picking it there shows it again. With no tab left to show, the tree. */
+export function hideTab(machine: string, agent: string): void {
+  change(machine, (l) => L.hide(l, agent));
+  const v = here();
+  if (v?.name === 'agent' && v.agent === agent) swap({ name: 'tree', machine });
+}
 
 /** Open an agent, in the pane that holds it. */
 export function show(machine: string, agent: string): void {

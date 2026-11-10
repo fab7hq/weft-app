@@ -1,12 +1,13 @@
 // A pane's tabs (web-app.md, "Agents across projects"): its running agents,
 // in the person's order, named `project · harness`. One that needs its
 // person carries an amber ●; one whose harness is not set up for RingFrame
-// carries ⚠. A click shows it; a drag moves it. The bar ends in the
-// layout button, the web's form of the desktop app's layout bar.
-import { useEffect, useState } from 'preact/hooks';
+// carries ⚠. A click shows it; a drag moves it; its ✕ hides it, the agent
+// running on. The tabs scroll sideways. The bar ends in the layout button,
+// the web's form of the desktop app's layout bar.
+import { useEffect, useRef, useState } from 'preact/hooks';
 import * as L from '../layout';
 import * as m from '../machine';
-import { dropTab, held, joinAll, most, nextPane, over, show, splitPane } from '../panes';
+import { dropTab, held, hideTab, joinAll, most, nextPane, over, show, splitPane } from '../panes';
 import { w } from '../words';
 import { ViewSwitch } from './Conversation';
 
@@ -86,6 +87,12 @@ export function LayoutMenu({ machine, pane }: { machine: string; pane: number })
 /** A pane's tab bar: its tabs, then the layout button. `current`: the pane you are in. */
 export function Tabs({ machine, pane, current, controls = true }: { machine: string; pane: L.Pane; current: boolean; controls?: boolean }) {
   const bar = over.value && 'bar' in over.value && over.value.bar === pane.id;
+  // The tab in front is scrolled into view whenever another comes to the front.
+  const strip = useRef<HTMLElement>(null);
+  const front = pane.tabs[pane.shown];
+  useEffect(() => {
+    strip.current?.querySelector('[data-shown="true"]')?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+  }, [front]);
   // Where along the bar a held tab would go: before the first tab whose middle is past the pointer.
   const along = (e: DragEvent) => {
     if (!held.value) return;
@@ -100,7 +107,7 @@ export function Tabs({ machine, pane, current, controls = true }: { machine: str
   };
   return (
     <div class={bar ? 'tab-row tab-row--drop' : 'tab-row'}>
-      <nav class="tabs" aria-label="Tabs" onDragOver={along} onDrop={(e) => dropped(machine, e)}>
+      <nav ref={strip} class="tabs" aria-label="Tabs" onDragOver={along} onDrop={(e) => dropped(machine, e)}>
         {pane.tabs.map((id, i) => {
           const a = m.agents.value.find((x) => x.agent === id && x.running);
           if (!a) return null;
@@ -123,6 +130,15 @@ export function Tabs({ machine, pane, current, controls = true }: { machine: str
               onDragEnd={() => ((held.value = null), (over.value = null))}
             >
               <TabName a={a} />
+              <span
+                class="tab-close"
+                role="button"
+                aria-label={w('act.close')}
+                onMouseDown={keepFocus}
+                onClick={(e) => (e.stopPropagation(), hideTab(machine, id))}
+              >
+                ✕
+              </span>
             </button>
           );
         })}

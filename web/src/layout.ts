@@ -7,7 +7,8 @@ export type Axis = 'right' | 'down';
 export type Side = 'left' | 'right' | 'up' | 'down';
 export type Pane = { id: number; tabs: string[]; shown: number };
 export type Node = { pane: Pane } | { axis: Axis; kids: Node[] };
-export type Layout = { root: Node; active: number; next: number };
+/** `hidden`: agents whose tab the person closed; they run on, out of every pane. */
+export type Layout = { root: Node; active: number; next: number; hidden: string[] };
 /** Where a dragged tab lands: its place on a pane's tab bar, a pane's outer fifth, or a pane's middle. */
 export type Drop = { bar: number; at: number } | { edge: number; side: Side } | { middle: number };
 /** Why a split did not happen. */
@@ -18,7 +19,7 @@ type Rect = { id: number; x: number; y: number; width: number; height: number };
 /** The least a pane may be, its tab bar and message row included. */
 export const LEAST: Room = { width: 360, height: 200 };
 
-export const fresh = (): Layout => ({ root: { pane: { id: 0, tabs: [], shown: 0 } }, active: 0, next: 1 });
+export const fresh = (): Layout => ({ root: { pane: { id: 0, tabs: [], shown: 0 } }, active: 0, next: 1, hidden: [] });
 
 function leaves(node: Node, out: Pane[] = []): Pane[] {
   if ('pane' in node) out.push(node.pane);
@@ -99,23 +100,37 @@ function beside(node: Node, target: number, axis: Axis, after: boolean, add: Nod
   return { axis: node.axis, kids: node.kids.map((k) => beside(k, target, axis, after, add)) };
 }
 
-/** Keep the tabs to the agents running: one that ended goes, a pane left empty closes, and a new one opens as the last tab of the pane with the keys. */
+/** Keep the tabs to the agents running: one that ended goes, a pane left empty closes, and a new one opens as the last tab of the pane with the keys. A hidden one stays hidden. */
 export function sync(layout: Layout, running: string[]): Layout {
   const l = copy(layout);
   for (const a of order(l)) if (!running.includes(a)) remove(l, a);
-  const known = order(l);
+  l.hidden = l.hidden.filter((a) => running.includes(a));
+  const known = [...order(l), ...l.hidden];
   const p = active(l);
   for (const a of running) if (!known.includes(a)) p.tabs.push(a);
   return l;
 }
 
-/** Show an agent in the pane that holds it, and give that pane the keys. */
+/** Show an agent in the pane that holds it, and give that pane the keys; a hidden one comes back as the last tab of the pane with the keys. */
 export function show(layout: Layout, agent: string): Layout {
   const l = copy(layout);
+  if (l.hidden.includes(agent)) {
+    l.hidden = l.hidden.filter((a) => a !== agent);
+    active(l).tabs.push(agent);
+  }
   const p = leaves(l.root).find((x) => x.tabs.includes(agent));
   if (!p) return layout;
   p.shown = p.tabs.indexOf(agent);
   l.active = p.id;
+  return l;
+}
+
+/** Take an agent's tab out of the panes; it runs on, hidden, until it is shown again. */
+export function hide(layout: Layout, agent: string): Layout {
+  if (paneOf(layout, agent) === undefined) return layout;
+  const l = copy(layout);
+  remove(l, agent);
+  l.hidden.push(agent);
   return l;
 }
 
@@ -145,7 +160,7 @@ export function join(layout: Layout): Layout {
   const tabs = order(layout);
   const shown = showing(active(layout));
   const id = layout.next;
-  return { root: { pane: { id, tabs, shown: Math.max(0, tabs.indexOf(shown ?? '')) } }, active: id, next: id + 1 };
+  return { root: { pane: { id, tabs, shown: Math.max(0, tabs.indexOf(shown ?? '')) } }, active: id, next: id + 1, hidden: [...layout.hidden] };
 }
 
 /** A dragged tab, dropped. A split this way is refused as `split` is. */
@@ -195,7 +210,7 @@ export function zone(id: number, fx: number, fy: number): Drop {
   return near < 0.2 ? { edge: id, side } : { middle: id };
 }
 
-/** A layout read back from storage, if it is one. */
+/** A layout read back from storage, if it is one; one kept before tabs could be hidden has none hidden. */
 export function readLayout(v: unknown): Layout | null {
   const ok = (n: unknown): boolean => {
     if (!n || typeof n !== 'object') return false;
@@ -207,5 +222,7 @@ export function readLayout(v: unknown): Layout | null {
     return (s.axis === 'right' || s.axis === 'down') && Array.isArray(s.kids) && s.kids.length > 0 && s.kids.every(ok);
   };
   const l = v as Layout;
-  return l && ok(l.root) && Number.isInteger(l.active) && Number.isInteger(l.next) ? l : null;
+  if (!l || !ok(l.root) || !Number.isInteger(l.active) || !Number.isInteger(l.next)) return null;
+  const hidden = l.hidden ?? [];
+  return Array.isArray(hidden) && hidden.every((a) => typeof a === 'string') ? { ...l, hidden } : null;
 }

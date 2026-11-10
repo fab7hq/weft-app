@@ -118,3 +118,35 @@ describe('panes', () => {
     expect(L.readLayout('x')).toBeNull();
   });
 });
+
+describe('a tab hidden with its ✕', () => {
+  it('leaves the panes, its agent running, and stays out while the agent runs', () => {
+    let l = L.hide(five(), 'gl-1');
+    expect(tabs(l)).toEqual([['gl-0', 'ob-0', 'docs-0', 'docs-1']]);
+    expect(l.hidden).toEqual(['gl-1']);
+    l = L.sync(l, ['gl-0', 'gl-1', 'ob-0', 'docs-0', 'docs-1']);
+    expect(tabs(l)).toEqual([['gl-0', 'ob-0', 'docs-0', 'docs-1']]);
+  });
+
+  it('shows again, in front in the pane with the keys, once its agent is picked in the tree', () => {
+    const l = L.show(L.hide(five(), 'gl-1'), 'gl-1');
+    expect(tabs(l)).toEqual([['gl-0', 'ob-0', 'docs-0', 'docs-1', 'gl-1']]);
+    expect(L.showing(L.active(l))).toBe('gl-1');
+    expect(l.hidden).toEqual([]);
+  });
+
+  it('is forgotten once its agent ends, and a pane it empties closes', () => {
+    let l = right(L.show(five(), 'ob-0'));
+    l = L.hide(l, 'ob-0');
+    expect(tabs(l)).toEqual([['gl-0', 'gl-1', 'docs-0', 'docs-1']]);
+    expect(L.sync(l, ['gl-0', 'gl-1', 'docs-0', 'docs-1']).hidden).toEqual([]);
+  });
+
+  it('is kept with the layout, and a layout kept before tabs could hide reads with none hidden', () => {
+    const l = L.hide(five(), 'gl-1');
+    expect(L.readLayout(JSON.parse(JSON.stringify(l)))).toEqual(l);
+    const { hidden: _, ...older } = five();
+    expect(L.readLayout(older)?.hidden).toEqual([]);
+    expect(L.readLayout({ ...l, hidden: [1] })).toBeNull();
+  });
+});

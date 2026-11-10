@@ -116,7 +116,7 @@ function Level({ machine, node, open }: { machine: Machine; node: L.Node; open: 
   return (
     <div class={`panes-${node.axis}`}>
       {node.kids.map((kid) => {
-        const first = 'pane' in kid ? kid.pane.id : L.panes({ root: kid, active: 0, next: 0 })[0].id;
+        const first = 'pane' in kid ? kid.pane.id : L.panes({ root: kid, active: 0, next: 0, hidden: [] })[0].id;
         return <Level key={first} machine={machine} node={kid} open={open} />;
       })}
     </div>

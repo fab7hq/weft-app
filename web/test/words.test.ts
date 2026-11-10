@@ -3,7 +3,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { evalState, stateWord, turnWord, use } from '../src/words';
+import { agentAbout, evalState, stateWord, turnWord, use } from '../src/words';
 
 const words: Record<string, string> = JSON.parse(readFileSync('web/public/words.json', 'utf8'));
 
@@ -15,6 +15,16 @@ describe('words.json', () => {
     expect(evalState('met')).toBe('met');
     expect(evalState('not_met')).toBe('not met');
     expect(evalState({ read: 'not_met' })).toBe('not met, so far');
+  });
+
+  it("says an agent's second line: its harness when it has a name, its state, its time (card 11.12)", () => {
+    use(words);
+    const s = { session: 's1', harness: 'claude-code', state: 'running' as const, turn: 'working' as const, title: 'fix login', at: 0, asks: 0, agent: null, ask: null };
+    expect(agentAbout(s, '11:29')).toBe(`claude-code · ${words['state.running']} · 11:29`);
+    expect(agentAbout({ ...s, turn: 'waiting' }, '11:29')).toBe(`claude-code · ${words['turn.waiting']} · 11:29`);
+    expect(agentAbout({ ...s, state: 'ended', turn: null }, '11:29')).toBe(`claude-code · ${words['state.ended']} · 11:29`);
+    expect(agentAbout({ ...s, title: null }, '09:40')).toBe(`${words['state.running']} · 09:40`);
+    expect(agentAbout({ ...s, state: 'quiet', turn: null }, '08:15')).toBe(`claude-code · ${words['state.last_active'].replace('{time}', '08:15')}`);
   });
 
   it('holds every word no TSX spells', () => {

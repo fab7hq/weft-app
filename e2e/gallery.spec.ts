@@ -881,6 +881,15 @@ const SCREENS: Screen[] = [
     await folded(at, ['docs']);
     await tree(at);
   } },
+  // Each agent's row on two lines: its name, then its harness, state and time.
+  { ids: ['M11.12'], run: async (at) => {
+    await folded(at, ['docs']);
+    await tree(at);
+  } },
+  { ids: ['D11.12'], run: async (at) => {
+    await folded(at, ['docs']);
+    await agentOpen(at, 'codex');
+  } },
   { ids: ['D11.10'], run: async (at) => {
     await folded(at, ['docs']);
     await agentOpen(at, 'codex');

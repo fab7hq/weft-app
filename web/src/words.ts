@@ -1,7 +1,7 @@
 // The words this app shares with Weft's desktop app, by key, from /words.json: its
 // language pack, fetched at start and never cached, so a replaced file shows
 // on the next refresh. Words only the web app has stay where they are used.
-import type { Status } from './machine';
+import type { Session, Status } from './machine';
 
 let table: Record<string, string> = {};
 
@@ -45,6 +45,14 @@ export function score(v: number): string {
 
 /** A Seal's decision as a person reads it. */
 export const decision = (d: string) => (d === 'deferred' ? 'parked' : d === 'abandoned' ? 'dropped' : d);
+
+/** An agent's second line (card 11.12): its harness when its name is not, its state, its time. */
+export function agentAbout(s: Session, time: string): string {
+  const said: string[] = s.title ? [s.harness] : [];
+  if (s.state === 'quiet') return [...said, fill('state.last_active', { time })].join(' · ');
+  const state = s.state === 'ended' ? w('state.ended') : s.turn === 'waiting' ? w('turn.waiting') : w('state.running');
+  return [...said, state, time].join(' · ');
+}
 
 /** A unit of work's status as its row says it: asked, eval open, drifted · 0.75, sealed · accepted. */
 export function statusWord(s: Status): string {

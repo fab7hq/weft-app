@@ -11,7 +11,7 @@ import type { Machine } from '../api';
 import { clock, stamp, weekday } from '../bar';
 import * as m from '../machine';
 import { go, here } from '../nav';
-import { fill, statusTone, statusWord, turnWord, w } from '../words';
+import { agentAbout, fill, statusTone, statusWord, turnWord, w } from '../words';
 import { TreeBar, askOn, evalOn, sealOn } from './Bar';
 import { DoneList, doneOf } from './Done';
 import { HeaderPills, Strips } from './Status';
@@ -423,7 +423,8 @@ function EarlierRows({ p, moves, found }: { p: m.Project; moves: Moves; found?: 
 
 const isSelected = (s: Selected) => JSON.stringify(selected.value) === JSON.stringify(s);
 
-/** One session (M11.1: two lines; D11.1: one row, its title under its harness, the time at the end). */
+/** One session (card 11.12): its status shape and name, the latest Ask's title or its first prompt, else its
+ * harness; then its harness, state and time. */
 /** `later`: an earlier session, its time as its group says it; a tap opens its Details. */
 function AgentRow({ p, s, moves, later }: { p: m.Project; s: m.Session; moves: Moves; later?: string }) {
   const { machine, wide, onAgent } = moves;
@@ -453,16 +454,16 @@ function AgentRow({ p, s, moves, later }: { p: m.Project; s: m.Session; moves: M
   return (
     <div class={later ? 'tree-row tree-row--agent tree-row--past' : 'tree-row tree-row--agent'} role="treeitem" aria-label={name} aria-selected={on} onClick={tap} onDblClick={session}>
       {shape}
-      <span class="agent-line">
-        <span class={running ? 'agent-harness' : 'agent-harness agent-harness--off'}>
-          {s.harness}
-          {unready(p, s.harness) && ' ⚠'}
+      <span class="agent-text">
+        <span class="agent-line">
+          <span class={`agent-title${s.title ? '' : ' agent-title--unnamed'}${running ? '' : ' agent-title--off'}`}>
+            {s.title ?? s.harness}
+            {unready(p, s.harness) && ' ⚠'}
+          </span>
+          {running && p.turbo && <span class="agent-turbo">⚡</span>}
         </span>
-        {running && p.turbo && <span class="agent-turbo">⚡</span>}
-        {s.title && <span class="agent-sep">·</span>}
-        {s.title && <span class={running ? 'agent-title' : 'agent-title agent-title--off'}>{s.title}</span>}
+        <span class="agent-about">{agentAbout(s, later ?? clock(s.at))}</span>
       </span>
-      <span class="agent-at">{later ?? clock(s.at)}</span>
       {!wide && <button class="tree-more" type="button" aria-label={`Details of ${name}`} onClick={(e) => (e.stopPropagation(), session())}>›</button>}
     </div>
   );

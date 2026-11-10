@@ -68,18 +68,22 @@
    of work. */
 .tree-section { display: flex; align-items: center; height: 24px; box-sizing: border-box; padding: 0 16px 0 32px; background: var(--fab7-panel); border-bottom: 1px solid var(--fab7-line); }
 .tree-section-name { flex: 1; min-width: 0; font: 600 11px var(--font-mono); letter-spacing: 0.08em; color: var(--fab7-faint); }
-.tree-row--agent { padding: 0 16px 0 32px; gap: 8px; }
+/* An agent's row is two lines (card 11.12): its name, then its harness, state and time. */
+.tree-row--agent { height: auto; min-height: 52px; align-items: flex-start; padding: 8px 16px 8px 32px; gap: 8px; }
+.tree-row--agent .agent-dot { line-height: 18px; }
+.tree-row--agent .tree-more { display: flex; align-items: flex-start; line-height: 18px; }
+.agent-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .agent-dot { flex: none; width: 12px; font: 400 11px var(--font-mono); color: var(--fab7-faint); }
 .agent-dot.good { color: var(--fab7-teal); }
 .agent-dot.needs { color: var(--fab7-amber-text); }
-.agent-line { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px; overflow: hidden; white-space: nowrap; }
-.agent-harness { flex: none; font-size: 14px; font-weight: 500; }
-.agent-harness--off { color: var(--fab7-muted); font-weight: 400; }
+.agent-line { min-width: 0; display: flex; align-items: baseline; gap: 6px; overflow: hidden; white-space: nowrap; line-height: 18px; }
 .agent-turbo { flex: none; font-size: 11px; color: var(--fab7-amber-text); }
 .agent-sep { flex: none; color: var(--fab7-faint); }
-.agent-title { min-width: 0; font-size: 13px; color: var(--fab7-muted); overflow: hidden; text-overflow: ellipsis; }
-.agent-title--off { color: var(--fab7-faint); }
-.tree-row[aria-selected="true"] .agent-harness { font-weight: 600; }
+.agent-title { min-width: 0; font-size: 13px; color: var(--fab7-text); overflow: hidden; text-overflow: ellipsis; }
+.agent-title--off { color: var(--fab7-muted); }
+.agent-title--unnamed { color: var(--fab7-faint); }
+.tree-row[aria-selected="true"] .agent-title { font-weight: 600; }
+.agent-about { font: 400 11px/15px var(--font-mono); color: var(--fab7-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .agent-at { flex: none; font: 400 11px var(--font-mono); color: var(--fab7-faint); white-space: nowrap; }
 .tree-row--earlier { height: 36px; padding-left: 32px; }
 .tree-row--earlier .tree-name { font-size: 12px; color: var(--fab7-accent); }
@@ -108,9 +112,7 @@
 /* The desktop's tree: the same rows, a little denser. */
 .tree-side .tree-section { height: 22px; }
 .tree-side .tree-section-name { font-size: 10px; }
-.tree-side .tree-row--agent { height: 36px; }
 .tree-side .agent-dot { width: 10px; }
-.tree-side .agent-harness { font-size: 13px; }
 .tree-side .tree-row--earlier { height: 30px; }
 .tree-side .work-title { font-size: 13px; }
 /* A project reopened after Weft on the machine ended uncleanly (M13.5). */

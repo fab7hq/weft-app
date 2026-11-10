@@ -26,7 +26,7 @@ const said = (page: Page) => page.locator('.tree-bar .tree-said');
 const empty = (ask: Project['ask'], setup: Project['setup'] = null): Project[] => [{ ...project('weft', []), ask, setup }];
 const noneDisabled = (page: Page) => expect(page.locator('button:disabled, input:disabled, textarea:disabled, select:disabled')).toHaveCount(0);
 
-test('M11.1 D11.1: AGENTS and WORK, as the cards draw them: one line a row, the status a shape, amber only for an agent that needs you', async ({ page, context }) => {
+test('M11.12 D11.12: AGENTS and WORK, as the cards draw them: an agent on two lines, its name then harness · state · time, amber only for an agent that needs you', async ({ page, context }) => {
   const machine = await opened(page, context);
   // Open, a project says nothing more of itself; its rows say it.
   // ⋯ opens the project's own settings (M9.12, D9.12).
@@ -34,20 +34,21 @@ test('M11.1 D11.1: AGENTS and WORK, as the cards draw them: one line a row, the 
   await expect(page.locator('.tree-section')).toHaveText(['AGENTS', 'WORK', 'AGENTS', 'WORK']);
   const agents = page.locator('.tree-row--agent');
   await expect(agents).toHaveCount(7);
-  const read = (i: number) => agents.nth(i).evaluate((e) => ['.agent-dot', '.agent-harness', '.agent-title', '.agent-at'].map((c) => e.querySelector(c)?.textContent ?? null));
+  const read = (i: number) => agents.nth(i).evaluate((e) => ['.agent-dot', '.agent-title', '.agent-about'].map((c) => e.querySelector(c)?.textContent ?? null));
   const state = (i: number) => agents.nth(i).locator('.agent-dot').getAttribute('aria-label');
-  expect(await read(0)).toEqual(['●', 'codex', null, '11:31']);
+  // An agent nothing has named shows its harness, and its second line leaves the harness out.
+  expect(await read(0)).toEqual(['●', 'codex', 'running · 11:31']);
   expect(await state(0)).toBe('working');
-  expect(await read(1)).toEqual(['■', 'claude', 'fix login', '11:29']);
+  expect(await read(1)).toEqual(['■', 'fix login', 'claude · needs you · 11:29']);
   expect(await state(1)).toBe('needs you');
-  expect(await read(2)).toEqual(['●', 'codex', 'health endpoint', '10:52']);
+  expect(await read(2)).toEqual(['●', 'health endpoint', 'codex · running · 10:52']);
   expect(await state(2)).toBe('turn ended');
-  expect(await read(3)).toEqual(['□', 'claude', 'readme fix', '09:12']);
-  expect(await read(4)).toEqual(['□', 'codex', 'lint pass', '08:30']);
-  expect(await read(5)).toEqual(['□', 'claude', null, '08:02']);
+  expect(await read(3)).toEqual(['□', 'readme fix', 'claude · ended · 09:12']);
+  expect(await read(4)).toEqual(['□', 'lint pass', 'codex · ended · 08:30']);
+  expect(await read(5)).toEqual(['□', 'claude', 'ended · 08:02']);
   expect(await state(5)).toBe('ended');
-  // No state in words on a row.
-  for (const word of ['working', 'needs you', 'turn ended', 'no Ask yet']) await expect(page.locator('.tree').getByText(word, { exact: true })).toHaveCount(0);
+  // The turn's own words stay off the rows.
+  for (const word of ['working', 'turn ended', 'no Ask yet']) await expect(page.locator('.tree').getByText(word, { exact: true })).toHaveCount(0);
   await expect(row(page, '12 earlier sessions')).toBeVisible();
   // WORK: a row per unit, its title, its harness and one status; no rounds.
   const status = (name: string) => row(page, name).locator('.work-status');
@@ -303,7 +304,7 @@ test('M7.1 D7.1: a harness not set up is marked ⚠ on its sessions; Ask on one 
   const sample = oneClaude({ key: 'why.not_set_up', harness: 'claude' });
   sample.tree[0].agents.rows[0].ask = { key: 'why.not_set_up', harness: 'claude' };
   const machine = await opened(page, context, sample);
-  await expect(row(page, 'claude · no Ask yet').locator('.agent-harness')).toHaveText('claude ⚠');
+  await expect(row(page, 'claude · no Ask yet').locator('.agent-title')).toHaveText('claude ⚠');
   // The ⚠ says it: no line under it.
   await expect(page.getByText('Ask for something and Weft writes it down.')).toHaveCount(0);
   await row(page, 'claude · no Ask yet').click();

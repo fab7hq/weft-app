@@ -15,6 +15,8 @@
 .panes--many .tab-row { height: 30px; }
 .panes--many .tab { padding: 0 12px; font-size: 12px; }
 .tab-row .tabs { flex: 1; min-width: 0; border-bottom: none; }
+/* The controls after the tabs, past a line the tabs scroll under. */
+.tab-row .tabs:not(:last-child) { border-right: 1px solid var(--fab7-line); margin-right: 12px; }
 .tab-row--drop { background: var(--fab7-selected); }
 .tab-shape { font: 400 10px var(--font-mono); color: var(--fab7-faint); }
 .tab-shape.good { color: var(--fab7-teal); }

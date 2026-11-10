@@ -306,6 +306,23 @@ const ACROSS: Record<string, string[]> = {
   [GL_CODEX]: ['● Running cargo test…', '  test health::answers_200 ... ok', '  test health::reports_version ... ok', '', '✻ Working… (esc to interrupt)', '', '›'],
   [OPENBOX_CLAUDE]: ['● Write(src/billing.rs)', '  Do you want to make this edit to billing.rs?', BLUE('  ❯ 1. Yes'), "    2. Yes, and don't ask again this session", '    3. No, and tell Claude what to do differently'],
 };
+/** The across sample with twelve agents, a tab strip that overflows: each project runs every harness once. */
+function many(): ReturnType<typeof atlas> {
+  const a = across();
+  const since = Date.now() - 120_000;
+  const more: [string, string, string][] = [['gl', 'agy', 'Antigravity'], ['gl', 'grok', 'Grok'],
+    ['openbox', 'codex', 'Codex'], ['openbox', 'agy', 'Antigravity'], ['openbox', 'grok', 'Grok'],
+    ['docs', 'claude', 'Claude Code'], ['docs', 'codex', 'Codex'], ['docs', 'agy', 'Antigravity'], ['docs', 'grok', 'Grok']];
+  a.tree.push(project('docs', [], {}, { open: 0 }));
+  more.forEach(([name, harness, title], n) => {
+    const agent: Agent = { agent: `d0c1d2e3f4a5-${n}`, project: name, harness, title, turn: 'ready', running: true, since };
+    a.agents.push(agent);
+    const p = a.tree.find((t) => t.project === name)!;
+    p.agents.rows.push({ ...sessionOf(agent), at: at(11, 40 + n) });
+    p.agents.running += 1;
+  });
+  return a;
+}
 /** The across sample with docs' codex and claude running too. */
 function withDocs(): ReturnType<typeof atlas> {
   const a = across();
@@ -1039,6 +1056,16 @@ const SCREENS: Screen[] = [
   } },
   // 15 · Panes and tabs like an editor
   { ids: ['D15.1'], sample: across, run: async (at) => {
+    await twoPanes(at);
+  } },
+  // Twelve agents: every tab has its ✕, the strip scrolls, the tab in front is in view.
+  { ids: ['D15.5'], sample: many, run: async (at) => {
+    await tree(at);
+    await item(at, 'claude · billing export').click();
+    await drawn(at, OPENBOX_CLAUDE);
+    await inPane(at);
+  } },
+  { ids: ['D15.6'], sample: many, run: async (at) => {
     await twoPanes(at);
   } },
   { ids: ['D15.7'], sample: across, run: async (at) => {

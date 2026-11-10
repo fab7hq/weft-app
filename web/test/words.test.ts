@@ -22,6 +22,7 @@ describe('words.json', () => {
     const s = { session: 's1', harness: 'claude-code', state: 'running' as const, turn: 'working' as const, title: 'fix login', at: 0, asks: 0, agent: null, ask: null };
     expect(agentAbout(s, '11:29')).toBe(`claude-code · ${words['state.running']} · 11:29`);
     expect(agentAbout({ ...s, turn: 'waiting' }, '11:29')).toBe(`claude-code · ${words['turn.waiting']} · 11:29`);
+    expect(agentAbout({ ...s, turn: 'turn_ended', asked: true }, '11:29')).toBe(`claude-code · ${words['turn.waiting']} · 11:29`);
     expect(agentAbout({ ...s, state: 'ended', turn: null }, '11:29')).toBe(`claude-code · ${words['state.ended']} · 11:29`);
     expect(agentAbout({ ...s, title: null }, '09:40')).toBe(`${words['state.running']} · 09:40`);
     expect(agentAbout({ ...s, state: 'quiet', turn: null }, '08:15')).toBe(`claude-code · ${words['state.last_active'].replace('{time}', '08:15')}`);

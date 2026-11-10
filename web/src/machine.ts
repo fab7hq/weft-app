@@ -46,6 +46,8 @@ export interface Session {
   /** `quiet`: neither running nor ended can be known; it reads "last active 11:25". */
   state: 'running' | 'ended' | 'quiet';
   turn: 'ready' | 'working' | 'waiting' | 'turn_ended' | null;
+  /** Its turn ended with a reply asking its person: it needs them, as `waiting` does. */
+  asked?: boolean;
   /** Its latest Ask's title; null reads "no Ask yet". */
   title: string | null;
   at: number;

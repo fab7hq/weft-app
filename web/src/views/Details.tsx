@@ -405,7 +405,7 @@ export function Details({ machine, project, unit, wide = false }: { machine: Mac
   const s = d.session;
   // Its session: its agent while a pane holds it, else its Details.
   const toSession = s && (() => (s.agent ? to.agent(s.agent) : to.session(s.session)));
-  const waiting = s?.state === 'running' && s.turn === 'waiting';
+  const waiting = s?.state === 'running' && (s.turn === 'waiting' || Boolean(s.asked));
   const lines = d.ask.lines.filter((l) => l.trim() !== '');
   // While a prompt waits for your yes, how it was sent (the Ask's last line) is amber on a desktop (D11.2).
   const waits = (i: number) => d.proceed && i === lines.length - 1 && Boolean(lines[i - 1]?.endsWith(':'));

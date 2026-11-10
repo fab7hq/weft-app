@@ -50,7 +50,7 @@ export const decision = (d: string) => (d === 'deferred' ? 'parked' : d === 'aba
 export function agentAbout(s: Session, time: string): string {
   const said: string[] = s.title ? [s.harness] : [];
   if (s.state === 'quiet') return [...said, fill('state.last_active', { time })].join(' · ');
-  const state = s.state === 'ended' ? w('state.ended') : s.turn === 'waiting' ? w('turn.waiting') : w('state.running');
+  const state = s.state === 'ended' ? w('state.ended') : s.turn === 'waiting' || s.asked ? w('turn.waiting') : w('state.running');
   return [...said, state, time].join(' · ');
 }
 

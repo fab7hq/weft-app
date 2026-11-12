@@ -133,6 +133,8 @@ export function Conversation({ agent, wide }: { agent: string; wide: boolean }) 
   // Where the chat was before an older page went in above it.
   const from = useRef<number | null>(null);
   const [thumb, setThumb] = useState<Thumb | null>(null);
+  // Away from its end: the button that takes it back there.
+  const [away, setAway] = useState(false);
   // Where the person left this conversation, until it is shown there again.
   const wanted = useRef<Place>(places.get(agent) ?? null);
   const connected = m.link.value === 'connected';
@@ -198,6 +200,7 @@ export function Conversation({ agent, wide }: { agent: string; wide: boolean }) 
     const el = box.current;
     if (!el) return;
     atEnd.current = el.scrollHeight - el.scrollTop - el.clientHeight < 24;
+    setAway(!atEnd.current);
     if (wanted.current === null && readable) places.set(agent, placeOf(laid(el), el.scrollTop, atEnd.current));
     setThumb(el.scrollHeight > el.clientHeight ? { top: el.scrollTop / el.scrollHeight, size: el.clientHeight / el.scrollHeight } : null);
     if (el.scrollTop < 40) void older();
@@ -251,6 +254,11 @@ export function Conversation({ agent, wide }: { agent: string; wide: boolean }) 
           )}
         </div>
       </div>
+      {away && (
+        <button type="button" class={wide ? 'to-end to-end--wide' : 'to-end'} aria-label={w('panes.to_end')} onClick={() => box.current && (box.current.scrollTop = box.current.scrollHeight)}>
+          ↓
+        </button>
+      )}
       {!wide && (
         // Every phone agent screen has its scroll bar (M3.3, M3.14); its thumb shows where the chat is.
         <div class="convo-bar" aria-hidden="true">

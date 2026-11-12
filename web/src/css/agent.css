@@ -156,3 +156,7 @@
 .panes-grid { flex: 1; min-height: 0; display: flex; }
 /* In a pane, the agent fills it, on the terminal's well. */
 .pane-box > .agent { flex: 1 1 0; min-height: 0; background: var(--fab7-void); }
+
+/* Over a pane scrolled away from its newest line, bottom right: the way back to it (cards 3.5, 12.5). */
+.to-end { position: absolute; right: 20px; bottom: 14px; z-index: 2; width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center; background: var(--fab7-surface); border: 1px solid var(--fab7-line-hover); border-radius: var(--weft-radius-control); color: var(--fab7-text); font: 400 16px/1 var(--font-sans); cursor: pointer; }
+.to-end--wide { bottom: 20px; }

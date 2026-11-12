@@ -229,6 +229,7 @@ test('each agent keeps where its conversation was left, and opens at its end unt
   await openAgent(page, 'claude · fix login');
   await tab(page, 'Conversation').click();
   await expect(page.getByText('message 119')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Scroll to end' })).toHaveCount(0);
   // Read up to message 100, at the top of the view.
   const left = page.getByText('message 100', { exact: true });
   await left.evaluate((el) => {
@@ -248,5 +249,10 @@ test('each agent keeps where its conversation was left, and opens at its end unt
   await go('claude · fix login');
   await expect(left).toBeInViewport();
   await expect(page.getByText('message 119')).not.toBeInViewport();
+  // Away from its end, the way back to it.
+  const toEnd = page.getByRole('button', { name: 'Scroll to end' });
+  await toEnd.click();
+  await expect(page.getByText('message 119')).toBeInViewport();
+  await expect(toEnd).toHaveCount(0);
   await machine.close();
 });

@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { encode } from '../keys';
 import * as m from '../machine';
 import { paneActive } from './Bar';
+import { w } from '../words';
 
 /** The text size an agent is drawn at when it fits (§6). */
 export const DRIVING_FONT = 13;
@@ -309,6 +310,12 @@ export function Screen({ agent, current = true, bars = false, history, onHistory
       }}>
       <div ref={host} class="pane-screen" onScroll={moved} aria-label="The agent's screen" />
       {bars && <Bars screen={host} history={shown} live={history === null} onHistory={onHistory} onLive={onLive} />}
+      {history !== null && (
+        // Reading the history: the way back to the newest line.
+        <button type="button" class={bars ? 'to-end' : 'to-end to-end--wide'} aria-label={w('panes.to_end')} onClick={onLive}>
+          ↓
+        </button>
+      )}
       {history !== null && (
         // The agent's earlier output, in the pane itself (§6).
         <div class="pane-history">

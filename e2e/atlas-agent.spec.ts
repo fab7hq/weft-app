@@ -311,3 +311,24 @@ test('each agent keeps its own draft: switching agents brings it back and never 
   await machine.close();
 });
 
+
+test('D3.5 M3.5: reading the history, a small button takes the pane back to its newest line', async ({ page, context }, info) => {
+  const machine = await opened(page, context);
+  const toEnd = pane(page).getByRole('button', { name: 'Scroll to end' });
+  await expect(toEnd).toHaveCount(0);
+  if (info.project.name === 'desktop') {
+    await pane(page).click();
+    await pane(page).hover();
+    await page.mouse.wheel(0, -300);
+  } else {
+    await pane(page).tap();
+    await pane(page).tap();
+    await pull(page, 200);
+  }
+  const history = pane(page).getByLabel('History');
+  await expect(history).toBeVisible();
+  await toEnd.click();
+  await expect(history).toHaveCount(0);
+  await expect(toEnd).toHaveCount(0);
+  await machine.close();
+});

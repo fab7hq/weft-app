@@ -7,7 +7,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/ho
 import * as m from '../machine';
 import { clock } from '../bar';
 import { Markdown } from './Markdown';
-import { Held, type Item, type Laid, type Place, type Row, type Step, placeOf, rows, scrollFor, spans } from '../conversation';
+import { Held, type Item, type Laid, type Place, type Row, type Step, gone, placeOf, rows, scrollFor, spans } from '../conversation';
 import { fill, w } from '../words';
 
 type View = 'terminal' | 'conversation';
@@ -201,7 +201,7 @@ export function Conversation({ agent, wide }: { agent: string; wide: boolean }) 
     if (!el) return;
     atEnd.current = el.scrollHeight - el.scrollTop - el.clientHeight < 24;
     setAway(!atEnd.current);
-    if (wanted.current === null && readable) places.set(agent, placeOf(laid(el), el.scrollTop, atEnd.current));
+    if (wanted.current === null && readable) places.set(agent, placeOf(laid(el), el.scrollTop, atEnd.current, items.at(-1)?.id));
     setThumb(el.scrollHeight > el.clientHeight ? { top: el.scrollTop / el.scrollHeight, size: el.clientHeight / el.scrollHeight } : null);
     if (el.scrollTop < 40) void older();
   };
@@ -216,8 +216,8 @@ export function Conversation({ agent, wide }: { agent: string; wide: boolean }) 
       wanted.current = null;
       from.current = null;
     } else if (wanted.current && readable) {
-      // Not read yet: an older page, or its end once there is none.
-      if (before.current) void older();
+      // Not read yet: an older page, or its end once there is none or it is gone.
+      if (before.current && !gone(wanted.current, items.map((i) => i.id))) void older();
       else (wanted.current = null), (atEnd.current = true), (el.scrollTop = el.scrollHeight);
     } else if (from.current !== null) {
       el.scrollTop = el.scrollHeight - from.current;

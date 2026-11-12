@@ -108,16 +108,38 @@ export type Laid = { id: string; top: number; bottom: number };
 
 /** Where a conversation was left: the first row still in sight and its top
  * against the view's, or null at its end. */
-export type Place = { id: string; dy: number } | null;
+export type Place = { id: string; dy: number; last?: string } | null;
 
-export function placeOf(laid: Laid[], scrollTop: number, atEnd: boolean): Place {
+/** `last`: the newest item held, by which a replaced file is known. */
+export function placeOf(laid: Laid[], scrollTop: number, atEnd: boolean, last?: string): Place {
   if (atEnd) return null;
   const first = laid.find((r) => r.bottom > scrollTop);
-  return first ? { id: first.id, dy: first.top - scrollTop } : null;
+  return first ? { id: first.id, dy: first.top - scrollTop, ...(last && { last }) } : null;
 }
 
 /** The scroll that shows `place` again, or undefined while its row is not read. */
 export function scrollFor(place: { id: string; dy: number }, laid: Laid[]): number | undefined {
   const row = laid.find((r) => r.id === place.id);
   return row ? row.top - place.dy : undefined;
+}
+
+/** An item's id as its place in the file: its line's byte offset, then its place in the line. */
+const order = (id: string): [number, number] => {
+  const [line, part] = id.split('.').map(Number);
+  return [line, part ?? 0];
+};
+
+const before = (a: string, b: string): boolean => {
+  const [[l, p], [m, q]] = [order(a), order(b)];
+  return l < m || (l === m && p < q);
+};
+
+/** Whether the place's message is gone, the file replaced: one from before
+ * it is read and it is not, or all that is read is older than the newest
+ * item it held (a file only grows). Older pages cannot bring it back. */
+export function gone(place: { id: string; last?: string }, ids: string[]): boolean {
+  if (ids.includes(place.id)) return false;
+  const { last } = place;
+  if (last && ids.length > 0 && ids.every((id) => before(id, last))) return true;
+  return ids.some((id) => before(id, place.id));
 }

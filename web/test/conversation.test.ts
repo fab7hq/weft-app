@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Held, type Item, placeOf, rows, scrollFor, spans } from '../src/conversation';
+import { Held, type Item, gone, placeOf, rows, scrollFor, spans } from '../src/conversation';
 
 const say = (id: string, kind: 'person' | 'agent', text: string): Item => ({ id, kind, at: 1, text });
 const step = (id: string, tool: string, arg: string, extra: Partial<Item> = {}): Item => ({ id, kind: 'step', at: 1, tool, arg, call: id, ...extra });
@@ -86,5 +86,21 @@ describe('where a conversation was left', () => {
     const now = laid.map((r) => ({ ...r, top: r.top + 500, bottom: r.bottom + 500 }));
     expect(scrollFor({ id: 'b', dy: -34 }, now)).toBe(650);
     expect(scrollFor({ id: 'z', dy: 0 }, now)).toBeUndefined();
+  });
+});
+
+describe('a place whose message is gone', () => {
+  it('is gone once a message from before it is read and it is not', () => {
+    expect(gone({ id: '500.0', dy: 0 }, ['600.0', '700.0'])).toBe(false);
+    expect(gone({ id: '500.0', dy: 0 }, ['400.0', '600.0'])).toBe(true);
+    // Its line read, its part not.
+    expect(gone({ id: '500.1', dy: 0 }, ['500.0', '600.0'])).toBe(true);
+    expect(gone({ id: '500.1', dy: 0 }, ['500.1', '600.0'])).toBe(false);
+  });
+
+  it('is gone at once when all that is read is older than the newest it held: the file was replaced', () => {
+    expect(gone({ id: '500.0', dy: 0, last: '900.0' }, ['600.0', '700.0'])).toBe(true);
+    expect(gone({ id: '500.0', dy: 0, last: '900.0' }, ['600.0', '900.0', '950.0'])).toBe(false);
+    expect(gone({ id: '500.0', dy: 0, last: '900.0' }, [])).toBe(false);
   });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Held, type Item, rows, spans } from '../src/conversation';
+import { Held, type Item, placeOf, rows, scrollFor, spans } from '../src/conversation';
 
 const say = (id: string, kind: 'person' | 'agent', text: string): Item => ({ id, kind, at: 1, text });
 const step = (id: string, tool: string, arg: string, extra: Partial<Item> = {}): Item => ({ id, kind: 'step', at: 1, tool, arg, call: id, ...extra });
@@ -61,5 +61,30 @@ describe('a conversation', () => {
       { code: true, text: 'src/login.rs' },
       { code: false, text: ' now' },
     ]);
+  });
+});
+
+describe('where a conversation was left', () => {
+  const laid = [
+    { id: 'a', top: 0, bottom: 100 },
+    { id: 'b', top: 116, bottom: 200 },
+    { id: 'c', top: 216, bottom: 400 },
+  ];
+
+  it('is the first message still in sight, and how far into it the view was', () => {
+    expect(placeOf(laid, 150, false)).toEqual({ id: 'b', dy: -34 });
+    expect(placeOf(laid, 0, false)).toEqual({ id: 'a', dy: 0 });
+    // Between two messages: the next one, a little below the top.
+    expect(placeOf(laid, 105, false)).toEqual({ id: 'b', dy: 11 });
+  });
+
+  it('is its end while it was at its end, whatever came since', () => {
+    expect(placeOf(laid, 300, true)).toBeNull();
+  });
+
+  it('comes back to the same message where it now is, or not until it is read', () => {
+    const now = laid.map((r) => ({ ...r, top: r.top + 500, bottom: r.bottom + 500 }));
+    expect(scrollFor({ id: 'b', dy: -34 }, now)).toBe(650);
+    expect(scrollFor({ id: 'z', dy: 0 }, now)).toBeUndefined();
   });
 });

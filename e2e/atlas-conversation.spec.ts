@@ -218,3 +218,35 @@ test('an agent message is drawn from its markdown, as its terminal draws it: blo
   for (const mark of ['##', '**', '```', '| ---']) await expect(said).not.toContainText(mark);
   await machine.close();
 });
+
+test('each agent keeps where its conversation was left, and opens at its end until it is scrolled', async ({ page, context }) => {
+  const machine = await FakeMachine.start();
+  const s = atlas();
+  const many: Item[] = Array.from({ length: 120 }, (_, n) => ({ id: `${n}.0`, kind: n % 2 ? 'agent' : 'person', at: at(9, n % 60), text: `message ${n}` }));
+  Object.assign(machine, s, { conversations: { ...s.conversations, [CLAUDE]: many } });
+  await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
+  await page.goto('/');
+  await openAgent(page, 'claude · fix login');
+  await tab(page, 'Conversation').click();
+  await expect(page.getByText('message 119')).toBeVisible();
+  // Read up to message 100, at the top of the view.
+  const left = page.getByText('message 100', { exact: true });
+  await left.evaluate((el) => {
+    const box = el.closest('.convo-scroll') as HTMLElement;
+    box.scrollTop += el.getBoundingClientRect().top - box.getBoundingClientRect().top;
+  });
+  await expect(page.getByText('message 119')).not.toBeInViewport();
+  // Another agent, then this one again: on a phone, from its list of agents.
+  const go = async (name: string) => {
+    if (wideOf(page)) return reopen(page, name);
+    // Its rows name the harness: the first of this harness's that is not shown.
+    await page.locator('.agent-name').click();
+    await page.locator('.agents-row:not([aria-current])').filter({ hasText: name.split(' · ')[0] }).first().click();
+  };
+  await go('codex · health endpoint');
+  await expect(page.getByText('message 100', { exact: true })).toHaveCount(0);
+  await go('claude · fix login');
+  await expect(left).toBeInViewport();
+  await expect(page.getByText('message 119')).not.toBeInViewport();
+  await machine.close();
+});

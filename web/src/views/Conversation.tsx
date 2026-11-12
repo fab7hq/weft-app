@@ -7,13 +7,16 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/ho
 import * as m from '../machine';
 import { clock } from '../bar';
 import { Markdown } from './Markdown';
-import { Held, type Item, type Row, type Step, rows, spans } from '../conversation';
+import { Held, type Item, type Laid, type Place, type Row, type Step, placeOf, rows, scrollFor, spans } from '../conversation';
 import { fill, w } from '../words';
 
 type View = 'terminal' | 'conversation';
 
 /** Where the choice is kept: in this browser only. */
 const VIEW = 'weft.view';
+
+/** Where each agent's conversation was left on this device, while the page is open. */
+const places = new Map<string, Place>();
 
 /** The view an agent opens in on this device. */
 export const view = signal<View>(((): View => {
@@ -58,19 +61,19 @@ function Said({ text }: { text: string }) {
 const MARK: Record<Step['state'], string> = { done: '✓', failed: '✗', running: '' };
 
 /** The steps between two messages: one line, opened in place to one line each. */
-function Steps({ steps, wide }: { steps: Step[]; wide: boolean }) {
+function Steps({ id, steps, wide }: { id: string; steps: Step[]; wide: boolean }) {
   const [open, setOpen] = useState(false);
   const count = steps.length === 1 ? w('web.steps.one') : fill('web.steps.many', { n: String(steps.length) });
   if (!open) {
     const first = steps.map((s) => `${s.tool} ${s.arg}`.trim()).join(', ');
     return (
-      <button type="button" class={wide ? 'convo-steps convo-steps--wide' : 'convo-steps'} aria-expanded="false" onClick={() => setOpen(true)}>
+      <button type="button" data-row={id} class={wide ? 'convo-steps convo-steps--wide' : 'convo-steps'} aria-expanded="false" onClick={() => setOpen(true)}>
         <span class="convo-steps-line">{`▸ ${count} · ${first}`}</span>
       </button>
     );
   }
   return (
-    <div class={wide ? 'convo-steps convo-steps--open convo-steps--wide' : 'convo-steps convo-steps--open'}>
+    <div data-row={id} class={wide ? 'convo-steps convo-steps--open convo-steps--wide' : 'convo-steps convo-steps--open'}>
       <button type="button" class="convo-steps-head" aria-expanded="true" onClick={() => setOpen(false)}>{`▾ ${count}`}</button>
       {steps.map((s, n) => (
         <div key={n} class="convo-step" data-state={s.state}>
@@ -87,7 +90,7 @@ function Message({ row, harness, waiting }: { row: Extract<Row, { kind: 'person'
   const at = row.at === null ? null : clock(row.at);
   if (row.kind === 'person') {
     return (
-      <div class="convo-you">
+      <div class="convo-you" data-row={row.id}>
         <div class="convo-who">
           <span class="convo-you-name">YOU</span>
           {at && <span class="convo-time">{at}</span>}
@@ -98,7 +101,7 @@ function Message({ row, harness, waiting }: { row: Extract<Row, { kind: 'person'
   }
   // The last thing the agent said leads with its state: the square while it waits for you.
   return (
-    <div class="convo-agent">
+    <div class="convo-agent" data-row={row.id}>
       <div class="convo-who">
         <span class={waiting ? 'convo-name needs' : 'convo-name good'}>{`${waiting ? '■' : '●'} ${harness}`}</span>
         {at && <span class="convo-time">{at}</span>}
@@ -130,6 +133,8 @@ export function Conversation({ agent, wide }: { agent: string; wide: boolean }) 
   // Where the chat was before an older page went in above it.
   const from = useRef<number | null>(null);
   const [thumb, setThumb] = useState<Thumb | null>(null);
+  // Where the person left this conversation, until it is shown there again.
+  const wanted = useRef<Place>(places.get(agent) ?? null);
   const connected = m.link.value === 'connected';
 
   useEffect(() => {
@@ -147,7 +152,7 @@ export function Conversation({ agent, wide }: { agent: string; wide: boolean }) 
       held.clear();
       held.after((page.items as Item[]) ?? []);
       before.current = typeof page.before === 'string' ? page.before : null;
-      atEnd.current = true;
+      atEnd.current = wanted.current === null;
       setItems(held.all());
       setReadable(true);
       if (typeof page.after === 'string') m.follow(agent, page.after);
@@ -180,10 +185,20 @@ export function Conversation({ agent, wide }: { agent: string; wide: boolean }) 
     setItems(held.all());
   };
 
+  /** The rows as drawn, in the scroll's content. */
+  const laid = (el: HTMLElement): Laid[] => {
+    const at = el.getBoundingClientRect().top - el.scrollTop;
+    return [...el.querySelectorAll<HTMLElement>('[data-row]')].map((r) => {
+      const b = r.getBoundingClientRect();
+      return { id: r.dataset.row ?? '', top: b.top - at, bottom: b.bottom - at };
+    });
+  };
+
   const measure = () => {
     const el = box.current;
     if (!el) return;
     atEnd.current = el.scrollHeight - el.scrollTop - el.clientHeight < 24;
+    if (wanted.current === null && readable) places.set(agent, placeOf(laid(el), el.scrollTop, atEnd.current));
     setThumb(el.scrollHeight > el.clientHeight ? { top: el.scrollTop / el.scrollHeight, size: el.clientHeight / el.scrollHeight } : null);
     if (el.scrollTop < 40) void older();
   };
@@ -191,7 +206,17 @@ export function Conversation({ agent, wide }: { agent: string; wide: boolean }) 
   useLayoutEffect(() => {
     const el = box.current;
     if (!el) return;
-    if (from.current !== null) {
+    const back = wanted.current && readable ? scrollFor(wanted.current, laid(el)) : undefined;
+    if (back !== undefined) {
+      // Back where the person left it.
+      el.scrollTop = back;
+      wanted.current = null;
+      from.current = null;
+    } else if (wanted.current && readable) {
+      // Not read yet: an older page, or its end once there is none.
+      if (before.current) void older();
+      else (wanted.current = null), (atEnd.current = true), (el.scrollTop = el.scrollHeight);
+    } else if (from.current !== null) {
       el.scrollTop = el.scrollHeight - from.current;
       from.current = null;
     } else if (atEnd.current) {
@@ -215,7 +240,7 @@ export function Conversation({ agent, wide }: { agent: string; wide: boolean }) 
       <div class="convo-scroll" ref={box} onScroll={measure}>
         <div class="convo-column">
           {all.map((row) =>
-            row.kind === 'steps' ? <Steps key={row.id} steps={row.steps} wide={wide} /> : <Message key={row.id} row={row} harness={harness} waiting={Boolean(waiting) && row.id === lastAgent} />,
+            row.kind === 'steps' ? <Steps key={row.id} id={row.id} steps={row.steps} wide={wide} /> : <Message key={row.id} row={row} harness={harness} waiting={Boolean(waiting) && row.id === lastAgent} />,
           )}
           {waiting && (
             // While the agent waits, its questions are answered in Terminal (M12.4).

@@ -102,3 +102,22 @@ export function rows(items: Item[]): Row[] {
 export function spans(text: string): { code: boolean; text: string }[] {
   return text.split('`').map((t, n) => ({ code: n % 2 === 1, text: t })).filter((s) => s.text !== '');
 }
+
+/** A row as drawn: its item's id, and its top and bottom in the scroll's content. */
+export type Laid = { id: string; top: number; bottom: number };
+
+/** Where a conversation was left: the first row still in sight and its top
+ * against the view's, or null at its end. */
+export type Place = { id: string; dy: number } | null;
+
+export function placeOf(laid: Laid[], scrollTop: number, atEnd: boolean): Place {
+  if (atEnd) return null;
+  const first = laid.find((r) => r.bottom > scrollTop);
+  return first ? { id: first.id, dy: first.top - scrollTop } : null;
+}
+
+/** The scroll that shows `place` again, or undefined while its row is not read. */
+export function scrollFor(place: { id: string; dy: number }, laid: Laid[]): number | undefined {
+  const row = laid.find((r) => r.id === place.id);
+  return row ? row.top - place.dy : undefined;
+}

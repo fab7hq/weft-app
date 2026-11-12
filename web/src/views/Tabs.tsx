@@ -91,7 +91,7 @@ export function Tabs({ machine, pane, current, controls = true }: { machine: str
   const strip = useRef<HTMLElement>(null);
   const front = pane.tabs[pane.shown];
   useEffect(() => {
-    strip.current?.querySelector('[data-shown="true"]')?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+    strip.current?.querySelector('[data-shown="true"]')?.closest('.tab')?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
   }, [front]);
   // Where along the bar a held tab would go: before the first tab whose middle is past the pointer.
   const along = (e: DragEvent) => {
@@ -113,33 +113,32 @@ export function Tabs({ machine, pane, current, controls = true }: { machine: str
           if (!a) return null;
           const shown = i === pane.shown;
           return (
-            <button
+            // The tab and its ✕ are two buttons side by side: a control inside a button has no name of its own.
+            <div
               key={id}
-              type="button"
               draggable
               class={a.turn === 'waiting' ? 'tab tab--needs-you' : 'tab'}
-              data-needs-you={a.turn === 'waiting' ? 'true' : undefined}
-              data-shown={shown ? 'true' : undefined}
               data-held={held.value === id ? 'true' : undefined}
-              aria-current={shown && current ? 'page' : undefined}
-              onClick={() => show(machine, id)}
               onDragStart={(e) => {
                 e.dataTransfer?.setData('text/plain', id);
                 held.value = id;
               }}
               onDragEnd={() => ((held.value = null), (over.value = null))}
             >
-              <TabName a={a} />
-              <span
-                class="tab-close"
-                role="button"
-                aria-label={w('act.close')}
-                onMouseDown={keepFocus}
-                onClick={(e) => (e.stopPropagation(), hideTab(machine, id))}
+              <button
+                type="button"
+                class="tab-name"
+                data-needs-you={a.turn === 'waiting' ? 'true' : undefined}
+                data-shown={shown ? 'true' : undefined}
+                aria-current={shown && current ? 'page' : undefined}
+                onClick={() => show(machine, id)}
               >
+                <TabName a={a} />
+              </button>
+              <button type="button" class="tab-close" aria-label={w('act.close')} onMouseDown={keepFocus} onClick={() => hideTab(machine, id)}>
                 ✕
-              </span>
-            </button>
+              </button>
+            </div>
           );
         })}
       </nav>

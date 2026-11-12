@@ -7,13 +7,17 @@
    one shown in another pane framed, the rest plain; amber ● while their
    agent needs you; one held by the mouse faded. */
 .tabs { display: flex; align-self: stretch; overflow-x: auto; flex: none; scrollbar-width: none; }
-.tab { flex: none; display: flex; align-items: center; gap: 6px; padding: 0 16px; border: 0; border-right: 1px solid var(--fab7-line); background: transparent; color: var(--fab7-muted); font: 400 13px var(--font-sans); white-space: nowrap; cursor: pointer; }
-.tab[data-shown="true"] { color: var(--fab7-text); background: var(--fab7-surface); }
-.tab[aria-current="page"] { color: var(--fab7-accent); font-weight: 500; background: var(--fab7-selected); box-shadow: inset 0 2px 0 var(--fab7-accent); }
+.tab { flex: none; display: flex; border-right: 1px solid var(--fab7-line); color: var(--fab7-muted); font: 400 13px var(--font-sans); white-space: nowrap; }
+.tab button { margin: 0; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.tab-name { display: flex; align-items: center; gap: 6px; padding: 0 0 0 16px; }
+.tab:has(> [data-shown="true"]) { color: var(--fab7-text); background: var(--fab7-surface); }
+.tab:has(> [aria-current="page"]) { color: var(--fab7-accent); font-weight: 500; background: var(--fab7-selected); box-shadow: inset 0 2px 0 var(--fab7-accent); }
 .tab[data-held="true"] { opacity: 0.4; }
 .tab-row { display: flex; align-items: center; height: 38px; box-sizing: border-box; padding-right: 12px; background: var(--fab7-panel); border-bottom: 1px solid var(--fab7-line); flex: none; }
 .panes--many .tab-row { height: 30px; }
-.panes--many .tab { padding: 0 12px; font-size: 12px; }
+.panes--many .tab { font-size: 12px; }
+.panes--many .tab-name { padding-left: 12px; }
+.panes--many .tab .tab-close { padding-right: 12px; }
 .tab-row .tabs { flex: 1; min-width: 0; border-bottom: none; }
 /* The controls after the tabs, past a line the tabs scroll under. */
 .tab-row .tabs:not(:last-child) { border-right: 1px solid var(--fab7-line); margin-right: 12px; }
@@ -22,8 +26,8 @@
 .tab-shape.good { color: var(--fab7-teal); }
 .tab-shape.needs { color: var(--fab7-amber-text); }
 .tab-turbo { font-size: 11px; color: var(--fab7-amber-text); }
-.tab-close { margin-left: 4px; font-size: 11px; color: var(--fab7-faint); }
-.tab[aria-current="page"] .tab-close { color: var(--fab7-muted); }
+.tab .tab-close { padding: 0 16px 0 10px; font-size: 11px; color: var(--fab7-faint); }
+.tab:has(> [aria-current="page"]) .tab-close { color: var(--fab7-muted); }
 /* The layout button, a four-pane icon with ▾, and its menu. */
 .layout-at { position: relative; flex: none; margin-left: auto; }
 .layout-button { font: inherit; display: flex; gap: 6px; align-items: center; padding: 4px 8px; border: 1px solid var(--fab7-line); background: var(--fab7-surface); color: var(--fab7-text); cursor: pointer; border-radius: var(--weft-radius-control); }

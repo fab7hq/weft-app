@@ -21,20 +21,32 @@ async function opened(page: Page, context: Parameters<typeof signIn>[0], more: (
 }
 
 const tabs = (page: Page) => page.getByRole('navigation', { name: 'Tabs' });
+/** The tabs' own buttons, without their ✕. */
+const names = (page: Page) => tabs(page).locator('.tab-name');
 
 test.describe('desktop', () => {
   test.skip(({ isMobile }) => isMobile, 'a desktop');
 
   test('every open project\'s agents are tabs, in the tree\'s order; another project\'s opens without swapping them', async ({ page, context }) => {
     const machine = await opened(page, context);
-    const names = ['■weft · claude', '●weft · codex', '●weft · codex', '●docs · claude'];
-    await expect(tabs(page).getByRole('button')).toHaveText(names);
-    await expect(tabs(page).getByRole('button').nth(1)).toHaveAttribute('aria-current', 'page');
-    await tabs(page).getByRole('button', { name: 'docs · claude' }).click();
+    const all = ['■weft · claude', '●weft · codex', '●weft · codex', '●docs · claude'];
+    await expect(names(page)).toHaveText(all);
+    await expect(names(page).nth(1)).toHaveAttribute('aria-current', 'page');
+    await tabs(page).getByRole('button', { name: 'docs · claude', exact: true }).click();
     await expect.poll(() => machine.of('watch').at(-1)?.agent).toBe(DOCS_CLAUDE);
-    await expect(tabs(page).getByRole('button')).toHaveText(names);
-    await expect(tabs(page).getByRole('button', { name: 'docs · claude' })).toHaveAttribute('aria-current', 'page');
+    await expect(names(page)).toHaveText(all);
+    await expect(tabs(page).getByRole('button', { name: 'docs · claude', exact: true })).toHaveAttribute('aria-current', 'page');
     await expect(page.getByRole('button', { name: 'Layout', exact: true })).toBeVisible();
+    await machine.close();
+  });
+
+  test('a tab\'s ✕ is a button of its own, beside the tab: it hides the tab, the agent running on', async ({ page, context }) => {
+    const machine = await opened(page, context);
+    const docs = tabs(page).locator('.tab').filter({ hasText: 'docs · claude' });
+    await expect(docs.getByRole('button')).toHaveCount(2);
+    await expect(docs.locator('button button')).toHaveCount(0);
+    await docs.getByRole('button', { name: 'Close', exact: true }).click();
+    await expect(names(page)).toHaveText(['■weft · claude', '●weft · codex', '●weft · codex']);
     await machine.close();
   });
 });

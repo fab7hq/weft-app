@@ -11,7 +11,7 @@ import { askWarning, setupOf } from '../bar';
 import { destinations, keyOf, SendTo, type Dest } from './SendTo';
 import { own } from '../textkeys';
 import { fill, w } from '../words';
-import { askPause, canAsk, draftOf, isIn, moreCount, routeLabel, sensing, shownRules, type Picked, type Sheet } from '../ask';
+import { askPause, canAsk, draftOf, isIn, moreCount, readInStages, routeLabel, rulesPending, sensing, shownRules, type Picked, type Sheet } from '../ask';
 
 export interface Asking {
   /** The agent to send to first. */
@@ -81,20 +81,27 @@ function AskForm({ asked, docked }: { asked: Asking; docked: boolean }) {
   const picked = to ? keyOf(to) : '';
   // Why the machine would not draft an Ask for the agent picked: said, and the Ask can still go.
   const [refused, setRefused] = useState<{ to: string; why: string } | null>(null);
+  // Which reading is the newest: an answer to any other is dropped.
+  const newest = useRef(0);
   useEffect(() => {
     if (!project || !harness) return;
     const words = text;
+    const reading = ++newest.current;
     const t = setTimeout(() => {
       // The plan picked, '' for none: Sense reads the words again within the route and plan.
       const chosen = plan === undefined ? undefined : (plan ?? '');
-      void m.readSettings(project, 'ask', JSON.stringify({ harness, words, route, plan: chosen })).then((r) => {
+      const read = (stage: 'heads' | 'full') => m.readSettings(project, 'ask', JSON.stringify({ harness, words, route, plan: chosen, stage }));
+      void readInStages(read, () => newest.current === reading, (r) => {
         const no = (r as { refused?: string } | null)?.refused;
-        if (no) return setRefused({ to: picked, why: no });
-        if (r) {
-          setSheet(r as Sheet);
-          setSheetFor(words);
-          setRefused(null);
+        if (no) {
+          setRefused({ to: picked, why: no });
+          return false;
         }
+        if (!r) return false;
+        setSheet(r as Sheet);
+        setSheetFor(words);
+        setRefused(null);
+        return true;
       });
     }, askPause(words));
     return () => clearTimeout(t);
@@ -103,7 +110,9 @@ function AskForm({ asked, docked }: { asked: Asking; docked: boolean }) {
   const setup = setupOf(m.tree.value.find((p) => p.project === project), harness, to && 'agent' in to ? to.agent : undefined);
   const warning = askWarning(setup, refused?.to === picked ? refused.why : null, m.current.value?.name ?? '');
   const reading = sensing(sheet, sheetFor, text);
-  const askable = canAsk(sheet) && !reading;
+  // Sense's heads are in: the route shows, and Ask waits for the plan and rules.
+  const pending = !reading && rulesPending(sheet);
+  const askable = canAsk(sheet) && !reading && !pending;
   // Open until the machine answers, Ask showing it is working; then the bar
   // takes its place, or the why above the acts says what went wrong.
   const send = async (e: Event) => {
@@ -118,7 +127,7 @@ function AskForm({ asked, docked }: { asked: Asking; docked: boolean }) {
   };
   // Every practice listed, once the person asks for more or for another rule.
   const [all, setAll] = useState(false);
-  const drafting = !!sheet && !reading;
+  const drafting = !!sheet && !reading && !pending;
   const sendTo = !reading && (
     <div class="ask-pick ask-pick--to">
       <span class="ask-eyebrow" id="ask-to-label">{w('ask.send_to')}</span>
@@ -126,7 +135,7 @@ function AskForm({ asked, docked }: { asked: Asking; docked: boolean }) {
     </div>
   );
   const planPick = drafting && <PlanPick sheet={sheet} plan={plan} onPlan={setPlan} />;
-  const routePick = drafting && <RoutePick sheet={sheet} onRoute={setRoute} />;
+  const routePick = (drafting || pending) && sheet && <RoutePick sheet={sheet} onRoute={setRoute} />;
   const addRule = drafting && !all && <button type="button" class="ask-rule-add" onClick={() => setAll(true)}>{w('ask.add_rule')}</button>;
   const hint = drafting && sheet.route === null && <span class="ask-hint">{w('ask.pick_to_ask')}</span>;
   const warn = warning && <span class="ask-hint">{warning}</span>;
@@ -158,7 +167,7 @@ function AskForm({ asked, docked }: { asked: Asking; docked: boolean }) {
         </>
       )}
       {reading && <Sensing />}
-      {drafting && <AskDraft sheet={sheet} harness={harness} docked={docked} picked={kept} all={all} onAll={setAll} onPicked={setKept} addRule={docked ? null : addRule} />}
+      {(drafting || pending) && sheet && <AskDraft sheet={sheet} harness={harness} docked={docked} pending={pending} picked={kept} all={all} onAll={setAll} onPicked={setKept} addRule={docked ? null : addRule} />}
       {/* The warning beside the acts on a desktop, over them on a phone. */}
       {!docked && warn}
       {docked ? (
@@ -228,9 +237,10 @@ function Sensing() {
 
 /** The draft's ROUTE RULES and PRACTICES (17.1, 17.22): route rules are
  * shown and always sent, once a route is picked; a practice's × takes it out,
- * and "+ N more" lists the rest, each with + to put it in. */
-function AskDraft({ sheet, harness, docked, picked, all, onAll, onPicked, addRule }: {
-  sheet: Sheet; harness: string; docked: boolean; picked: Picked; all: boolean;
+ * and "+ N more" lists the rest, each with + to put it in. While Sense still
+ * reads the practices, its panel stands where they will be (17.23). */
+function AskDraft({ sheet, harness, docked, pending, picked, all, onAll, onPicked, addRule }: {
+  sheet: Sheet; harness: string; docked: boolean; pending: boolean; picked: Picked; all: boolean;
   onAll: (all: boolean) => void; onPicked: (p: Picked) => void; addRule: preact.ComponentChildren;
 }) {
   const kept = sheet.practices.filter((r) => isIn(sheet, picked, r.id));
@@ -252,7 +262,7 @@ function AskDraft({ sheet, harness, docked, picked, all, onAll, onPicked, addRul
           </ul>
         </div>
       )}
-      <div class="ask-rules-row">
+      {pending ? <Sensing /> : <div class="ask-rules-row">
         <span class="ask-eyebrow ask-practices">{fill('ask.practices', { n: String(kept.length) })}{addRule}</span>
         <ul class="ask-rules">
           {shown.map((r) => (
@@ -265,7 +275,7 @@ function AskDraft({ sheet, harness, docked, picked, all, onAll, onPicked, addRul
             <li key={r.id} class="ask-rule ask-rule--out"><b>{r.label}</b><span class="ask-rule-text">{r.text}</span><button type="button" class="ask-rule-more" aria-label={r.label} onClick={() => pick(r.id, true)}>+</button></li>
           ))}
         </ul>
-      </div>
+      </div>}
     </div>
   );
 }

@@ -11,6 +11,8 @@ export interface Sheet {
   proposed?: string[] | null;
   /** Whether the machine reads the words to fill the sheet. */
   senses?: boolean;
+  /** `heads`: Sense's route, task and effects alone, its plan and rules still being read. */
+  stage?: 'heads' | 'full';
 }
 
 /** A practice the person put in (true) or took out (false), by id. */
@@ -51,6 +53,25 @@ export function canAsk(sheet: Sheet | null): boolean {
  * Sense has answered, or failed to. */
 export function sensing(sheet: Sheet | null, sheetFor: string | null, text: string): boolean {
   return !!sheet?.senses && text.trim() !== '' && sheetFor !== text;
+}
+
+/** Whether the sheet holds Sense's heads alone: Ask waits for its plan and rules. */
+export function rulesPending(sheet: Sheet | null): boolean {
+  return sheet?.stage === 'heads';
+}
+
+/** The sheet read in two stages, Sense's heads and then the whole sheet, each
+ * shown as it comes; an answer for words that have changed since is dropped,
+ * and a stage `show` refuses ends the reading. */
+export async function readInStages(
+  read: (stage: 'heads' | 'full') => Promise<unknown>,
+  current: () => boolean,
+  show: (answer: unknown) => boolean,
+): Promise<void> {
+  for (const stage of ['heads', 'full'] as const) {
+    const answer = await read(stage);
+    if (!current() || !show(answer)) return;
+  }
 }
 
 /** How long the words rest before they are read, in ms: Sense waits for the

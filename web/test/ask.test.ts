@@ -1,6 +1,6 @@
 // The Ask sheet: what it sends from the route, plan and rules the person kept.
 import { describe, expect, it } from 'vitest';
-import { askPause, canAsk, draftOf, isIn, moreCount, routeLabel, sensing, shownRules, type Sheet } from '../src/ask';
+import { askPause, canAsk, draftOf, isIn, moreCount, readInStages, routeLabel, rulesPending, sensing, shownRules, type Sheet } from '../src/ask';
 
 const rule = (id: string) => ({ id, label: id, text: `${id} text`, family: null, layer: 'shipped' });
 const ids = (n: number) => Array.from({ length: n }, (_, i) => `r${i}`);
@@ -67,5 +67,41 @@ describe('the Ask sheet', () => {
   it('reads words once the person stops typing, and no words at once', () => {
     expect(askPause('fix the login')).toBe(1500);
     expect(askPause('  ')).toBe(0);
+  });
+
+  it("waits for the rules while the sheet holds Sense's heads alone", () => {
+    expect(rulesPending({ ...sheet, stage: 'heads' })).toBe(true);
+    expect(rulesPending({ ...sheet, stage: 'full' })).toBe(false);
+    expect(rulesPending(sheet)).toBe(false);
+    expect(rulesPending(null)).toBe(false);
+  });
+
+  it('reads the heads, then the whole sheet, showing each as it comes', async () => {
+    const asked: string[] = [];
+    const shown: unknown[] = [];
+    const read = async (stage: 'heads' | 'full') => (asked.push(stage), { stage });
+    await readInStages(read, () => true, (r) => (shown.push(r), true));
+    expect(asked).toEqual(['heads', 'full']);
+    expect(shown).toEqual([{ stage: 'heads' }, { stage: 'full' }]);
+  });
+
+  it('drops an answer for words that changed, and reads no further', async () => {
+    let current = true;
+    const asked: string[] = [];
+    const shown: unknown[] = [];
+    const read = async (stage: 'heads' | 'full') => {
+      asked.push(stage);
+      current = false;
+      return { stage };
+    };
+    await readInStages(read, () => current, (r) => (shown.push(r), true));
+    expect(asked).toEqual(['heads']);
+    expect(shown).toEqual([]);
+  });
+
+  it('ends the reading at a stage it refuses', async () => {
+    const asked: string[] = [];
+    await readInStages(async (stage) => (asked.push(stage), null), () => true, (r) => r !== null);
+    expect(asked).toEqual(['heads']);
   });
 });

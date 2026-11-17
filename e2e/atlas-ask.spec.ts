@@ -147,8 +147,9 @@ test('M7.1 D7.1: an agent whose harness has no plugin still opens the Ask, which
   await page.locator('.tree-acts').getByRole('button', { name: 'Ask', exact: true }).click();
   const sheet = page.getByRole('dialog', { name: 'What do you want done?' });
   await expect(sheet.getByRole('button', { name: /^SEND TO / })).toHaveAccessibleName('SEND TO weft · claude');
-  // One warning: Weft's own reading of the harness, not RingFrame's reason as well.
-  await expect.poll(() => machine.of('settings').filter((m) => m.what === 'ask').length).toBeGreaterThan(0);
+  // One warning: Weft's own reading of the harness, not RingFrame's reason as well. The
+  // sheet is read for the agent it goes to: the plans of the folder it works in.
+  await expect.poll(() => machine.of('settings').filter((m) => m.what === 'ask' && m.agent === '3f9a1c07b2de-0').length).toBeGreaterThan(0);
   await expect(sheet.locator('.ask-hint')).toHaveText(['claude is not set up for RingFrame. Set it up on studio from ☰ › Updates…']);
   await sheet.getByLabel('What do you want done?').fill('Fix the login');
   await sheet.getByRole('button', { name: 'Ask', exact: true }).click();

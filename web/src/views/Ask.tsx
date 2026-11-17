@@ -90,7 +90,8 @@ function AskForm({ asked, docked }: { asked: Asking; docked: boolean }) {
     const t = setTimeout(() => {
       // The plan picked, '' for none: Sense reads the words again within the route and plan.
       const chosen = plan === undefined ? undefined : (plan ?? '');
-      const read = (stage: 'heads' | 'full') => m.readSettings(project, 'ask', JSON.stringify({ harness, words, route, plan: chosen, stage }));
+      const agent = to && 'agent' in to ? to.agent : undefined;
+      const read = (stage: 'heads' | 'full') => m.readSettings(project, 'ask', JSON.stringify({ harness, words, route, plan: chosen, stage }), agent);
       void readInStages(read, () => newest.current === reading, (r) => {
         const no = (r as { refused?: string } | null)?.refused;
         if (no) {
@@ -105,7 +106,7 @@ function AskForm({ asked, docked }: { asked: Asking; docked: boolean }) {
       });
     }, askPause(words));
     return () => clearTimeout(t);
-  }, [project, harness, text, route, plan]);
+  }, [project, harness, picked, text, route, plan]);
   // One warning: what Weft read of the harness's setup first, else the machine's refusal.
   const setup = setupOf(m.tree.value.find((p) => p.project === project), harness, to && 'agent' in to ? to.agent : undefined);
   const warning = askWarning(setup, refused?.to === picked ? refused.why : null, m.current.value?.name ?? '');

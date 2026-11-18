@@ -1,7 +1,8 @@
+import { reportOf } from './fake-machine';
 // The Atlas's sample (cards M11.x, D11.x; spec/atlas.md §6), as the machine
 // sends it on the remote protocol: the project weft's sessions and units of work, and
 // what each read answers. Shared by the fake machine, the specs and the gallery.
-import type { Ask, Detail, Earlier, EvalDetail, Reads, SealDetail, Session, SessionDetail, UnitDetail, Verdict, WorkRow } from './fake-machine';
+import type { Ask, Detail, Earlier, EvalDetail, Reads, SealDetail, Session, SessionDetail, UnitDetail, Found, WorkRow } from './fake-machine';
 
 /** A time on the cards' day, 2026-10-08 (a Thursday), as the machine sends one. */
 export const at = (h: number, m: number, day = 8) => Date.UTC(2026, 9, day, h, m);
@@ -41,7 +42,7 @@ const closed = (title: string) => ({ key: 'why.closed', title });
 /** WORK: fix login asked; health endpoint and its follow-up build number, judged by Eval 3; telemetry asking; readme fix sealed by Seal 4. */
 export const UNITS: WorkRow[] = [
   unit('ask_1', 'fix login', 'claude', { state: 'asked' }, 1, { seal: { key: 'why.no_eval', title: 'fix login' } }),
-  unit('ask_3', 'health endpoint', 'codex', { state: 'judged', verdict: 'aligned', agreement: 0.67 }, 2),
+  unit('ask_3', 'health endpoint', 'codex', { state: 'evaluated', report: reportOf('nothing') }, 2),
   unit('ask_2', 'telemetry', 'claude', { state: 'asking' }, 1, { seal: { key: 'why.no_eval', title: 'telemetry' } }),
   unit('ask_4', 'readme fix', 'claude', { state: 'sealed', decision: 'accepted' }, 2, { eval: closed('readme fix'), seal: closed('readme fix') }),
 ];
@@ -89,7 +90,7 @@ export const UNIT_DETAILS: Record<string, UnitDetail> = {
     steps: [
       { step: 'ask', unit: 'ask_3', title: 'health endpoint', follow_up: false, aside: 'codex · sent 10:31' },
       { step: 'ask', unit: 'ask_5', title: 'build number', follow_up: true, aside: 'codex · sent 10:40' },
-      { step: 'eval', eval: 'evl_3', n: 3, verdict: 'aligned', agreement: '0.67', aside: 'judged 10:58 · 1 met · 1 not met' },
+      { step: 'eval', eval: 'evl_3', n: 3, report: reportOf('nothing'), aside: 'judged 10:58 · 1 met · 1 not met' },
       { step: 'not_sealed' },
     ],
     follows: 'evl_3', eval: null, seal: null,
@@ -99,15 +100,15 @@ export const UNIT_DETAILS: Record<string, UnitDetail> = {
     steps: [
       { step: 'ask', unit: 'ask_4', title: 'readme fix', follow_up: false, aside: 'claude · sent 08:52' },
       { step: 'ask', unit: 'ask_6', title: 'docs links', follow_up: true, aside: 'claude · sent 09:02' },
-      { step: 'eval', eval: 'evl_2', n: 2, verdict: 'aligned', agreement: '1.0', aside: 'judged 09:31 · 1 met · 0 not met' },
+      { step: 'eval', eval: 'evl_2', n: 2, report: reportOf('nothing'), aside: 'judged 09:31 · 1 met · 0 not met' },
       { step: 'seal', seal: 'rcp_7f3a2c', n: 4, decision: 'accepted', aside: '09:40 · by you' },
     ],
     follows: 'evl_2', eval: closed('readme fix'), seal: closed('readme fix'),
   },
 };
 
-const crumb = (e: [string, number, Verdict | null] | null, s: [string, number] | null): Detail['crumb'] => ({
-  eval: e && { eval: e[0], n: e[1], verdict: e[2] },
+const crumb = (e: [string, number, Found | null] | null, s: [string, number] | null): Detail['crumb'] => ({
+  eval: e && { eval: e[0], n: e[1], report: e[2] && reportOf(e[2]) },
   seal: s && { seal: s[0], n: s[1] },
 });
 
@@ -128,26 +129,26 @@ export const DETAILS: Record<string, Detail> = {
     session: SESSIONS[1], proceed: false, follows: 'ask_2',
   },
   ask_3: {
-    unit: 'ask_3', title: 'health endpoint', harness: 'codex', crumb: crumb(['evl_3', 3, 'aligned'], null),
+    unit: 'ask_3', title: 'health endpoint', harness: 'codex', crumb: crumb(['evl_3', 3, 'nothing'], null),
     ask: { state: 'DONE', aside: 'asked 2026-10-08 10:31 · sent', lines: [
       'You asked:', 'Read the build number from the environment and show it on /health',
       'The prompt codex composed:', 'Implement /health: read BUILD_NUMBER …', 'How it was sent:', 'sent · word for word'] },
     session: SESSIONS[2], proceed: false, follows: 'evl_3',
   },
   ask_5: {
-    unit: 'ask_5', title: 'build number', harness: 'codex', crumb: crumb(['evl_3', 3, 'aligned'], null),
+    unit: 'ask_5', title: 'build number', harness: 'codex', crumb: crumb(['evl_3', 3, 'nothing'], null),
     ask: { state: 'DONE', aside: 'asked 2026-10-08 10:40 · sent', lines: [
       'You asked:', 'Put the build number in the page footer', 'The prompt codex composed:', 'Show BUILD_NUMBER in the footer …', 'How it was sent:', 'sent · word for word'] },
     session: SESSIONS[2], proceed: false, follows: 'evl_3',
   },
   ask_4: {
-    unit: 'ask_4', title: 'readme fix', harness: 'claude', crumb: crumb(['evl_2', 2, 'aligned'], ['rcp_7f3a2c', 4]),
+    unit: 'ask_4', title: 'readme fix', harness: 'claude', crumb: crumb(['evl_2', 2, 'nothing'], ['rcp_7f3a2c', 4]),
     ask: { state: 'DONE', aside: 'asked 2026-10-08 08:52 · sent', lines: [
       'You asked:', 'Fix the install line in the README', 'The prompt claude composed:', 'In README.md replace the install line …', 'How it was sent:', 'sent · word for word'] },
     session: SESSIONS[3], proceed: false, follows: 'evl_2',
   },
   ask_6: {
-    unit: 'ask_6', title: 'docs links', harness: 'claude', crumb: crumb(['evl_2', 2, 'aligned'], ['rcp_7f3a2c', 4]),
+    unit: 'ask_6', title: 'docs links', harness: 'claude', crumb: crumb(['evl_2', 2, 'nothing'], ['rcp_7f3a2c', 4]),
     ask: { state: 'DONE', aside: 'asked 2026-10-06 15:02 · sent', lines: ['You asked:', 'Fix the broken links in docs/', 'How it was sent:', 'sent · word for word'] },
     session: null, proceed: false, follows: 'evl_2',
   },
@@ -220,7 +221,7 @@ export const EVALS: Record<string, EvalDetail> = {
 export const SEALS: Record<string, SealDetail> = {
   rcp_7f3a2c: {
     seal: 'rcp_7f3a2c', n: 4, decision: 'accepted', at: at(9, 40),
-    eval: { eval: 'evl_2', n: 2, verdict: 'aligned', agreement: '1.0' }, receipt: 'rcp_7f3a2c', holds: true, broken: [],
+    eval: { eval: 'evl_2', n: 2, report: reportOf('nothing') }, receipt: 'rcp_7f3a2c', holds: true, broken: [],
     asks: EVALS.evl_2.asks,
   },
 };

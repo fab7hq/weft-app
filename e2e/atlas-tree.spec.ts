@@ -3,7 +3,7 @@
 // selection; the earlier sealed units unfold a page at a time. On the phone
 // and the desktop.
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
-import { FakeMachine, agent, atlas, project, sessionOf, type Project, type Session } from './fake-machine';
+import { FakeMachine, agent, atlas, project, sessionOf, type Project, type Session, reportOf } from './fake-machine';
 import { CLAUDE, README_SESSION, large } from './atlas-fixtures';
 import { row, wideOf } from './open';
 import { person, signIn } from './seed';
@@ -53,8 +53,8 @@ test('M11.12 D11.12: AGENTS and WORK, as the cards draw them: an agent on two li
   // WORK: a row per unit, its title, its harness and one status; no rounds.
   const status = (name: string) => row(page, name).locator('.work-status');
   await expect(status('fix login')).toHaveText('asked');
-  await expect(status('health endpoint')).toHaveText('aligned · 0.67');
-  await expect(status('health endpoint')).toHaveClass(/good/);
+  await expect(status('health endpoint')).toHaveText('evaluated');
+  await expect(status('health endpoint')).toHaveClass(/needs/);
   await expect(status('telemetry')).toHaveText('asking');
   await expect(status('readme fix')).toHaveText('sealed · accepted');
   await expect(row(page, 'health endpoint').locator('.work-harness')).toHaveText('codex');
@@ -172,7 +172,7 @@ test('M11.1 D11.1: › on a session and a unit of work open their Details', asyn
 
 /** A project's sealed units as Done reads them, newest first. */
 const doneRows = (n: number) => Array.from({ length: n }, (_, i) => ({
-  unit: `ask_${String(n - i).padStart(6, '0')}`, title: `sealed ${n - i}`, harness: 'codex', verdict: 'aligned', decision: 'accepted', reason: null, at: '2026-10-08T10:00:00Z', parked: false,
+  unit: `ask_${String(n - i).padStart(6, '0')}`, title: `sealed ${n - i}`, harness: 'codex', report: reportOf('nothing'), decision: 'accepted', reason: null, at: '2026-10-08T10:00:00Z', parked: false,
 }));
 /** `read done` a page of 50 at a time, from `after` on. */
 const doneReads = (rows: ReturnType<typeof doneRows>) => (m: Record<string, unknown>) => {

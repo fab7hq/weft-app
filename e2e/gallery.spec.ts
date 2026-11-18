@@ -6,7 +6,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { card } from './card';
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
-import { FakeMachine, atlas, project, sessionOf, type Agent, type Detail, type Project, type Step, type UnitDetail, type WorkRow } from './fake-machine';
+import { FakeMachine, atlas, project, sessionOf, type Agent, type Detail, type Project, type Step, type UnitDetail, type WorkRow, reportOf } from './fake-machine';
 import { pull, swipeLeft } from './touch';
 import { drawWithDom, openAgent } from './open';
 import { person, signIn } from './seed';
@@ -414,8 +414,8 @@ const staged = (agent: string, what: string, why: string, go: { word: string; wa
 ];
 
 /** health endpoint's Details, as 17.4–17.17 draw it: two Asks, Eval 2, and its Seal or none. */
-const ALIGNED = { step: 'eval', eval: 'evl_2', n: 2, verdict: 'aligned', agreement: '0.92', aside: 'judged 11:20 · 5 met' } as const;
-const DRIFTED = { step: 'eval', eval: 'evl_2', n: 2, verdict: 'drifted', agreement: '0.75', aside: 'judged 11:20 · 4 met · 1 not met' } as const;
+const ALIGNED = { step: 'eval', eval: 'evl_2', n: 2, report: reportOf('nothing'), aside: 'judged 11:20 · 5 met' } as const;
+const DRIFTED = { step: 'eval', eval: 'evl_2', n: 2, report: reportOf('found'), aside: 'judged 11:20 · 4 met · 1 not met' } as const;
 const health = (status: WorkRow['status'], judged: Step, sealed: Step | null, offers?: ('follow_up' | 'undo')[]): UnitDetail => ({
   unit: 'ask_3', title: 'health endpoint', harness: 'codex', status, aside: '2 Asks · codex · since 10:52',
   steps: [
@@ -452,7 +452,8 @@ const DONE_ROWS = ([
   ['dark mode tokens', 'claude', 'rejected', 'wrong approach', 'drifted', '2026-10-21T11:05:00Z', false],
   ['retry the upload', 'codex', 'accepted', null, 'aligned', '2026-10-20T09:15:00Z', false],
 ] as const).map(([title, harness, decision, reason, verdict, when, parked], i) => ({
-  unit: title === 'health endpoint' ? 'ask_3' : `ask_d${i}`, title, harness, decision, reason, verdict, at: when, parked,
+  unit: title === 'health endpoint' ? 'ask_3' : `ask_d${i}`, title, harness, decision, reason,
+  report: reportOf(({ aligned: 'nothing', drifted: 'found', incomplete: 'unsettled' } as const)[verdict]), at: when, parked,
 }));
 /** 17.6, 6.7: the Eval's one judge at work. */
 const judging = () => {
@@ -1169,9 +1170,9 @@ const SCREENS: Screen[] = [
   } })),
   ...([['M17.4', false], ['D17.4', false], ['M17.5', true], ['D17.5', true]] as const).map(([id, why]): Screen => ({
     ids: [id],
-    sample: () => withTree((t) => (t[0].work.units[1].status = { state: 'judged', verdict: 'drifted', agreement: 0.75 })),
+    sample: () => withTree((t) => (t[0].work.units[1].status = { state: 'evaluated', report: reportOf('found') })),
     run: async (at) => {
-      at.machine.reads.units.ask_3 = health({ state: 'judged', verdict: 'drifted', agreement: 0.75 }, DRIFTED, null);
+      at.machine.reads.units.ask_3 = health({ state: 'evaluated', report: reportOf('found') }, DRIFTED, null);
       if (at.wide) {
         await workOpen(at, 'health endpoint');
         await at.page.locator('.detail-acts').getByRole('button', { name: 'Seal', exact: true }).click();
@@ -1268,7 +1269,7 @@ const SCREENS: Screen[] = [
   ...(['M17.24-eval', 'D17.24-eval', 'M17.24-seal', 'D17.24-seal'] as const).map((id): Screen => ({ ids: [id],
     sample: () => withTree((t) => {
       const u = t[0].work.units[1];
-      u.status = { state: 'judged', verdict: 'drifted', agreement: 0.75 };
+      u.status = { state: 'evaluated', report: reportOf('found') };
       Object.assign(u, { eval: { key: 'why.not_set_up', harness: 'codex' }, seal: { key: 'why.not_set_up', harness: 'codex' } });
     }),
     run: async (at) => {

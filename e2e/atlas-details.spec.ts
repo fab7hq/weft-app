@@ -57,10 +57,10 @@ test('a unit of work opens as its workflow: its Asks, its Eval and its Seal, eac
   const view = region(page, 'health endpoint');
   await expect(view).toBeVisible();
   await expect.poll(() => machine.of('read').at(-1)).toEqual(expect.objectContaining({ what: 'work', project: 'weft', unit: 'ask_3' }));
-  await expect(view.locator('.unit-title-row')).toHaveText('health endpointaligned · 0.67');
+  await expect(view.locator('.unit-title-row')).toHaveText('health endpointevaluated');
   await expect(view.locator('.unit-aside')).toHaveText('2 Asks · codex · since 10:31');
   await expect(view.locator('.step-kind')).toHaveText(['Ask', 'Follow up', 'Eval 3', 'Seal']);
-  await expect(view.locator('.step-text')).toHaveText(['health endpoint', 'build number', 'aligned · confidence 0.67', 'not sealed yet']);
+  await expect(view.locator('.step-text')).toHaveText(['health endpoint', 'build number', 'nothing found', 'not sealed yet']);
   await expect(view.locator('.step-aside')).toHaveText(['codex · sent 10:31', 'codex · sent 10:40', 'judged 10:58 · 1 met · 1 not met']);
   // Judged, Seal is its act put forward.
   await expect(act(page, 'Seal')).toHaveClass(/tree-act--go/);
@@ -81,7 +81,7 @@ test('a unit of work opens as its workflow: its Asks, its Eval and its Seal, eac
   await expect(region(page, 'Eval 3')).toBeVisible();
   await page.goBack();
   await step(page, 'build number').click();
-  await expect(crumbs(page)).toHaveText('build number›Eval 3 aligned›not sealed');
+  await expect(crumbs(page)).toHaveText('build number›Eval 3 nothing found›not sealed');
   await machine.close();
 });
 
@@ -167,14 +167,14 @@ test('M11.2: still being composed, ASKING, and nothing to proceed with', async (
 test('M11.2 D11.2: an evaluated work\'s breadcrumb links its Eval; a sealed one\'s its Seal too', async ({ page, context }) => {
   const machine = await opened(page, context);
   await askDetails(page, 'health endpoint');
-  await expect(crumbs(page)).toHaveText('health endpoint›Eval 3 aligned›not sealed');
-  await crumbs(page).getByRole('button', { name: 'Eval 3 aligned' }).click();
+  await expect(crumbs(page)).toHaveText('health endpoint›Eval 3 nothing found›not sealed');
+  await crumbs(page).getByRole('button', { name: 'Eval 3 nothing found' }).click();
   await expect(region(page, 'Eval 3')).toBeVisible();
   // A sealed one, reached from its Seal.
-  await region(page, 'Eval 3').getByRole('button', { name: 'health endpoint' }).waitFor();
+  await expect(region(page, 'Eval 3').locator('.rd-covers')).toContainText('health endpoint');
   await page.goto('/');
   await askDetails(page, 'readme fix');
-  await expect(crumbs(page)).toHaveText('readme fix›Eval 2 aligned›Seal 4');
+  await expect(crumbs(page)).toHaveText('readme fix›Eval 2 nothing found›Seal 4');
   await crumbs(page).getByRole('button', { name: 'Seal 4' }).click();
   await expect(region(page, 'Seal 4')).toBeVisible();
   await machine.close();
@@ -250,12 +250,12 @@ test('M11.4 D11.4: a Seal\'s Details, once: its decision, when, by whom, its Eva
     // D11.4: the decision in the breadcrumb and large, its facts as labelled lines.
     await expect(crumbs(page)).toHaveText('Seal 4›accepted');
     await expect(view.locator('.summary-head')).toHaveText('accepted');
-    expect(await grid(page)).toEqual([['When', '2026-10-08 09:40'], ['The Eval it seals', 'Eval 2 › · aligned · 1.0'], ['Receipt', 'rcp_7f3a2c']]);
+    expect(await grid(page)).toEqual([['When', '2026-10-08 09:40'], ['The Eval it seals', 'Eval 2 › · nothing found'], ['Receipt', 'rcp_7f3a2c']]);
     await expect(view.locator('.detail-head-row')).toHaveText('The Asks it covered· 2');
   } else {
     await expect(crumbs(page)).toHaveText('Seal 4ACCEPTED');
     await expect(view.getByText('sealed 2026-10-08 09:40 · covers 2 Asks')).toBeVisible();
-    expect(await facts(page)).toEqual([['Decision', 'accepted'], ['When', '2026-10-08 09:40'], ['The Eval it seals', 'Eval 2 · aligned · 1.0'], ['Receipt', 'rcp_7f3a2c']]);
+    expect(await facts(page)).toEqual([['Decision', 'accepted'], ['When', '2026-10-08 09:40'], ['The Eval it seals', 'Eval 2 · nothing found'], ['Receipt', 'rcp_7f3a2c']]);
   }
   expect(await asks(page)).toEqual([['readme fix', 'claude'], ['docs links', 'claude']]);
   await expect(view.getByText('The receipt still matches what RingFrame wrote.')).toBeVisible();

@@ -56,15 +56,21 @@ export interface Session {
   ask: Why | null;
 }
 
-/** A verdict, as the record writes it. */
-export type Verdict = 'aligned' | 'drifted' | 'incomplete';
+/** An Eval's report, as counts. */
+export interface Report { faults: number; cannot_settle: number; declared: number; against_decisions: number }
+
+/** A report for a sample: nothing found, one found, or one that could not be settled. */
+export type Found = 'nothing' | 'found' | 'unsettled';
+export function reportOf(f: Found): Report {
+  return { faults: f === 'found' ? 1 : 0, cannot_settle: f === 'unsettled' ? 1 : 0, declared: 0, against_decisions: 0 };
+}
 
 /** Where a unit of work stands. */
 export type Status =
   | { state: 'asking' }
   | { state: 'asked' }
   | { state: 'judging' }
-  | { state: 'judged'; verdict: Verdict; agreement: number | null }
+  | { state: 'evaluated'; report: Report }
   | { state: 'sealed'; decision: string };
 
 /** A unit of work in WORK, as weft_core::tree builds its row. */
@@ -113,7 +119,7 @@ export interface Detail {
   unit: string;
   title: string;
   harness: string;
-  crumb: { eval: { eval: string; n: number; verdict: Verdict | null } | null; seal: { seal: string; n: number } | null };
+  crumb: { eval: { eval: string; n: number; report: Report | null } | null; seal: { seal: string; n: number } | null };
   ask: { state: 'DONE' | 'ASKING'; aside: string; lines: string[] };
   session: Session | null;
   proceed: boolean;
@@ -123,8 +129,7 @@ export interface EvalDetail {
   eval: string;
   n: number;
   judging: boolean;
-  verdict: Verdict | null;
-  agreement: string | null;
+  report: Report | null;
   judged_by: string | null;
   at: number | null;
   findings: { mark: string; text: string }[];
@@ -138,7 +143,7 @@ export interface SealDetail {
   n: number;
   decision: string;
   at: number | null;
-  eval: { eval: string; n: number; verdict: Verdict | null; agreement: string | null } | null;
+  eval: { eval: string; n: number; report: Report | null } | null;
   receipt: string;
   holds: boolean | null;
   broken: string[];
@@ -161,7 +166,7 @@ export interface SessionDetail {
 /** One step of a unit's workflow. */
 export type Step =
   | { step: 'ask'; unit: string; title: string; follow_up: boolean; aside: string }
-  | { step: 'eval'; eval: string; n: number; verdict: Verdict | null; agreement: string | null; aside: string }
+  | { step: 'eval'; eval: string; n: number; report: Report | null; aside: string }
   | { step: 'seal'; seal: string; n: number; decision: string; reason?: string | null; aside: string }
   | { step: 'not_sealed' };
 

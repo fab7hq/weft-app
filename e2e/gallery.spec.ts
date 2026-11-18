@@ -13,6 +13,17 @@ import { person, signIn } from './seed';
 import { CLAUDE, CODEX, CODEX_NEW, DETAILS, RUNNING, SESSIONS, STILL, VIEW, at } from './atlas-fixtures';
 
 const OUT = 'gallery';
+
+/** The Seal's five questions, as 17.4 and 17.5 draw them. */
+const SEAL_QUESTIONS = [
+  { id: 'q1', ask: 'did_you_want', behaviour: 'A failed sign-in now writes the typed email address into the server log.',
+    why: 'You said no to this before, and this change brings it back.', against: { decision: 'sel_0/d1', seal: 'sel_0', date: '2026-11-03' } },
+  { id: 'q2', ask: 'did_you_want', behaviour: 'The sign-in page remembers the last email address typed on this device.',
+    why: 'You weren’t sure last time, so it’s asked again.', asked_before: { decision: 'sel_1/d1', seal: 'sel_1', date: '2026-11-10' } },
+  { id: 'q3', ask: 'did_you_want', behaviour: 'Signed-in sessions now end after 1 hour instead of 24 hours.', why: 'No request asked for it.' },
+  { id: 'q4', ask: 'still_want', behaviour: 'Staying signed in on this device after the browser closes.', why: 'You asked for it; the change does not do it yet.' },
+  { id: 'q5', ask: 'what_did_you_mean', behaviour: 'What you meant by “show an error”.', why: 'It can be read two ways.' },
+];
 mkdirSync(OUT, { recursive: true });
 
 interface At {
@@ -414,8 +425,8 @@ const staged = (agent: string, what: string, why: string, go: { word: string; wa
 ];
 
 /** health endpoint's Details, as 17.4–17.17 draw it: two Asks, Eval 2, and its Seal or none. */
-const ALIGNED = { step: 'eval', eval: 'evl_2', n: 2, report: reportOf('nothing'), aside: 'judged 11:20 · 5 met' } as const;
-const DRIFTED = { step: 'eval', eval: 'evl_2', n: 2, report: reportOf('found'), aside: 'judged 11:20 · 4 met · 1 not met' } as const;
+const ALIGNED = { step: 'eval', eval: 'evl_2', n: 2, report: reportOf('nothing'), aside: 'judged 11:20 · Nothing to look at · 5 settled' } as const;
+const DRIFTED = { step: 'eval', eval: 'evl_2', n: 2, report: reportOf('found'), aside: 'judged 11:20 · 1 thing to look at · 4 settled' } as const;
 const health = (status: WorkRow['status'], judged: Step, sealed: Step | null, offers?: ('follow_up' | 'undo')[]): UnitDetail => ({
   unit: 'ask_3', title: 'health endpoint', harness: 'codex', status, aside: '2 Asks · codex · since 10:52',
   steps: [
@@ -1173,6 +1184,7 @@ const SCREENS: Screen[] = [
     sample: () => withTree((t) => (t[0].work.units[1].status = { state: 'evaluated', report: reportOf('found') })),
     run: async (at) => {
       at.machine.reads.units.ask_3 = health({ state: 'evaluated', report: reportOf('found') }, DRIFTED, null);
+      at.machine.reads.questions = { ask_3: SEAL_QUESTIONS };
       if (at.wide) {
         await workOpen(at, 'health endpoint');
         await at.page.locator('.detail-acts').getByRole('button', { name: 'Seal', exact: true }).click();
@@ -1181,12 +1193,28 @@ const SCREENS: Screen[] = [
         await item(at, 'health endpoint').click();
         await at.page.locator('.tree-acts').getByRole('button', { name: 'Seal', exact: true }).click();
       }
-      const dialog = at.page.getByRole('dialog', { name: 'Seal this work?' });
+      // 17.4 is the second of five questions, answered; 17.5 the review of all five with the decision.
+      const dialog = at.page.getByRole('dialog', { name: 'Seal health endpoint' });
       await expect(dialog).toBeVisible();
-      if (why) {
-        await dialog.getByRole('radio', { name: 'rejected' }).click();
-        await dialog.getByRole('radio', { name: 'broke something' }).click();
-      }
+      const next = dialog.getByRole('button', { name: 'Next', exact: true });
+      const pick = async (label: string) => {
+        await dialog.locator('.seal-label').waitFor();
+        await dialog.getByRole('radio', { name: label, exact: true }).click();
+      };
+      await pick('Not wanted');
+      await next.click();
+      await pick('Not wanted');
+      if (!why) return;
+      await next.click();
+      await pick('I wanted this');
+      await next.click();
+      await pick('Later');
+      await next.click();
+      await pick('Not sure');
+      await next.click();
+      await expect(dialog.getByRole('heading', { name: 'Your answers' })).toBeVisible();
+      await dialog.getByRole('radiogroup', { name: 'Decision' }).getByRole('radio', { name: 'Rejected' }).click();
+      await dialog.getByRole('radiogroup', { name: 'Why' }).getByRole('radio', { name: 'Not what I asked' }).click();
     },
   })),
   ...(['M17.6', 'D17.6'] as const).map((id): Screen => ({ ids: [id], sample: judging, run: (at) => evalView(at, RUNNING) })),

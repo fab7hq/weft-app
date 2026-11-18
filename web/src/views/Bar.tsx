@@ -99,14 +99,13 @@ export async function evalWork(project: string, unit: string, why: m.Why | null)
 export async function sealWork(project: string, unit: string, why: m.Why | null): Promise<void> {
   if (why && !isSetup(why)) return void (said.value = sentence(why));
   const row = m.tree.value.find((p) => p.project === project)?.work.units.find((u) => u.unit === unit);
-  const judged = row?.status.state === 'judged' ? row.status : null;
-  sealing.value = { project, unit, title: row?.title ?? '', asks: row?.asks ?? 1, verdict: judged?.verdict ?? null, agreement: judged?.agreement ?? null, warning: warning(why) };
+  sealing.value = { project, unit, title: row?.title ?? '', asks: row?.asks ?? 1, warning: warning(why) };
 }
 
 /** Seal this Eval, in its one dialog, unless the machine said why not (it stays drawn, and says so); a setup why warns in the dialog. */
-export async function sealRound(project: string, eval_: string, why: m.Why | null, of: { title: string; asks: number; verdict: m.Verdict | null }): Promise<void> {
+export async function sealRound(project: string, eval_: string, why: m.Why | null, of: { title: string; asks: number }): Promise<void> {
   if (why && !isSetup(why)) return void (said.value = sentence(why));
-  sealing.value = { project, eval: eval_, ...of, agreement: null, warning: warning(why) };
+  sealing.value = { project, eval: eval_, ...of, warning: warning(why) };
 }
 
 /** The selection as the desktop's bar names it: `claude · 11:29`, `health endpoint`. */

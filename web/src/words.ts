@@ -1,7 +1,7 @@
 // The words this app shares with Weft's desktop app, by key, from /words.json: its
 // language pack, fetched at start and never cached, so a replaced file shows
 // on the next refresh. Words only the web app has stay where they are used.
-import type { Session, Status } from './machine';
+import type { Report, Session, Status } from './machine';
 
 let table: Record<string, string> = {};
 
@@ -54,7 +54,19 @@ export function agentAbout(s: Session, time: string): string {
   return [...said, state, time].join(' · ');
 }
 
-/** A unit of work's status as its row says it: asked, eval open, drifted · 0.75, sealed · accepted. */
+/** A report's counts in plain words: `2 found · 1 not settled`, or `nothing found`. Never done, met or aligned. */
+export function reportWord(r: Report): string {
+  const parts: string[] = [];
+  if (r.faults) parts.push(fill('report.found', { n: String(r.faults) }));
+  if (r.cannot_settle) parts.push(fill('report.not_settled', { n: String(r.cannot_settle) }));
+  if (r.against_decisions) parts.push(fill('report.against', { n: String(r.against_decisions) }));
+  return parts.length ? parts.join(' · ') : w('report.nothing_found');
+}
+
+/** The tone a report is said in: teal when it found nothing, amber when it found something. */
+export const reportTone = (r: Report) => (r.faults + r.cannot_settle + r.against_decisions === 0 ? 'good' : 'needs');
+
+/** A unit of work's status as its row says it: asked, eval open, evaluated, sealed · accepted. */
 export function statusWord(s: Status): string {
   switch (s.state) {
     case 'asking':
@@ -62,20 +74,18 @@ export function statusWord(s: Status): string {
       return w(`work.${s.state}`);
     case 'judging':
       return w('work.eval_open');
-    case 'judged': {
-      const said = fill('work.judged', { verdict: w(`verdict.${s.verdict}`), agreement: s.agreement === null ? '' : score(s.agreement) });
-      return said.endsWith(' · ') ? said.slice(0, -3) : said;
-    }
+    case 'evaluated':
+      return w('work.evaluated');
     case 'sealed':
       return fill('work.sealed', { decision: decision(s.decision) });
   }
 }
 
-/** The tone a status is said in: teal aligned, amber drifted or short of proof, blue an Eval open, faint sealed. */
+/** The tone a status is said in: amber evaluated (the person's to read and seal), blue an Eval open, faint sealed. */
 export function statusTone(s: Status): string {
   switch (s.state) {
-    case 'judged':
-      return s.verdict === 'aligned' ? 'good' : 'needs';
+    case 'evaluated':
+      return 'needs';
     case 'judging':
       return 'blue';
     case 'sealed':

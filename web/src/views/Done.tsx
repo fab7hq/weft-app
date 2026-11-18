@@ -1,5 +1,5 @@
 // Done (17.18): the tree's place, showing every sealed unit of one project,
-// parked first, with one search over title, verdict, decision and reason. A
+// parked first, with one search over title, decision and reason. A
 // row opens its unit of work as any unit does; ‹ goes back to the tree.
 import { signal } from '@preact/signals';
 import { useEffect, useRef } from 'preact/hooks';
@@ -7,7 +7,7 @@ import type { Machine } from '../api';
 import { type Done, doneRead, sealedWhen } from '../done';
 import * as m from '../machine';
 import { go, here } from '../nav';
-import { fill, w } from '../words';
+import { fill, reportTone, reportWord, w } from '../words';
 import { selected } from './Tree';
 
 /** The project whose Done list stands in the tree's place, if any. */
@@ -87,7 +87,7 @@ export function DoneList({ machine, project, wide }: { machine: Machine; project
 }
 
 function DoneRow({ d, wide, on, onOpen }: { d: Done; wide: boolean; on: boolean; onOpen: (d: Done) => void }) {
-  const verdict = d.verdict === 'aligned' ? 'good' : d.verdict === 'drifted' ? 'needs' : '';
+
   return (
     <div class="tree-row done-row" role="treeitem" aria-label={d.title} aria-selected={on} onClick={() => onOpen(d)}>
       <span class="done-lines">
@@ -98,8 +98,8 @@ function DoneRow({ d, wide, on, onOpen }: { d: Done; wide: boolean; on: boolean;
         </span>
         <span class="done-said">
           <span class={d.parked ? 'needs' : ''}>{[d.decision, d.reason].filter(Boolean).join(' · ')}</span>
-          {d.verdict && ' · '}
-          {d.verdict && <span class={verdict}>{d.verdict}</span>}
+          {d.report && ' · '}
+          {d.report && <span class={reportTone(d.report)}>{reportWord(d.report)}</span>}
         </span>
       </span>
       <span class="agent-at">{sealedWhen(d.at)}</span>

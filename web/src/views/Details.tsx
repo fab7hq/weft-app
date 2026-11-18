@@ -13,13 +13,13 @@ import { fill, stateWord, statusTone, statusWord, w } from '../words';
 import { asking } from './Ask';
 import { act, acting } from './Asked';
 import { evalWork, said, sealRound, sealWork } from './Bar';
-import { Verdict, evalName, sealName, stateOf } from './Tree';
+import { ReportSaid, evalName, sealName, stateOf } from './Tree';
 import { undo } from './Undo';
 import { remedyRead, type Offer } from '../offers';
 
 /** The record's parts, as a work's breadcrumb names them. */
 interface Crumb {
-  eval: { eval: string; n: number; verdict: m.Verdict | null } | null;
+  eval: { eval: string; n: number; report: m.Report | null } | null;
   seal: { seal: string; n: number } | null;
 }
 
@@ -41,8 +41,7 @@ interface Judged {
   eval: string;
   n: number;
   judging: boolean;
-  verdict: m.Verdict | null;
-  agreement: string | null;
+  report: m.Report | null;
   judged_by: string | null;
   at: number | null;
   findings: { mark: string; text: string }[];
@@ -58,7 +57,7 @@ interface Sealed {
   n: number;
   decision: string;
   at: number | null;
-  eval: { eval: string; n: number; verdict: m.Verdict | null; agreement: string | null } | null;
+  eval: { eval: string; n: number; report: m.Report | null } | null;
   receipt: string;
   holds: boolean | null;
   broken: string[];
@@ -157,7 +156,7 @@ export function Frame({ machine, project, label, crumbs, right, mono = false, as
   );
 }
 
-/** A labelled line of a Details view, as `Verdict  aligned`; with a press, a › at its end. */
+/** A labelled line of a Details view, as `Found  1 found`; with a press, a › at its end. */
 export function Fact({ label, children, go: onGo }: { label: string; children: ComponentChildren; go?: () => void }) {
   const body = (
     <>
@@ -223,7 +222,7 @@ export function moves(machine: Machine, project: string) {
 /** One step of a unit's workflow (`read work`). */
 type Step =
   | { step: 'ask'; unit: string; title: string; follow_up: boolean; aside: string }
-  | { step: 'eval'; eval: string; n: number; verdict: m.Verdict | null; agreement: string | null; aside: string }
+  | { step: 'eval'; eval: string; n: number; report: m.Report | null; aside: string }
   | { step: 'seal'; seal: string; n: number; decision: string; reason?: string | null; aside: string }
   | { step: 'not_sealed' };
 
@@ -250,7 +249,7 @@ function StepRow({ n, step, to }: { n: number; step: Step; to: ReturnType<typeof
       : step.step === 'eval'
         ? [
             evalName(step.n),
-            step.verdict ? <><Verdict verdict={step.verdict} />{step.agreement && ` · ${fill('unit.confidence', { agreement: step.agreement })}`}</> : <span class="needs">{w('tree.judging')}</span>,
+            step.report ? <ReportSaid report={step.report} /> : <span class="needs">{w('tree.judging')}</span>,
             step.aside,
             () => to.round(step.eval),
             evalName(step.n),
@@ -309,7 +308,7 @@ export function UnitDetails({ machine, project, unit, wide = false }: { machine:
   if (!d) return <Frame machine={machine} project={project} label="" crumbs={[]} wide={wide} />;
   const followUp = () => (asking.value = { project, follow: { unit: d.unit, title: d.title, follows: d.follows } });
   // The act its status puts forward is the primary one.
-  const primary = d.status.state === 'judged' ? 'seal' : d.status.state === 'sealed' ? 'follow_up' : 'eval';
+  const primary = d.status.state === 'evaluated' ? 'seal' : d.status.state === 'sealed' ? 'follow_up' : 'eval';
   const tone = (a: string) => (a === primary ? 'tree-act tree-act--go' : 'tree-act');
   // Sealed work offers only what it offers: accepted work, nothing (17.11).
   const sealed = d.status.state === 'sealed' && d.offers !== undefined;
@@ -391,7 +390,7 @@ export function Details({ machine, project, unit, wide = false }: { machine: Mac
   const crumbs: Part[] = [{ text: d.title }];
   if (!e) crumbs.push({ text: w('web.detail.not_evaluated'), tone: 'dim' });
   else {
-    crumbs.push({ text: <>{`${evalName(e.n)} `}{e.verdict ? w(`verdict.${e.verdict}`) : w('tree.judging')}</>, go: () => to.round(e.eval) });
+    crumbs.push({ text: <>{`${evalName(e.n)} `}{e.report ? <ReportSaid report={e.report} /> : w('tree.judging')}</>, go: () => to.round(e.eval) });
     if (d.crumb.seal) {
       const s = d.crumb.seal;
       crumbs.push({ text: sealName(s.n), go: () => to.seal(s.seal) });
@@ -468,8 +467,8 @@ export function RoundDetails({ machine, project, eval: id, wide = false }: { mac
   const to = moves(machine, project);
   if (!d) return <Frame machine={machine} project={project} label="" crumbs={[]} wide={wide} />;
   const crumbs: Part[] = [{ text: evalName(d.n) }];
-  // D11.3 names the verdict in its breadcrumb too.
-  if (wide && d.verdict) crumbs.push({ text: <Verdict verdict={d.verdict} /> });
+  // D11.3 names what it found in its breadcrumb too.
+  if (wide && d.report) crumbs.push({ text: <ReportSaid report={d.report} /> });
   if (d.judging) crumbs.push({ text: w('tree.judging'), tone: 'dim' });
   else if (d.sealed) {
     const s = d.sealed;
@@ -489,17 +488,16 @@ export function RoundDetails({ machine, project, eval: id, wide = false }: { mac
       wide={wide}
       acts={
         <>
-          <button class="tree-act tree-act--go" type="button" aria-busy={acting.value === 'seal' || undefined} onClick={() => void sealRound(project, d.eval, d.seal, { title: evalName(d.n), asks: d.asks.length, verdict: d.verdict ?? null })}>{w('act.seal')}</button>
+          <button class="tree-act tree-act--go" type="button" aria-busy={acting.value === 'seal' || undefined} onClick={() => void sealRound(project, d.eval, d.seal, { title: evalName(d.n), asks: d.asks.length })}>{w('act.seal')}</button>
           <button class="tree-act" type="button" onClick={() => to.view(d.eval)}>{w('act.eval_view')}</button>
         </>
       }
     >
-      {/* D11.3: the verdict and its agreement, then who judged it, when, and what it covers, in two lines. */}
+      {/* D11.3: what it found, then who judged it, when, and what it covers, in two lines. */}
       {wide && (
         <div class="detail-summary">
           <p class="summary-head">
-            {d.verdict ? <Verdict verdict={d.verdict} /> : w('tree.judging')}
-            {d.agreement && <>{' · '}<span class="lower">{w('web.eval.agreement')}</span>{` ${d.agreement}`}</>}
+            {d.report ? <ReportSaid report={d.report} /> : w('tree.judging')}
           </p>
           <p class="detail-prov">
             {d.judged_by && <><span class="lower">{w('web.eval.judged_by')}</span>{` ${d.judged_by} · `}</>}
@@ -508,8 +506,7 @@ export function RoundDetails({ machine, project, eval: id, wide = false }: { mac
         </div>
       )}
       <div class="facts">
-        {!wide && <Fact label={w('web.eval.verdict')}>{d.verdict ? <Verdict verdict={d.verdict} /> : w('tree.judging')}</Fact>}
-        {!wide && d.agreement && <Fact label={w('web.eval.agreement')}>{d.agreement}</Fact>}
+        {!wide && <Fact label={w('web.eval.found')}>{d.report ? <ReportSaid report={d.report} /> : w('tree.judging')}</Fact>}
         {!wide && d.judged_by && <Fact label={w('web.eval.judged_by')}>{d.judged_by}</Fact>}
         <Fact label={w('eval_view.findings')} go={() => to.view(d.eval, 'h:findings')}>{d.findings.length}</Fact>
         <Fact label={w('eval_view.checks')} go={() => to.view(d.eval, 'h:checks')}>
@@ -607,8 +604,7 @@ export function SealDetails({ machine, project, seal, wide = false }: { machine:
                 <>
                   <button class="detail-link" type="button" onClick={() => to.round(d.eval!.eval)}>{`${evalName(d.eval.n)} ›`}</button>
                   {' · '}
-                  <Verdict verdict={d.eval.verdict} />
-                  {d.eval.agreement && ` · ${d.eval.agreement}`}
+                  <ReportSaid report={d.eval.report} />
                 </>
               )] as [string, ComponentChildren]] : []),
               [w('web.seal.receipt'), <span class="mono">{d.receipt}</span>],
@@ -626,8 +622,7 @@ export function SealDetails({ machine, project, seal, wide = false }: { machine:
         {d.eval && (
           <Fact label={w('web.seal.eval')} go={() => to.round(d.eval!.eval)}>
             <span class="fact-strong">{`${evalName(d.eval.n)} · `}</span>
-            <Verdict verdict={d.eval.verdict} />
-            {d.eval.agreement && ` · ${d.eval.agreement}`}
+            <ReportSaid report={d.eval.report} />
           </Fact>
         )}
         <Fact label={w('web.seal.receipt')}><span class="mono">{d.receipt}</span></Fact>

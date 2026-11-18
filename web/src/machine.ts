@@ -58,15 +58,20 @@ export interface Session {
   ask: Why | null;
 }
 
-/** A verdict, as the record writes it. */
-export type Verdict = 'aligned' | 'drifted' | 'incomplete';
+/** An Eval's report, as counts: what it found, what it could not settle, what the agent declared, what goes against a decision. */
+export interface Report {
+  faults: number;
+  cannot_settle: number;
+  declared: number;
+  against_decisions: number;
+}
 
 /** Where a unit of work stands, in one status. */
 export type Status =
   | { state: 'asking' }
   | { state: 'asked' }
   | { state: 'judging' }
-  | { state: 'judged'; verdict: Verdict; agreement: number | null }
+  | { state: 'evaluated'; report: Report }
   | { state: 'sealed'; decision: string };
 
 /** A unit of work: its root Ask's title and harness, and one status. */
@@ -77,6 +82,8 @@ export interface WorkRow {
   harness: string;
   status: Status;
   asks: number;
+  /** Its Asks no Seal has closed: the Asks since its last Seal. */
+  open: number;
   /** Why Eval cannot run on it, else null. */
   eval: Why | null;
   /** Why Seal cannot run on it, else null. */

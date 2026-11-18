@@ -140,3 +140,7 @@
 .done-said { font: 400 11px var(--font-mono); color: var(--fab7-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .done-said .good { color: var(--fab7-teal); }
 .done-said .needs { color: var(--fab7-amber-text); }
+/* A unit of work (card 11.10): its line, and while Asks are unsealed, how many since its last Seal. */
+.work-lines { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.work-first { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.work-since { font: 400 11px/15px var(--font-mono); color: var(--fab7-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

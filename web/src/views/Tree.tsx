@@ -11,7 +11,7 @@ import type { Machine } from '../api';
 import { clock, stamp, weekday } from '../bar';
 import * as m from '../machine';
 import { go, here } from '../nav';
-import { agentAbout, fill, statusTone, statusWord, turnWord, w } from '../words';
+import { agentAbout, fill, reportTone, reportWord, statusTone, statusWord, turnWord, w } from '../words';
 import { TreeBar, askOn, evalOn, sealOn } from './Bar';
 import { DoneList, doneOf } from './Done';
 import { HeaderPills, Strips } from './Status';
@@ -487,10 +487,10 @@ function Work({ p, moves }: { p: m.Project; moves: Moves }) {
   );
 }
 
-/** A verdict, in its colour: aligned teal, drifted amber. */
-export function Verdict({ verdict }: { verdict: m.Verdict | null }) {
-  if (!verdict) return null;
-  return <span class={verdict === 'aligned' ? 'good' : 'needs'}>{w(`verdict.${verdict}`)}</span>;
+/** What an Eval found, as counts, in its colour: teal when nothing, amber when something. */
+export function ReportSaid({ report }: { report: m.Report | null }) {
+  if (!report) return null;
+  return <span class={reportTone(report)}>{reportWord(report)}</span>;
 }
 
 /** An Eval's name: `Eval 3`. */
@@ -507,12 +507,19 @@ function WorkRowView({ p, row, moves }: { p: m.Project; row: m.WorkRow; moves: M
   const tap = () => (wide ? details() : (selected.value = me));
   return (
     <div class="tree-row tree-row--work" role="treeitem" aria-label={row.title} aria-selected={isSelected(me)} onClick={tap} onDblClick={details}>
-      <span class="work-line">
-        <span class="work-title">{row.title}</span>
-        <span class="agent-sep">·</span>
-        <span class="work-harness">{row.harness}</span>
+      <span class="work-lines">
+        <span class="work-first">
+          <span class="work-line">
+            <span class="work-title">{row.title}</span>
+            <span class="agent-sep">·</span>
+            <span class="work-harness">{row.harness}</span>
+          </span>
+          <span class={`work-status ${statusTone(row.status)}`}>{statusWord(row.status)}</span>
+        </span>
+        {row.open > 0 && row.status.state !== 'sealed' && (
+          <span class="work-since">{row.open === 1 ? w('work.since_seal_one') : fill('work.since_seal', { n: String(row.open) })}</span>
+        )}
       </span>
-      <span class={`work-status ${statusTone(row.status)}`}>{statusWord(row.status)}</span>
       {!wide && <button class="tree-more" type="button" aria-label={`Details of ${row.title}`} onClick={(e) => (e.stopPropagation(), details())}>›</button>}
     </div>
   );

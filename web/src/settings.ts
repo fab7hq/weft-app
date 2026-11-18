@@ -45,9 +45,8 @@ export interface Entry {
 }
 
 export const ROLES: [string, string, string][] = [
-  ['map', 'Map', 'desktop.settings.map'],
-  ['reduce', 'Reduce', 'desktop.settings.reduce'],
-  ['confirm', 'Confirm', 'desktop.settings.confirm'],
+  ['read', 'Read', 'desktop.settings.read'],
+  ['question', 'Questions', 'desktop.settings.question'],
 ];
 
 /** Every setting Workflow holds, in its order. Turbo is every project's only. */

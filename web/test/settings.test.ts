@@ -30,7 +30,7 @@ import { ENTRIES, at, differs, shownValue } from '../src/settings';
 
 describe('Workflow and a project\'s own settings', () => {
   const s: Settings = {
-    machine: { routing: { eval: 'claude' }, eval: { debate: { harness: 'codex', map: { effort: 'low' } } } },
+    machine: { routing: { eval: 'claude' }, eval: { debate: { harness: 'codex', read: { effort: 'low' } } } },
     project: { routing: { eval: 'codex' } },
     effective: {},
   };
@@ -39,14 +39,14 @@ describe('Workflow and a project\'s own settings', () => {
   it('reads a setting where it is kept, every project\'s or the project\'s own', () => {
     expect(at(s.machine, ['routing', 'eval'])).toBe('claude');
     expect(at(s.project, ['routing', 'eval'])).toBe('codex');
-    expect(at(s.machine, ['eval', 'debate', 'map', 'effort'])).toBe('low');
+    expect(at(s.machine, ['eval', 'debate', 'read', 'effort'])).toBe('low');
     expect(at(s.machine, ['routing', 'ask'])).toBeUndefined();
   });
 
   it('shows a harness by its title, and nothing set by what applies then', () => {
     const ask = ENTRIES.find((e) => e.name === 'Ask')!;
     const runs = ENTRIES.find((e) => e.name === 'Runs in')!;
-    const model = ENTRIES.find((e) => e.name === 'Map model')!;
+    const model = ENTRIES.find((e) => e.name === 'Read model')!;
     expect(shownValue(ask, 'claude', titles)).toBe('Claude Code');
     expect(shownValue(ask, undefined, titles)).toBe('desktop.settings.agent_you_are_in');
     expect(shownValue(runs, undefined, titles)).toBe('desktop.settings.where_eval_runs');
@@ -64,10 +64,10 @@ import { HOW_HARD, effortChoices, howHard, judgesIn, modelChoices, reachKey, typ
 describe("Eval's judges", () => {
   const claude: JudgeEval = {
     efforts: ['low', 'medium', 'high', 'xhigh', 'max'], effort: 'model', models: ['haiku', 'sonnet'], model_typed: false,
-    default: { map: 'low', reduce: 'medium', confirm: 'medium' },
+    default: { read: 'medium', question: 'medium' },
   };
-  const efforts = (map?: string, reduce?: string, confirm?: string) => ({
-    eval: { debate: { map: { effort: map }, reduce: { effort: reduce }, confirm: { effort: confirm } } },
+  const efforts = (read?: string, question?: string) => ({
+    eval: { debate: { read: { effort: read }, question: { effort: question } } },
   });
 
   it('run where the debate is set, else where Eval runs, else nowhere known', () => {
@@ -76,17 +76,17 @@ describe("Eval's judges", () => {
     expect(judgesIn({})).toBeUndefined();
   });
 
-  it('look Balanced with nothing set, Quick or Thorough when all three say so, else Custom', () => {
+  it('look Balanced with nothing set, Quick or Thorough when both say so, else Custom', () => {
     expect(howHard({})).toBe('balanced');
-    expect(howHard(efforts('low', 'low', 'low'))).toBe('quick');
-    expect(howHard(efforts('high', 'high', 'high'))).toBe('thorough');
-    expect(howHard(efforts('high', undefined, undefined))).toBe('custom');
+    expect(howHard(efforts('low', 'low'))).toBe('quick');
+    expect(howHard(efforts('high', 'high'))).toBe('thorough');
+    expect(howHard(efforts('high', undefined))).toBe('custom');
     expect(HOW_HARD).toEqual({ quick: 'low', balanced: null, thorough: 'high' });
   });
 
   it('offer the efforts the harness takes, a default by its value, and the common ones without a file', () => {
-    expect(effortChoices(claude, 'reduce')).toEqual({ none: ['desktop.settings.effort_default', 'medium'], efforts: claude.efforts });
-    expect(effortChoices(undefined, 'map')).toEqual({ none: ['desktop.settings.own_effort', null], efforts: ['low', 'medium', 'high', 'xhigh'] });
+    expect(effortChoices(claude, 'question')).toEqual({ none: ['desktop.settings.effort_default', 'medium'], efforts: claude.efforts });
+    expect(effortChoices(undefined, 'read')).toEqual({ none: ['desktop.settings.own_effort', null], efforts: ['low', 'medium', 'high', 'xhigh'] });
   });
 
   it('offer the models the harness takes, a typed one where it takes any, and none where a judge runs on the session', () => {

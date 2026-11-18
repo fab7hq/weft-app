@@ -17,7 +17,7 @@ export type View =
   | { name: 'seal'; machine: string; project: string; seal: string }
   | { name: 'session'; machine: string; project: string; session: string }
   /** The Eval view of an Eval (M6.x), at one of its pages. */
-  | { name: 'eval'; machine: string; project: string; eval: string; at?: string; files?: boolean }
+  | { name: 'eval'; machine: string; project: string; eval: string; at?: string }
   | { name: 'start'; machine: string; from: string; harness?: string; project?: string }
   | { name: 'settings' }
   /** A machine's own settings, on one of its tabs. */

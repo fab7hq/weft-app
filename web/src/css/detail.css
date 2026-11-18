@@ -22,7 +22,6 @@
 .detail-pane .detail { flex: 1; overflow: auto; padding: 16px 20px; }
 .detail-top { display: flex; align-items: center; padding: 12px 20px; border-bottom: 1px solid var(--fab7-line); font-size: 16px; }
 .detail-top .dim { font-size: 13px; }
-.detail-pane .eval-code { font-size: 12px; line-height: 18px; }
 
 /* A work's Details (M5.1–M5.10, D5.2–D5.7), to the Atlas cards' values. */
 .page.detail-page { gap: 10px; padding: 18px 16px; }
@@ -143,3 +142,34 @@
   .detail-acts:has(.offers-eyebrow) { flex-wrap: wrap; row-gap: 8px; }
   .detail-acts .offers-eyebrow { flex: 1 1 100%; }
 }
+
+/* An Eval's Details (M11.3, D11.3): its headline, then its items, each opening its own detail. */
+.rd { font-size: 14px; line-height: 1.5; }
+.page.rd-page { gap: 0; padding: 20px 16px; }
+.rd-top { display: flex; flex-direction: column; }
+.rd-where { color: var(--fab7-muted); overflow-wrap: anywhere; }
+.rd-sealed { padding: 0; border: 0; background: none; color: var(--fab7-accent); font: inherit; cursor: pointer; }
+.rd-headline { margin-top: 12px; font-size: 20px; font-weight: 600; overflow-wrap: anywhere; }
+.rd-headline-rest { font-size: 14px; font-weight: 400; color: var(--fab7-muted); }
+.rd-items { display: flex; flex-direction: column; margin-top: 10px; border-top: 1px solid var(--fab7-line); }
+.rd-item { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; padding: 8px 0; border: 0; border-bottom: 1px solid var(--fab7-line); background: none; color: var(--fab7-text); font: inherit; text-align: left; cursor: pointer; }
+.rd-item:last-child { border-bottom: 0; }
+.rd-item--settled .rd-text { color: var(--fab7-muted); }
+.rd-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.rd-covers { margin: 14px 0 0; color: var(--fab7-muted); overflow-wrap: anywhere; }
+.rd-view { flex: none; padding: 0; border: 0; background: none; color: var(--fab7-muted); font: 14px var(--font-sans); text-align: left; cursor: pointer; }
+.rd-what { font-size: 14px; }
+.rd-foot-phone, .rd-foot-phone .detail-acts { background: var(--fab7-canvas); }
+.rd-foot-phone .detail-acts { flex-direction: column; align-items: stretch; gap: 8px; padding: 12px 16px 30px; }
+.rd-acts { display: flex; align-items: center; gap: 16px; }
+.rd-acts .rd-view { width: 80px; }
+.rd-acts .rd-seal { flex: 1; min-height: 46px; border-radius: var(--weft-radius-control); }
+.rd--wide .rd-page { flex: 1; min-height: 0; overflow: auto; padding: 28px 48px; }
+.rd--wide .rd-top { flex-direction: row; align-items: center; gap: 16px; }
+.rd--wide .rd-by { margin-left: auto; }
+.rd--wide .rd-headline { margin-top: 16px; }
+.rd--wide .rd-items { margin-top: 14px; }
+.rd--wide .rd-item { gap: 12px; min-height: 44px; padding: 10px 0; }
+.rd--wide .rd-covers { margin-top: 22px; }
+.rd--wide .detail-acts.rd-foot { gap: 16px; padding: 16px 48px 20px; background: var(--fab7-canvas); }
+.rd--wide .rd-foot .rd-seal { flex: none; height: 40px; padding: 0 24px; border-radius: var(--weft-radius-control); }

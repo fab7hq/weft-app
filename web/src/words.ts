@@ -94,6 +94,3 @@ export function statusTone(s: Status): string {
       return '';
   }
 }
-/** An Eval step's state; a reading in progress is "met, so far". */
-export const evalState = (s: string | { read: string }) =>
-  typeof s === 'string' ? w(`eval.${s}`) : fill('eval.so_far', { state: s.read.replaceAll('_', ' ') });

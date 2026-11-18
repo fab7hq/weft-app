@@ -3,18 +3,15 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { agentAbout, evalState, stateWord, turnWord, use } from '../src/words';
+import { agentAbout, stateWord, turnWord, use } from '../src/words';
 
 const words: Record<string, string> = JSON.parse(readFileSync('web/public/words.json', 'utf8'));
 
 describe('words.json', () => {
-  it('names the state words, the turn words and the Eval states', () => {
+  it('names the state words and the turn words', () => {
     use(words);
     expect(stateWord('sealed')).toBe(words['word.sealed']);
     expect(turnWord('waiting')).toBe(words['turn.waiting']);
-    expect(evalState('met')).toBe('met');
-    expect(evalState('not_met')).toBe('not met');
-    expect(evalState({ read: 'not_met' })).toBe('not met, so far');
   });
 
   it("says an agent's second line: its harness when it has a name, its state, its time (card 11.12)", () => {

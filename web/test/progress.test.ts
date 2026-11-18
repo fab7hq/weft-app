@@ -1,12 +1,13 @@
-// A running Eval's ring: the arc a percent fills, on a ring of radius 56.
+// A running Eval's ring: three arcs of one circle, one per read.
 import { describe, expect, it } from 'vitest';
-import { ring } from '../src/progress';
+import { RING } from '../src/progress';
 
-describe('the progress ring', () => {
-  it('fills as much of its circle as is checked, and never past it', () => {
-    expect(ring(0)).toBe('0 352');
-    expect(ring(40)).toBe('141 352');
-    expect(ring(100)).toBe('352 352');
-    expect(ring(140)).toBe('352 352');
+describe('the ring', () => {
+  it('is three arcs of 122 on a circle of radius 64, a gap between each', () => {
+    expect(RING.r).toBe(64);
+    expect(RING.dash).toBe('122 280');
+    // 2πr is about 402: three arcs and three gaps of 12 go round once.
+    expect(Math.round(2 * Math.PI * RING.r)).toBe(122 + 280);
+    expect(RING.offsets).toEqual([0, -134, -268]);
   });
 });

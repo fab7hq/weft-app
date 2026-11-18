@@ -188,7 +188,7 @@ export function Wide({ login, machine, agent, starting = null, view }: { login: 
           </nav>
         )}
         <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-          {view.name === 'eval' ? <EvalView key={`${view.eval}${view.at}${view.files}`} machine={machine} project={view.project} eval={view.eval} at={view.at} files={view.files} wide />
+          {view.name === 'eval' ? <EvalView key={view.eval} machine={machine} project={view.project} eval={view.eval} at={view.at} wide />
           : view.name === 'work' ? <UnitDetails key={view.unit} machine={machine} project={view.project} unit={view.unit} wide />
           : view.name === 'detail' ? <Details key={view.unit} machine={machine} project={view.project} unit={view.unit} wide />
           : view.name === 'round' ? <RoundDetails key={view.eval} machine={machine} project={view.project} eval={view.eval} wide />

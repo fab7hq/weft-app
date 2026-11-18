@@ -10,7 +10,7 @@ import { FakeMachine, atlas, project, sessionOf, type Agent, type Detail, type P
 import { pull, swipeLeft } from './touch';
 import { drawWithDom, openAgent } from './open';
 import { person, signIn } from './seed';
-import { CLAUDE, CODEX, CODEX_NEW, DETAILS, S7, SESSIONS, VIEW, at, row } from './atlas-fixtures';
+import { CLAUDE, CODEX, CODEX_NEW, DETAILS, RUNNING, SESSIONS, STILL, VIEW, at } from './atlas-fixtures';
 
 const OUT = 'gallery';
 mkdirSync(OUT, { recursive: true });
@@ -150,7 +150,7 @@ async function details(at: At, unit: string, d: Detail = DETAILS[unit]) {
 /** Eval 3's Details, from health endpoint's breadcrumb. */
 async function roundOpen(at: At) {
   await details(at, 'ask_3');
-  await at.page.locator('.crumbs').first().getByRole('button', { name: 'Eval 3 aligned' }).click();
+  await at.page.locator('.crumbs').first().getByRole('button', { name: /^Eval 3/ }).click();
   await expect(at.page.getByRole('region', { name: 'Eval 3' })).toBeVisible();
 }
 
@@ -158,8 +158,11 @@ async function evalView(at: At, view: Record<string, unknown> = VIEW) {
   at.machine.reads.views.evl_3 = view;
   await roundOpen(at);
   await button(at, 'Eval view').click();
-  await expect(at.page.getByRole('region', { name: 'Eval view' })).toBeVisible();
+  await expect(at.page.getByRole('region', { name: 'Eval view' }).locator('.ev-row').first()).toBeVisible();
 }
+
+/** An item of the Eval view, by its line. */
+const itemOf = (at: At, text: string) => at.page.locator('.ev-row', { hasText: text }).first();
 
 const BUILD = 'Read the build number from the environment and show it on /health';
 const sheet = (at: At) => at.page.getByRole('dialog', { name: 'What do you want done?' });
@@ -451,20 +454,11 @@ const DONE_ROWS = ([
 ] as const).map(([title, harness, decision, reason, verdict, when, parked], i) => ({
   unit: title === 'health endpoint' ? 'ask_3' : `ask_d${i}`, title, harness, decision, reason, verdict, at: when, parked,
 }));
-/** 17.6: an Eval running, as a picture, with two judges at work. */
-const RUNNING = {
-  ...VIEW, closed: false, title: 'Build account erasure',
-  progress: { percent: 40, stages: [
-    { name: 'Gather changes', note: '15 changes gathered', light: 'done' },
-    { name: 'Compare to your tasks', note: 'under way', light: 'now' },
-    { name: 'Double-check', note: 'next', light: 'next' },
-    { name: 'Run your tests', note: 'npm test · running', light: 'running' },
-  ] },
-};
+/** 17.6, 6.7: the Eval's one judge at work. */
 const judging = () => {
   const s = atlas();
   const since = Date.now() - 60_000;
-  s.agents.push(...[1, 2].map((n): Agent => ({ agent: `j0b1c2d3e4f5-${n}`, project: 'weft', harness: 'codex', title: 'Codex', turn: 'working', running: true, since, judge: 'evl_3' })));
+  s.agents.push({ agent: 'j0b1c2d3e4f5-1', project: 'weft', harness: 'claude', title: 'Claude', turn: 'working', running: true, since, judge: 'evl_3' } as Agent);
   return s;
 };
 
@@ -720,44 +714,35 @@ const SCREENS: Screen[] = [
       ask: { state: 'DONE', aside: 'asked 2026-10-08 08:30 · cancelled', lines: ['You asked:', 'Try a second login provider', 'How it was sent:', 'cancelled'] } }) },
   { ids: ['M5.10'], run: (at) => details(at, 'ask_3', { ...DETAILS.ask_3, ask: { state: 'DONE', aside: '', lines: ['what you asked is not on disk', 'the prompt is not on disk'] } }) },
 
-  // 06 · The Eval view
-  { ids: ['M6.1', 'D6.1'], run: (at) => evalView(at) },
-  { ids: ['M6.2', 'D6.2'], run: async (at) => {
+  // 06 · The Eval view: the items, one chosen; an item's detail; its lines; what each read said; still reading.
+  { ids: ['M6.1', 'D6.1'], run: async (at) => {
     await evalView(at);
-    await button(at, 'By file').click();
+    // A phone marks the item last opened.
+    if (!at.wide) {
+      await itemOf(at, 'Asked before · remembers the last email').click();
+      await button(at, '‹ Items').click();
+    }
   } },
   { ids: ['M6.3'], run: async (at) => {
     await evalView(at);
-    await at.page.getByRole('button', { name: /Phase 1/ }).click();
+    await itemOf(at, 'Asked before · remembers the last email').click();
   } },
   { ids: ['M6.4', 'D6.4'], run: async (at) => {
     await evalView(at);
-    await at.page.getByRole('button', { name: /Phase 1/ }).click();
-    await at.page.getByRole('button', { name: /A failed send is told/ }).click();
+    await itemOf(at, 'The typed email goes into the server log').click();
   } },
   { ids: ['M6.5', 'D6.5'], run: async (at) => {
-    // The lines each card draws: the phone's without the return type, indented less.
-    const lines = (wide: boolean) => (wide
-      ? [[88, ' fn send(&self, msg: &Msg) -> Result<()> {'], [89, '-     let _ = self.sock.write(msg);'], [89, '+     if let Err(e) = self.sock.write(msg) {'],
-        [90, '+         log::debug!("send failed");'], [91, '+         return Err(e.into());'], [92, '+     }'], [93, '        Ok(())']]
-      : [[88, ' fn send(&self, msg: &Msg) {'], [89, '-   let _ = self.sock.write(msg);'], [89, '+   if let Err(e) = self.sock.write(msg) {'],
-        [90, '+     log::debug!("send failed");'], [91, '+     return Err(e.into());'], [92, '+   }'], [93, '     Ok(())']]
-    ).map(([n, text]) => ({ n, text, lit: n === 90 }));
-    await evalView(at, { ...VIEW, changes: { w_s: lines(at.wide) } });
-    await at.page.getByRole('button', { name: /Phase 1/ }).click();
-    await at.page.getByRole('button', { name: /A failed send is told/ }).click();
-    await at.page.getByRole('button', { name: /src\/send\.rs/ }).click();
+    await evalView(at);
+    await itemOf(at, 'Sessions end after 1 hour, not 24').click();
+    await button(at, 'The lines that show it ›').click();
+    await expect(at.page.locator('.ev-code').first()).toBeVisible();
   } },
   { ids: ['M6.6'], run: async (at) => {
     await evalView(at);
-    await at.page.getByRole('button', { name: /^Findings/ }).click();
+    await itemOf(at, '“Show an error” — the reads differ').click();
+    await button(at, 'What each read said ›').click();
   } },
-  { ids: ['M6.7', 'D6.7'], run: (at) => evalView(at, {
-    ...VIEW, closed: false, header: 'judging · map 1 of 1 · reduce 1 of 2 · confirm —',
-    by_step: [row('group', 'g:p1', 0, 'Phase 1 · plans/app/plan.md', '1 met, so far', '▾'),
-      row('step', `s:${S7}`, 1, '7  A failed send is told.', 'judging · 1 change', '…', 'judging'),
-      row('step', 's:p1/8', 1, '8  /health returns the build number', 'met, so far · 2 changes', '✓', { read: 'met' })],
-  }) },
+  { ids: ['M6.7', 'D6.7'], sample: judging, run: (at) => evalView(at, STILL) },
 
   // 07 · A harness not set up: it broke after its agent started (as T3.8).
   { ids: ['M7.1', 'D7.1'], sample: () => {
@@ -1174,7 +1159,7 @@ const SCREENS: Screen[] = [
     await expect(at.page.getByRole('dialog', { name: 'Ask claude?' })).toBeVisible();
   } })),
   ...(['M17.3', 'D17.3'] as const).map((id): Screen => ({ ids: [id], run: async (at) => {
-    at.machine.onAct = staged(CODEX, 'Eval this work?', 'health endpoint · 2 Asks\nclaude and codex check the change against what you asked.\nNothing is typed into the agent’s pane.', { word: 'act.eval', warn: false });
+    at.machine.onAct = staged(CODEX, 'Eval this work?', 'health endpoint · 2 Asks\nclaude reads the whole change against what you asked, and reads again only where it is unsure.\nNothing is typed into the agent’s pane.', { word: 'act.eval', warn: false });
     await folded(at);
     if (at.wide) await agentOpen(at, 'codex');
     else await tree(at);
@@ -1288,7 +1273,7 @@ const SCREENS: Screen[] = [
     }),
     run: async (at) => {
       const name = id.endsWith('eval') ? 'Eval this work?' : 'Seal this work?';
-      at.machine.onAct = staged(CODEX, 'Eval this work?', 'health endpoint · 2 Asks\nclaude and codex check the change against what you asked.\nNothing is typed into the agent’s pane.', { word: 'act.eval', warn: false });
+      at.machine.onAct = staged(CODEX, 'Eval this work?', 'health endpoint · 2 Asks\nclaude reads the whole change against what you asked, and reads again only where it is unsure.\nNothing is typed into the agent’s pane.', { word: 'act.eval', warn: false });
       await folded(at);
       if (at.wide) await agentOpen(at, 'codex');
       else await tree(at);

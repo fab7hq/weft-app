@@ -193,45 +193,34 @@ test('M11.2 D11.2: Its session › goes to its agent while a pane holds it, else
   await machine.close();
 });
 
-test('M11.3 D11.3: an Eval\'s Details, once: verdict, agreement, judges, findings, checks, its Asks; Seal and Eval view', async ({ page, context }) => {
+test('M11.3 D11.3: an Eval\'s Details, once: what it leaves to look at, each item opening its detail, the Asks it covers; Seal and Eval view', async ({ page, context }) => {
   const machine = await opened(page, context);
   machine.onAct = (m) => [{ type: 'pending', id: 'pnd_1', agent: CLAUDE, what: 'Seal this work?', why: 'The agent will ask what you decided.', text: '/rf:seal' }, { type: 'ok', req: m.req, pending: 'pnd_1' }];
   await askDetails(page, 'health endpoint');
-  await crumbs(page).getByRole('button', { name: 'Eval 3 aligned' }).click();
+  await crumbs(page).getByRole('button', { name: /^Eval 3/ }).click();
   const view = region(page, 'Eval 3');
   await expect(view).toBeVisible();
   await expect.poll(() => machine.of('read').at(-1)).toEqual(expect.objectContaining({ what: 'eval', project: 'weft', eval: 'evl_3' }));
-  await expect(page.getByText('evl_3', { exact: true })).toBeVisible();
-  if (wideOf(page)) {
-    // D11.3: the verdict in the breadcrumb, then one summary in two lines; the check by its colour.
-    await expect(crumbs(page)).toHaveText('Eval 3›aligned›not sealed');
-    await expect(view.locator('.summary-head')).toHaveText('aligned · Agreement 0.67');
-    await expect(view.locator('.detail-summary .detail-prov')).toHaveText('Judged by codex · 2026-10-08 10:58 · covers 2 Asks');
-    expect(await facts(page)).toEqual([['Findings', '2'], ['Checks RingFrame ran', 'cargo test passed']]);
-    await expect(view.locator('.detail-head-row')).toHaveText('The Asks it covers');
-    await expect(view.locator('.detail-note-head')).toHaveClass(/needs/);
-  } else {
-    await expect(crumbs(page)).toHaveText('Eval 3›not sealed');
-    await expect(view.getByText('judged 2026-10-08 10:58 · covers 2 Asks')).toBeVisible();
-    expect(await facts(page)).toEqual([['Verdict', 'aligned'], ['Agreement', '0.67'], ['Judged by', 'codex'], ['Findings', '2'], ['Checks RingFrame ran', '✓ cargo test passed']]);
-    await expect(view.locator('.detail-head-row')).toHaveText('The Asks it covers2');
-  }
-  expect(await asks(page)).toEqual([['health endpoint', 'codex'], ['build number', 'codex']]);
-  // "Not sealed", the round's word capitalised as a heading.
-  await expect(view.locator('.detail-note-head')).toHaveText('not sealed');
-  await act(page, 'Seal').click();
+  await expect(view.locator('.rd-where')).toHaveText('Eval 3 · not sealed');
+  await expect(view.locator('.rd-by')).toHaveText('read by claude · 2026-10-08 11:20');
+  // The headline, then each item by its mark: no verdict, no number for how sure.
+  await expect(view.locator('.rd-headline')).toHaveText('5 things to look at · 12 settled');
+  await expect(view.locator('.rd-item .ev-mark')).toHaveText(['↺', '■', '■', '■', '◆', '●', '●']);
+  await expect(view.locator('.rd-item .rd-text').first()).toHaveText('Asked before · remembers the last email');
+  await expect(view).not.toContainText(/aligned|verdict|%/);
+  await expect(view.locator('.rd-covers')).toHaveText('Covers 2 Asks: health endpoint · build number');
+  await expect(page.getByText('Seal asks you 5 questions, then records your decision.')).toBeVisible();
+  await act(page, 'Seal…').click();
   await expect(page.getByRole('dialog', { name: 'Seal this work?' })).toBeVisible();
   expect(machine.of('act')).toEqual([]);
   await page.getByRole('dialog', { name: 'Seal this work?' }).getByRole('button', { name: 'Cancel', exact: true }).click();
-  await view.getByRole('button', { name: /^Findings/ }).click();
-  await expect(page.getByText('what RingFrame noticed beside the steps')).toBeVisible();
-  expect(machine.of('read').at(-1)).toMatchObject({ what: 'eval_view', project: 'weft', eval: 'evl_3' });
+  // An item opens its own detail in the Eval view.
+  await view.getByRole('button', { name: 'The typed email goes into the server log' }).click();
+  await expect(region(page, 'Eval view').locator('.ev-head')).toHaveText('■ To look at · against your decision of 3 Nov');
+  expect(machine.of('read').filter((r) => r.what === 'eval_view').at(-1)).toMatchObject({ project: 'weft', eval: 'evl_3' });
   await page.goBack();
   await act(page, 'Eval view').click();
   await expect(region(page, 'Eval view')).toBeVisible();
-  await page.goBack();
-  await region(page, 'Eval 3').getByRole('button', { name: 'build number' }).click();
-  await expect(crumbs(page)).toHaveText('build number›Eval 3 aligned›not sealed');
   await machine.close();
 });
 
@@ -241,13 +230,12 @@ test('M11.3 D11.3: a sealed Eval says its Seal; Seal stays drawn and says it is 
   await region(page, 'Seal 4').getByRole('button', { name: wideOf(page) ? 'Eval 2 ›' : /^The Eval it seals/ }).click();
   const view = region(page, 'Eval 2');
   await expect(view).toBeVisible();
-  await expect(crumbs(page)).toHaveText(wideOf(page) ? 'Eval 2›aligned›Seal 4' : 'Eval 2›Seal 4');
-  await expect(view.getByRole('button', { name: 'Sealed in Seal 4' })).toBeVisible();
-  await act(page, 'Seal').click();
+  await expect(view.locator('.rd-where')).toHaveText('Eval 2 · Seal 4 ›');
+  await act(page, 'Seal…').click();
   await expect(page.getByRole('status')).toHaveText('Eval 2 is sealed already.');
   expect(machine.of('act')).toHaveLength(0);
   await expect(page.locator('button:disabled')).toHaveCount(0);
-  await view.getByRole('button', { name: 'Sealed in Seal 4' }).click();
+  await view.getByRole('button', { name: 'Seal 4 ›' }).click();
   await expect(region(page, 'Seal 4')).toBeVisible();
   await machine.close();
 });

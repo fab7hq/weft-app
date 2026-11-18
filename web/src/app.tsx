@@ -222,7 +222,7 @@ export function App() {
       if (view.name === 'tree') queueMicrotask(() => openWanted(m.id));
       const shown =
         wide.value ? <Wide login={a.login} machine={m} agent={view.name === 'agent' ? view.agent : null} starting={view.name === 'start' ? view.harness ?? '' : null} view={view} />
-        : view.name === 'eval' ? <EvalView key={`${view.eval}${view.at}${view.files}`} machine={m} project={view.project} eval={view.eval} at={view.at} files={view.files} />
+        : view.name === 'eval' ? <EvalView key={view.eval} machine={m} project={view.project} eval={view.eval} at={view.at} />
         : view.name === 'work' ? <UnitDetails key={view.unit} machine={m} project={view.project} unit={view.unit} />
         : view.name === 'detail' ? <Details key={view.unit} machine={m} project={view.project} unit={view.unit} />
         : view.name === 'round' ? <RoundDetails key={view.eval} machine={m} project={view.project} eval={view.eval} />

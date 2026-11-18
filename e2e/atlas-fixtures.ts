@@ -153,21 +153,68 @@ export const DETAILS: Record<string, Detail> = {
   },
 };
 
-/** An Eval's Details (M11.3, D11.3). */
+/** One item of an Eval, as the machine sends it. */
+export const item = (key: string, kind: 'before' | 'look' | 'unsettled' | 'settled', text: string, more: Record<string, unknown> = {}) => ({
+  key, kind, text, count: 1, dots: [] as boolean[], again: false, head: '', big: text, why: [] as string[], sure: '', said: null as string | null, check: null as string | null,
+  windows: [] as string[], reads: [] as { who: string; said: string }[], ...more,
+});
+
+/** The items of fix login's Eval (cards 6.1–6.7, 11.3): what to look at, then what is settled. */
+export const ITEMS = [
+  item('c|sel_1/d2', 'before', 'Asked before · remembers the last email', {
+    head: 'Asked before · not sure at your Seal of 10 Nov', big: 'The sign-in page remembers the last email address typed on this device.',
+    why: ['When you sealed this work on 10 Nov you weren’t sure you wanted this, so it comes back to you. The change still does it. Your Seal asks about it again.'],
+    windows: ['w_form'],
+  }),
+  item('w|w_sess', 'look', 'Sessions end after 1 hour, not 24', {
+    dots: [true, true], head: 'To look at', big: 'Signed-in sessions end after 1 hour instead of 24.',
+    why: ['The agent didn’t mention it, and your Ask doesn’t cover it.'], sure: 'read twice, both agree', windows: ['w_sess'],
+    reads: [{ who: 'First read', said: 'Signed-in sessions end after 1 hour instead of 24.' }, { who: 'Second read', said: 'Sessions are cut to an hour.' }],
+  }),
+  item('r|ask_2/f0', 'look', 'Staying signed in is not in the change', {
+    dots: [true], head: 'To look at', big: 'Staying signed in on this device is not in the change.',
+    why: ['You asked for it in your second Ask.', 'What is missing: a remembered session'], sure: 'read once',
+    reads: [{ who: 'First read', said: 'no unit keeps the session past the browser closing' }],
+  }),
+  item('w|w_log', 'look', 'The typed email goes into the server log', {
+    dots: [true, true], head: 'To look at · against your decision of 3 Nov', big: 'A failed sign-in now writes the email address that was typed into the server log.',
+    why: ['It goes against your decision of 3 Nov: when you sealed audit log, you said you didn’t want emails in the logs. Your Ask doesn’t mention it either.'],
+    sure: 'read twice, both agree', said: 'Failed sign-ins are now logged with the email so we can spot attacks.', windows: ['w_log'],
+    reads: [{ who: 'First read', said: 'The email typed is logged on a failed sign-in.' }, { who: 'Second read', said: 'Emails go into the server log.' }],
+  }),
+  item('r|ask_1/f0', 'unsettled', '“Show an error” — the reads differ', {
+    dots: [false, false, false], head: 'Could not settle', big: 'A wrong password shows an error.',
+    why: ['The reads differ on what you meant by “show an error”: a short message under the password field, or a pop-up that has to be closed. Your Seal asks what you meant.'],
+    sure: 'read three times, the reads differ', check: 'What would settle it: type a wrong password on the sign-in page and see what appears.', windows: ['w_form'],
+    reads: [
+      { who: 'First read', said: 'Can’t tell: a message appears under the field, but the Ask may mean a pop-up.' },
+      { who: 'Second read', said: 'The change adds a short message under the password field, which is one way to show an error.' },
+      { who: 'Third read', said: 'Can’t tell: nothing says which kind of error you wanted.' },
+    ],
+  }),
+  item('r|ask_1/f1', 'settled', 'Sign-in button off while it sends', {
+    dots: [true], head: 'Settled', big: 'The sign-in button is off while it sends.', sure: 'read once',
+    reads: [{ who: 'First read', said: 'disabled while sending' }],
+  }),
+  item('settled|explained', 'settled', '11 other changes your Ask explains', {
+    count: 11, head: 'Settled', why: ['Each was read as something your Ask asks for, or as following from it.'],
+  }),
+];
+
+/** An Eval's Details (M11.3, D11.3): its headline and its items, as the machine sends them. */
 export const EVALS: Record<string, EvalDetail> = {
   evl_3: {
-    eval: 'evl_3', n: 3, judging: false, verdict: 'aligned', agreement: '0.67', judged_by: 'codex', at: at(10, 58),
-    findings: [{ mark: '✓', text: 'reads BUILD_NUMBER at startup' }, { mark: '✗', text: 'no test for the footer' }],
-    checks: [{ mark: '✓', text: 'cargo test', result: 'passed' }],
+    eval: 'evl_3', n: 3, judging: false, report: { faults: 3, cannot_settle: 1, declared: 1, against_decisions: 1 }, judged_by: 'claude', at: at(11, 20),
+    headline: '5 things to look at · 12 settled', items: ITEMS, questions: 5, checks: [{ mark: '✓', text: 'npm test', result: 'passed' }],
     asks: EVAL_3_ASKS, sealed: null, seal: null,
   },
   evl_2: {
-    eval: 'evl_2', n: 2, judging: false, verdict: 'aligned', agreement: '1.0', judged_by: 'codex', at: at(9, 31),
-    findings: [{ mark: '✓', text: 'the install line works' }], checks: [{ mark: '✓', text: 'cargo test', result: 'passed' }],
+    eval: 'evl_2', n: 2, judging: false, report: { faults: 0, cannot_settle: 0, declared: 0, against_decisions: 0 }, judged_by: 'codex', at: at(9, 31),
+    headline: 'Nothing to look at · 2 settled', items: ITEMS.slice(5), questions: 0, checks: [{ mark: '✓', text: 'cargo test', result: 'passed' }],
     asks: [ask('ask_4', 'readme fix', 'claude'), ask('ask_6', 'docs links', 'claude')],
     sealed: { seal: 'rcp_7f3a2c', n: 4 }, seal: { key: 'why.sealed_already', title: 'Eval 2' },
   },
-};
+} as unknown as Record<string, EvalDetail>;
 
 /** A Seal's Details (M11.4, D11.4). */
 export const SEALS: Record<string, SealDetail> = {
@@ -209,51 +256,60 @@ export function large(): { sessions: Session[]; earlier: Earlier[]; sealed: Work
   return { sessions, earlier, sealed };
 }
 
-export const S7 = 'plans/app/plan.md#Phase 1/7';
-export const row = (kind: string, key: string, depth: number, text: string, aside = '', mark = '', state: unknown = null) => ({ kind, key, depth, mark, text, aside, state });
-const heading = (text: string) => row('heading', '', 0, text);
-const text = (t: string, depth = 1, aside = '') => row('text', '', depth, t, aside);
-
+/** fix login's Eval view, closed: its items and the lines they point at. */
 export const VIEW = {
-  eval_id: 'evl_2',
-  closed: true,
-  header: 'drifted · confidence 0.75 · drift: commission 2%, omission 50%',
-  by_step: [
-    heading('FINDINGS'), text('unclaimed rewrite: commit 94d7989 rewrites lines of 758156f'),
-    heading('UNEXPLAINED CHANGES'), row('change', 'c:w_t', 1, 'src/telemetry.rs  L12–L30', 'unexplained: posts the project path outside', '·'),
-    row('group', 'g:p1', 0, 'Phase 1 · plans/app/plan.md', '1 met · 1 not met', '▾'),
-    row('step', `s:${S7}`, 1, '7  A failed send is told.', 'not met · 1 change', '✗', 'not_met'),
-    row('step', 's:p1/8', 1, '8  /health returns the build number', 'met · 2 changes', '✓', 'met'),
-    row('group', 'g:rules', 0, 'Rules across the work', '2 met', '▾'),
-    row('group', 'g:ask', 0, 'Ask: health endpoint', '1 met · 1 unsettled', '▾'),
-    heading('CHECKS RINGFRAME RAN'), text('`cargo test`: succeeded in 12 s'),
-    heading('LIMITATIONS'), text('No judge ran the app; the checks are the tests above.'),
-  ],
-  by_file: [
-    row('group', 'f:src/health.rs', 0, 'src/health.rs', '2 changes', '▾'),
-    row('change', 'c:w_h1', 1, 'L30–L52', 'required', '·'), row('change', 'c:w_h2', 1, 'L60–L64', 'consequence', '·'),
-    row('group', 'f:src/telemetry.rs', 0, 'src/telemetry.rs', '1 change · 1 unexplained', '▾'),
-    row('change', 'c:w_t', 1, 'L12–L30', 'unexplained: posts the project path outside', '·'),
-    row('group', 'f:tests/health.rs', 0, 'tests/health.rs', '1 change', '▾'), row('change', 'c:w_x', 1, 'L1–L20', 'required', '·'),
-  ],
-  steps: {
-    [S7]: [
-      row('heading', '', 0, '7  A failed send is told.', 'not met', '✗', 'not_met'),
-      text('Done when: a send that fails shows the reason to the person.'),
-      heading('FOUND'), text('the error is logged at debug level and the person sees nothing'),
-      heading('READINGS'), text('map: no  the error is swallowed in send()'), text('reduce: no  no message reaches the bar'),
-      text('confirm: no  agreed with both', 1, 'not counted'),
-      heading('CHANGES (1)'), row('change', 'c:w_s', 1, 'src/send.rs  L88–L97', 'required', '·'),
-    ],
-  },
-  changes: {
-    w_s: [
-      { n: 88, text: ' fn send(&self, msg: &Msg) -> Result<()> {', lit: false },
-      { n: 89, text: '-    let _ = self.sock.write(msg);', lit: false },
-      { n: 89, text: '+    if let Err(e) = self.sock.write(msg) {', lit: false },
-      { n: 90, text: '+        log::debug!("send failed");', lit: true },
-      { n: 91, text: '     Ok(())', lit: false },
-    ],
+  eval_id: 'evl_3', title: 'fix login', closed: true, headline: '5 things to look at · 12 settled', waiting: false, items: ITEMS, progress: null,
+  lines: {
+    w_sess: { path: 'src/auth/session.ts', lines: [
+      { n: 10, text: ' export const SESSION = {', lit: false },
+      { n: 11, text: '   cookie: "sid",', lit: false },
+      { n: 12, text: '-  maxAgeHours: 24,', lit: false },
+      { n: 12, text: '+  maxAgeHours: 1,', lit: true },
+      { n: 13, text: '+  rolling: false,', lit: true },
+      { n: 14, text: ' };', lit: false },
+      { n: 15, text: ' ', lit: false },
+      { n: 16, text: ' export function newSession(user) {', lit: false },
+    ] },
+    w_log: { path: 'src/auth/login.ts', lines: [
+      { n: 41, text: '   if (!ok) {', lit: false },
+      { n: 42, text: '+    log.warn("failed sign-in", { email });', lit: true },
+      { n: 43, text: '     return fail();', lit: false },
+      { n: 44, text: '   }', lit: false },
+    ] },
+    w_form: { path: 'src/ui/SignIn.tsx', lines: [
+      { n: 18, text: '   <input name="email" defaultValue={last} />', lit: true },
+      { n: 19, text: '   <input name="password" type="password" />', lit: false },
+      { n: 20, text: '+  {error && <p class="error">{error}</p>}', lit: true },
+    ] },
   },
 };
 
+/** The steps of a running Eval, each done, under way or still to come. */
+const steps = (lights: ('done' | 'now' | 'next')[], names: string[]) => names.map((name, i) => ({ name, light: lights[i] }));
+
+/** 17.6: fix login's Eval before its first read is in: only the question carried from an earlier Seal. */
+export const RUNNING = {
+  ...VIEW, closed: false, headline: '', waiting: true, items: ITEMS.slice(0, 1), lines: {},
+  progress: {
+    arcs: ['now', 'next', 'next'], label: '1st read', note: 'reading',
+    steps: steps(['done', 'now', 'next', 'next'], ['What you asked', 'Reading the change, all of it at once', 'Reading again where unsure, if needed', 'Questions for your Seal, if needed']),
+    tests: ['npm test is running'],
+  },
+};
+
+/** 6.7: its first read in, the second under way: two items are read again. */
+export const STILL = {
+  ...RUNNING, waiting: false,
+  items: [
+    ITEMS[0],
+    { ...ITEMS[1], dots: [], again: true },
+    ITEMS[2],
+    { ...ITEMS[3], dots: [true] },
+    { ...ITEMS[4], text: '“Show an error” — the first read can’t tell', dots: [], again: true },
+    ITEMS[5], ITEMS[6],
+  ],
+  progress: {
+    ...RUNNING.progress, arcs: ['done', 'now', 'next'], label: '2nd read',
+    steps: steps(['done', 'done', 'now', 'next'], ['What you asked', 'Read the change', 'Reading again where unsure', 'Questions for your Seal, if needed']),
+  },
+};

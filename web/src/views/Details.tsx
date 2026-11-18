@@ -15,7 +15,9 @@ import { act, acting } from './Asked';
 import { evalWork, said, sealRound, sealWork } from './Bar';
 import { ReportSaid, evalName, sealName, stateOf } from './Tree';
 import { undo } from './Undo';
+import { Dots } from './EvalView';
 import { remedyRead, type Offer } from '../offers';
+import { type EvalDetail, MARK, tint, toItem } from '../evalview';
 
 /** The record's parts, as a work's breadcrumb names them. */
 interface Crumb {
@@ -34,21 +36,6 @@ interface Work {
   session: m.Session | null;
   proceed: boolean;
   follows: string;
-}
-
-/** An Eval's Details (`read eval`). */
-interface Judged {
-  eval: string;
-  n: number;
-  judging: boolean;
-  report: m.Report | null;
-  judged_by: string | null;
-  at: number | null;
-  findings: { mark: string; text: string }[];
-  checks: { mark: string; text: string; result: string }[];
-  asks: m.Ask[];
-  sealed: { seal: string; n: number } | null;
-  seal: m.Why | null;
 }
 
 /** A Seal's Details (`read seal`), its Asks a page at a time. */
@@ -461,82 +448,74 @@ export function Details({ machine, project, unit, wide = false }: { machine: Mac
   );
 }
 
-/** An Eval's Details (M11.3, D11.3): once, with the Asks it covers; Seal stays drawn, and says why when it does not apply. */
+/** An Eval's Details (M11.3, D11.3): what it leaves to look at, each item opening its own detail in the Eval view; the Asks it covers; Seal. */
 export function RoundDetails({ machine, project, eval: id, wide = false }: { machine: Machine; project: string; eval: string; wide?: boolean }) {
-  const d = useRead<Judged>({ project, eval: id }, 'eval', [JSON.stringify(m.tree.value.find((p) => p.project === project)?.work)]);
+  const d = useRead<EvalDetail & { title?: string }>({ project, eval: id }, 'eval', [JSON.stringify(m.tree.value.find((p) => p.project === project)?.work)]);
   const to = moves(machine, project);
-  if (!d) return <Frame machine={machine} project={project} label="" crumbs={[]} wide={wide} />;
-  const crumbs: Part[] = [{ text: evalName(d.n) }];
-  // D11.3 names what it found in its breadcrumb too.
-  if (wide && d.report) crumbs.push({ text: <ReportSaid report={d.report} /> });
-  if (d.judging) crumbs.push({ text: w('tree.judging'), tone: 'dim' });
-  else if (d.sealed) {
-    const s = d.sealed;
-    crumbs.push({ text: sealName(s.n), go: () => to.seal(s.seal) });
-  } else crumbs.push({ text: w('tree.not_sealed'), tone: wide ? 'needs' : 'dim' });
-  const aside = [d.at !== null ? fill('web.eval.judged', { time: stamp(d.at) }) : null, coverage(d.asks.length)].filter(Boolean).join(' · ');
-  const check = d.checks[0];
+  const label = d ? evalName(d.n) : '';
+  let page: ComponentChildren = null;
+  let foot: ComponentChildren = null;
+  if (d) {
+    const where = d.judging ? <span>{w('tree.judging')}</span>
+      : d.sealed ? <button class="crumb--link rd-sealed" type="button" onClick={() => to.seal(d.sealed!.seal)}>{`${sealName(d.sealed.n)} ›`}</button>
+      : <span>{w('tree.not_sealed')}</span>;
+    const by = d.judged_by && (d.at !== null ? fill('details.read_by', { who: d.judged_by, time: stamp(d.at) }) : fill('details.read_by_untimed', { who: d.judged_by }));
+    const [first, ...rest] = (d.headline ?? w('tree.judging')).split(' · ');
+    const asks = d.asks.map((a) => a.title).join(' · ');
+    page = (
+      <>
+        <div class="rd-top">
+          <span class="rd-where">{[evalName(d.n), d.title].filter(Boolean).join(' · ')}{' · '}{where}</span>
+          {by && <span class="faint rd-by">{by}</span>}
+        </div>
+        <div class="rd-headline">{first}{rest.length > 0 && <span class="rd-headline-rest">{` · ${rest.join(' · ')}`}</span>}</div>
+        {d.items.length > 0 && (
+          <div class="rd-items">
+            {d.items.map((i) => (
+              <button key={i.key} class={`rd-item rd-item--${i.kind}`} style={tint(i.kind)} type="button" aria-label={i.text} onClick={() => to.view(d.eval, toItem(i.key))}>
+                <span class="ev-mark">{MARK[i.kind]}</span>
+                <span class="rd-text">{i.text}</span>
+                {!i.again && <Dots dots={i.dots} />}
+                <span class="ev-chev" aria-hidden="true">›</span>
+              </button>
+            ))}
+          </div>
+        )}
+        {d.asks.length > 0 && <p class="rd-covers">{d.asks.length === 1 ? fill('details.covers_one', { asks }) : fill('details.covers', { n: String(d.asks.length), asks })}</p>}
+      </>
+    );
+    const sealWhat = d.questions === 0
+      ? (d.asks.length === 1 ? w('web.eval.seal_what_one') : fill('web.eval.seal_what', { n: String(d.asks.length) }))
+      : d.questions === 1 ? w('details.seal_asks_one') : fill('details.seal_asks', { n: String(d.questions) });
+    const view = <button class="rd-view" type="button" onClick={() => to.view(d.eval)}>{w('act.eval_view')}</button>;
+    const seal = (
+      <button class="tree-act tree-act--go rd-seal" type="button" aria-busy={acting.value === 'seal' || undefined}
+        onClick={() => void sealRound(project, d.eval, d.seal, { title: evalName(d.n), asks: d.asks.length })}>{`${w('act.seal')}…`}</button>
+    );
+    const what = !d.sealed && !d.judging && <span class="faint rd-what">{sealWhat}</span>;
+    foot = wide ? <>{view}<span class="spacer" />{what}{seal}</> : <>{what}<div class="rd-acts">{view}{seal}</div></>;
+  }
+  if (wide) {
+    return (
+      <div class="detail-pane rd rd--wide" role="region" aria-label={label}>
+        <div class="rd-page">{page}</div>
+        {foot && <div class="detail-acts rd-foot">{foot}</div>}
+      </div>
+    );
+  }
   return (
-    <Frame
-      machine={machine}
-      project={project}
-      label={evalName(d.n)}
-      crumbs={crumbs}
-      right={d.eval}
-      mono
-      aside={wide ? undefined : aside}
-      wide={wide}
-      acts={
-        <>
-          <button class="tree-act tree-act--go" type="button" aria-busy={acting.value === 'seal' || undefined} onClick={() => void sealRound(project, d.eval, d.seal, { title: evalName(d.n), asks: d.asks.length })}>{w('act.seal')}</button>
-          <button class="tree-act" type="button" onClick={() => to.view(d.eval)}>{w('act.eval_view')}</button>
-        </>
-      }
-    >
-      {/* D11.3: what it found, then who judged it, when, and what it covers, in two lines. */}
-      {wide && (
-        <div class="detail-summary">
-          <p class="summary-head">
-            {d.report ? <ReportSaid report={d.report} /> : w('tree.judging')}
-          </p>
-          <p class="detail-prov">
-            {d.judged_by && <><span class="lower">{w('web.eval.judged_by')}</span>{` ${d.judged_by} · `}</>}
-            {[d.at !== null ? stamp(d.at) : null, coverage(d.asks.length)].filter(Boolean).join(' · ')}
-          </p>
+    <div class="app">
+      <div class="appbar">
+        <button class="back" type="button" onClick={back}>{w('web.back.tree')}</button>
+      </div>
+      <div class="page rd rd-page" role="region" aria-label={label}>{page}</div>
+      {(foot || said.value) && (
+        <div class="detail-foot rd-foot-phone">
+          {said.value && <p class="tree-said" role="status">{said.value}</p>}
+          {foot && <div class="detail-acts rd-foot">{foot}</div>}
         </div>
       )}
-      <div class="facts">
-        {!wide && <Fact label={w('web.eval.found')}>{d.report ? <ReportSaid report={d.report} /> : w('tree.judging')}</Fact>}
-        {!wide && d.judged_by && <Fact label={w('web.eval.judged_by')}>{d.judged_by}</Fact>}
-        <Fact label={w('eval_view.findings')} go={() => to.view(d.eval, 'h:findings')}>{d.findings.length}</Fact>
-        <Fact label={w('eval_view.checks')} go={() => to.view(d.eval, 'h:checks')}>
-          {check && (
-            <>
-              {/* A desktop says it by colour alone (D11.3). */}
-              {!wide && <span class={check.mark === '✓' ? 'good' : check.mark === '✗' ? 'needs' : undefined}>{`${check.mark} `}</span>}
-              <span class={wide ? (check.mark === '✓' ? 'good' : check.mark === '✗' ? 'needs' : undefined) : undefined}>{`${check.text} ${check.result}`}</span>
-            </>
-          )}
-        </Fact>
-      </div>
-      <Head label={w('web.eval.asks')} n={wide ? undefined : d.asks.length} />
-      <div class="detail-asks">
-        {d.asks.map((a) => <AskLine key={a.unit} title={a.title} aside={a.harness} onGo={() => to.ask(a.unit)} />)}
-      </div>
-      {d.sealed ? (
-        <button class="detail-sealed" type="button" onClick={() => to.seal(d.sealed!.seal)}>
-          {fill('web.eval.sealed_in', { n: String(d.sealed.n) })}
-          <span class="tree-more" aria-hidden="true">›</span>
-        </button>
-      ) : (
-        !d.judging && (
-          <div class="detail-note">
-            <p class={wide ? 'detail-note-head needs' : 'detail-note-head'}>{w('tree.not_sealed')}</p>
-            <p class="detail-line dim">{d.asks.length === 1 ? w('web.eval.seal_what_one') : fill('web.eval.seal_what', { n: String(d.asks.length) })}</p>
-          </div>
-        )
-      )}
-    </Frame>
+    </div>
   );
 }
 

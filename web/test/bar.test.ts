@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { use } from '../src/words';
-import { why } from '../src/bar';
+import { dayClock, why } from '../src/bar';
 
 use(JSON.parse(readFileSync('web/public/words.json', 'utf8')));
 
@@ -66,5 +66,12 @@ describe('what Weft reads of a harness\'s setup', () => {
     expect(askWarning(null, 'claude has no RingFrame plugin.', 'studio')).toBe('This agent may not take an Ask: claude has no RingFrame plugin.');
     expect(askWarning(null, 'no route here', 'studio')).toBe('This agent may not take an Ask: no route here.');
     expect(askWarning(null, null, 'studio')).toBeNull();
+  });
+});
+
+describe('dayClock', () => {
+  it('says a day and a time as a person reads them', () => {
+    expect(dayClock(Date.UTC(2026, 10, 17, 11, 20))).toBe('17 Nov 11:20');
+    expect(dayClock(Date.UTC(2026, 9, 8, 9, 5))).toBe('8 Oct 09:05');
   });
 });

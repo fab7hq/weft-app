@@ -35,6 +35,12 @@ export function stamp(at: number): string {
   return `${new Date(at).toISOString().slice(0, 10)} ${clock(at)}`;
 }
 
+/** A day and a time, as a person reads them: `17 Nov 11:20`. */
+export function dayClock(at: number): string {
+  const d = new Date(at);
+  return `${d.getUTCDate()} ${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getUTCMonth()]} ${clock(at)}`;
+}
+
 /** A weekday and a time, for a session earlier this week: `Tue 17:02`. */
 export function weekday(at: number): string {
   return `${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][new Date(at).getUTCDay()]} ${clock(at)}`;

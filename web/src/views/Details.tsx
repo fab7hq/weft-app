@@ -6,7 +6,7 @@
 import type { ComponentChildren } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Machine } from '../api';
-import { clock, stamp } from '../bar';
+import { clock, dayClock, stamp } from '../bar';
 import * as m from '../machine';
 import { back, go } from '../nav';
 import { fill, stateWord, statusTone, statusWord, w } from '../words';
@@ -459,7 +459,7 @@ export function RoundDetails({ machine, project, eval: id, wide = false }: { mac
     const where = d.judging ? <span>{w('tree.judging')}</span>
       : d.sealed ? <button class="crumb--link rd-sealed" type="button" onClick={() => to.seal(d.sealed!.seal)}>{`${sealName(d.sealed.n)} ›`}</button>
       : <span>{w('tree.not_sealed')}</span>;
-    const by = d.judged_by && (d.at !== null ? fill('details.read_by', { who: d.judged_by, time: stamp(d.at) }) : fill('details.read_by_untimed', { who: d.judged_by }));
+    const by = d.judged_by && (d.at !== null ? fill('details.read_by', { who: d.judged_by, time: dayClock(d.at) }) : fill('details.read_by_untimed', { who: d.judged_by }));
     const [first, ...rest] = (d.headline ?? w('tree.judging')).split(' · ');
     const asks = d.asks.map((a) => a.title).join(' · ');
     page = (

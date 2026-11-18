@@ -61,7 +61,7 @@ test('a unit of work opens as its workflow: its Asks, its Eval and its Seal, eac
   await expect(view.locator('.unit-aside')).toHaveText('2 Asks · codex · since 10:31');
   await expect(view.locator('.step-kind')).toHaveText(['Ask', 'Follow up', 'Eval 3', 'Seal']);
   await expect(view.locator('.step-text')).toHaveText(['health endpoint', 'build number', 'nothing found', 'not sealed yet']);
-  await expect(view.locator('.step-aside')).toHaveText(['codex · sent 10:31', 'codex · sent 10:40', 'judged 10:58 · 1 met · 1 not met']);
+  await expect(view.locator('.step-aside')).toHaveText(['codex · sent 10:31', 'codex · sent 10:40', 'judged 10:58 · Nothing to look at · 2 settled']);
   // Judged, Seal is its act put forward.
   await expect(act(page, 'Seal')).toHaveClass(/tree-act--go/);
   // Seal is its own dialog (17.4): nothing is sent until its Seal.
@@ -202,7 +202,7 @@ test('M11.3 D11.3: an Eval\'s Details, once: what it leaves to look at, each ite
   await expect(view).toBeVisible();
   await expect.poll(() => machine.of('read').at(-1)).toEqual(expect.objectContaining({ what: 'eval', project: 'weft', eval: 'evl_3' }));
   await expect(view.locator('.rd-where')).toHaveText('Eval 3 · not sealed');
-  await expect(view.locator('.rd-by')).toHaveText('read by claude · 2026-10-08 11:20');
+  await expect(view.locator('.rd-by')).toHaveText('read by claude · 8 Oct 11:20');
   // The headline, then each item by its mark: no verdict, no number for how sure.
   await expect(view.locator('.rd-headline')).toHaveText('5 things to look at · 12 settled');
   await expect(view.locator('.rd-item .ev-mark')).toHaveText(['↺', '■', '■', '■', '◆', '●', '●']);

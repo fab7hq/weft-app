@@ -1,6 +1,6 @@
 // A Seal's dialog sends the disposition and the reason the person picked.
 import { describe, expect, it } from 'vitest';
-import { reasonsFor, sealMessage } from '../src/seal';
+import { questionsRead, reasonsFor, sealMessage } from '../src/seal';
 
 describe('the Seal dialog', () => {
   it('sends the disposition and the reason picked, on the work or the Eval it seals', () => {
@@ -10,6 +10,15 @@ describe('the Seal dialog', () => {
     expect(sealMessage({ project: '/p', eval: 'evl_2' }, 'accepted', null)).toEqual({
       act: 'seal', project: '/p', eval: 'evl_2', text: 'accepted',
     });
+  });
+
+  it('sends the answers to its Eval\'s questions with the decision', () => {
+    const answers = [{ question: 'q1', answer: 'not_sure', ms: 900 }];
+    expect(sealMessage({ project: '/p', unit: 'ask_1' }, 'accepted', null, answers)).toEqual({
+      act: 'seal', project: '/p', unit: 'ask_1', text: 'accepted', draft: { answers },
+    });
+    expect(sealMessage({ project: '/p', eval: 'evl_2' }, 'rejected', 'broke_something', answers).draft).toEqual({ reason: 'broke_something', answers });
+    expect(questionsRead('/p', 'ask_1')).toEqual({ type: 'read', what: 'questions', project: '/p', unit: 'ask_1' });
   });
 
   it('offers a reason only for what is not a yes, from each one\'s own list', () => {

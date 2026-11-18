@@ -202,6 +202,8 @@ export interface Reads {
   earlier: Record<string, Earlier[]>;
   /** By Eval. */
   views: Record<string, unknown>;
+  /** The questions an Eval left for its Seal, by the Ask or the Eval a Seal names. */
+  questions?: Record<string, unknown[]>;
 }
 
 const noReads = (): Reads => ({ units: {}, details: {}, evals: {}, seals: {}, sessions: {}, sealed: {}, earlier: {}, views: {} });
@@ -451,6 +453,8 @@ export class FakeMachine {
         const s = r.sessions[String(m.session)] ?? this.sessionOf(String(m.project), String(m.session));
         return s ? ok('session', s) : refused('no_session');
       }
+      case 'questions':
+        return ok('questions', { questions: r.questions?.[String(m.unit)] ?? [], eval: null });
       case 'sealed': {
         const { rows, next } = page(r.sealed[String(m.project)] ?? [], m.after, (x) => x.unit);
         return ok('sealed', { units: rows, next });

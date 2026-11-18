@@ -133,7 +133,7 @@ main:has(> .ask-panel--docked) > :not(.ask-panel) { flex: 1; min-height: 0; heig
   .ask-rule b { width: 120px; }
 }
 .pending-command { color: var(--fab7-accent); }
-/* The Seal's dialog (17.4, 17.5): VERDICT, DECISION and WHY a row each, the label beside its chips. */
+/* The Seal's dialog when its Eval asked nothing: DECISION and WHY a row each, the label beside its options. */
 .seal-kv { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 13px; }
 .seal-kv > .ask-eyebrow { width: 64px; flex: none; }
 .seal-optional { font-size: 12px; color: var(--fab7-faint); }
@@ -154,6 +154,95 @@ main:has(> .ask-panel--docked) > :not(.ask-panel) { flex: 1; min-height: 0; heig
 /* Above the acts when a warning takes its place there. */
 .seal-bar > .seal-records { flex: none; }
 #app:has(> .seal-bar) .message-foot, #app:has(> .seal-bar) .tree-bar, #app:has(> .seal-bar) .detail-foot, #app:has(> .seal-bar) .detail-acts { display: none; }
+.seal-kv .seal-seg { flex: 1 1 100%; }
+
+/* The decision and its reason, in the colours of the answers' scale: a
+   decision picked fills with its colour, the others keep a dot of theirs; a
+   reason picked takes its decision's colour. */
+.seal-seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border: 1px solid var(--fab7-line); border-radius: var(--weft-radius-control); overflow: hidden; }
+.seal-opt { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; padding: 2px 6px; border: 0; border-left: 1px solid var(--fab7-line); background: none; color: var(--fab7-muted); font: 400 14px/1.25 var(--font-sans); text-align: center; cursor: pointer; }
+.seal-opt:first-child { border-left: 0; }
+/* The guideline's ●, drawn by the style so it is no part of the words. */
+.seal-dot { flex: none; font-style: normal; font-size: 10px; line-height: 1; color: var(--c); }
+.seal-dot::before { content: '●'; }
+.seal-opt .seal-dot { font-size: 8px; }
+.seal-seg--decision .seal-opt[aria-checked="true"] { background: var(--c); color: var(--fab7-canvas); font-weight: 600; }
+.seal-seg--decision .seal-opt[aria-checked="true"] .seal-dot { color: var(--fab7-canvas); }
+.seal-seg--reason .seal-opt[aria-checked="true"] { background: var(--b); color: var(--t); font-weight: 600; }
+@media (min-width: 768px) {
+  .seal-kv .seal-seg, .seal-decide .seal-seg { display: inline-flex; flex: none; }
+  .seal-opt { min-height: 34px; padding: 0 14px; }
+}
+
+/* The Seal's questions, one at a time (17.4), then the review (17.5): they
+   take the screen below the bar. On a phone, Back and Next or Seal sit at
+   the foot; on a desktop, a column in the middle. */
+.seal-asks { position: absolute; left: 0; right: 0; bottom: 0; top: calc(48px + env(safe-area-inset-top, 0px)); z-index: 30; overflow-y: auto; background: var(--fab7-panel); color: var(--fab7-text); font-size: 14px; line-height: 1.5; }
+.seal-asks .spacer { flex: 1; }
+.seal-col { display: flex; flex-direction: column; min-height: 100%; box-sizing: border-box; padding: 20px 16px 0; }
+.seal-top { display: flex; align-items: center; gap: 16px; color: var(--fab7-muted); }
+.seal-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.seal-quiet { flex: none; padding: 0; border: 0; background: none; color: var(--fab7-muted); font: 400 14px var(--font-sans); cursor: pointer; }
+/* What waits (Next before an answer, Back on the first question) is dimmed, as the card draws it, and does nothing. */
+.seal-quiet[data-waits] { color: var(--fab7-faint); cursor: default; }
+.seal-progress { flex: none; height: 2px; margin-top: 12px; background: var(--fab7-line); }
+.seal-progress > div { height: 2px; background: var(--fab7-accent); }
+.seal-before { margin: 0; color: var(--fab7-faint); }
+.seal-col > .seal-before, .seal-progress + .seal-behaviour { margin-top: 32px; }
+.seal-behaviour { margin: 8px 0 0; font-size: 20px; line-height: 1.45; font-weight: 600; overflow-wrap: anywhere; }
+.seal-why { margin: 8px 0 0; color: var(--fab7-muted); overflow-wrap: anywhere; }
+.seal-label { margin: 28px 0 0; font-weight: 600; }
+.seal-answers { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.seal-answer { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 18px; box-sizing: border-box; border: 1px solid var(--fab7-line); border-radius: var(--weft-radius-control); background: var(--fab7-surface); color: var(--fab7-text); font: 400 14px var(--font-sans); text-align: left; cursor: pointer; }
+.seal-answer[aria-checked="true"] { border-color: var(--c); background: var(--c); color: var(--fab7-canvas); font-weight: 600; }
+.seal-answer[aria-checked="true"] .seal-dot { color: var(--fab7-canvas); }
+.seal-check { margin-left: auto; }
+.seal-answer--words { cursor: text; }
+.seal-answer--words[data-typed] { border-color: var(--c); }
+.seal-answer--words input { flex: 1; min-width: 0; padding: 14px 0; border: 0; background: none; color: var(--fab7-text); font: 400 14px var(--font-sans); outline: none; }
+.seal-answer--words input::placeholder { color: var(--fab7-faint); }
+.seal-acts { display: flex; align-items: center; gap: 16px; margin-top: auto; padding: 16px 0 calc(30px + env(safe-area-inset-bottom, 0px)); }
+.seal-acts .spacer { display: none; }
+.seal-acts .seal-back { width: 80px; text-align: left; }
+.seal-go { flex: 1; height: 46px; border: 1px solid var(--fab7-accent); border-radius: var(--weft-radius-control); background: var(--fab7-button); color: var(--fab7-canvas); font: 600 14px var(--font-sans); cursor: pointer; }
+.seal-go[data-waits] { opacity: 0.45; cursor: default; }
+.seal-records { color: var(--fab7-faint); }
+.seal-acts--review .seal-records { display: none; }
+.seal-answers-title { margin: 18px 0 0; font-size: 20px; font-weight: 600; }
+.seal-col--review { height: 100%; }
+.seal-review { flex: 1 1 auto; min-height: 0; overflow-y: auto; list-style: none; margin: 6px 0 0; padding: 0; border-top: 1px solid var(--fab7-line); }
+.seal-row { padding: 10px 0; border-bottom: 1px solid var(--fab7-line); }
+.seal-row-text { display: flex; flex-direction: column; overflow-wrap: anywhere; }
+.seal-row-answer { display: flex; align-items: flex-start; gap: 12px; margin-top: 6px; }
+.seal-pill { display: inline-flex; align-items: center; gap: 6px; min-height: 26px; padding: 2px 10px; box-sizing: border-box; border: 1px solid var(--t); border-radius: var(--weft-radius-control); background: var(--b); color: var(--t); font-weight: 600; line-height: 1.35; overflow-wrap: anywhere; }
+.seal-pill .seal-dot { font-size: 8px; color: var(--t); }
+.seal-decide { display: flex; flex-direction: column; gap: 6px; padding-top: 12px; }
+.seal-key { color: var(--fab7-muted); }
+.seal-key .seal-optional--inline { font: inherit; letter-spacing: 0; color: var(--fab7-faint); }
+@media (min-width: 768px) {
+  .seal-col { width: 600px; max-width: 100%; min-height: 0; margin: 0 auto; padding: 56px 0 40px; }
+  .seal-col--review { width: 720px; height: auto; padding-top: 36px; }
+  .seal-top { gap: 24px; }
+  .seal-col > .seal-before, .seal-progress + .seal-behaviour { margin-top: 48px; }
+  .seal-label { margin-top: 32px; }
+  .seal-answer { min-height: 48px; }
+  .seal-acts { margin-top: 40px; padding: 0; }
+  .seal-acts--review { margin-top: 28px; }
+  .seal-acts .spacer { display: block; }
+  .seal-acts .seal-back { width: auto; }
+  .seal-go { flex: none; height: 40px; padding: 0 24px; }
+  .seal-acts--review .seal-go { padding: 0 28px; }
+  .seal-acts--review .seal-records { display: inline; flex: none; }
+  .seal-answers-title { margin-top: 24px; }
+  .seal-review { flex: none; overflow: visible; margin-top: 8px; }
+  .seal-row { display: flex; gap: 24px; align-items: flex-start; padding: 12px 0; }
+  .seal-row-text { flex: 1; min-width: 0; }
+  .seal-row-answer { flex: none; min-width: 240px; max-width: 340px; justify-content: flex-end; margin-top: 0; }
+  .seal-row-answer .spacer { display: none; }
+  .seal-decide { flex-direction: row; align-items: center; gap: 16px; padding-top: 10px; }
+  .seal-decide:first-of-type { padding-top: 24px; }
+  .seal-key { width: 72px; flex: none; }
+}
 
 /* Turning a project's Git note on (17.19): its one dialog, at the foot of the page. */
 .export-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; }

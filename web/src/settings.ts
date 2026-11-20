@@ -49,6 +49,9 @@ export function keepValue(text: string): number | null | undefined {
   return /^\d+$/.test(t) && Number.isSafeInteger(Number(t)) ? Number(t) : undefined;
 }
 
+/** What a number field holds as it is typed in: its digits, and nothing else. */
+export const digitsOnly = (text: string): string => text.replace(/\D/g, '');
+
 /** Where each switch is kept in the machine's settings. */
 export const KEYS: Record<'turbo' | 'login' | 'notify', string[]> = {
   turbo: ['turbo'],

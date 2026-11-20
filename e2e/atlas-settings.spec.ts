@@ -153,14 +153,16 @@ test('M9.8 D9.8: Keep ended sessions sets the machine\'s days under Notification
   await field.blur();
   await expect.poll(() => sets).toEqual([30, 0]);
   await expect(field).toHaveValue('0');
-  // What is not a whole number of days is not sent: the field says what applies.
-  await field.fill('two weeks');
+  // Only digits can be typed in it.
+  await field.fill('');
+  await field.pressSequentially('2 weeks');
+  await expect(field).toHaveValue('2');
   await field.press('Enter');
-  await expect(field).toHaveValue('0');
+  await expect.poll(() => sets).toEqual([30, 0, 2]);
   // Emptied, the machine's default applies again.
   await field.fill('');
   await field.press('Enter');
-  await expect.poll(() => sets).toEqual([30, 0, null]);
+  await expect.poll(() => sets).toEqual([30, 0, 2, null]);
   await expect(field).toHaveValue('7');
   expect(machine.of('set').filter((m) => JSON.stringify(m.key) === '["sessions","keep_days"]').every((m) => m.scope === 'machine')).toBe(true);
   const width = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);

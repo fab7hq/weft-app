@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import type * as api from '../api';
 import * as m from '../machine';
 import { back, swap } from '../nav';
-import { ENTRIES, type Entry, HOW_HARD, type HowHard, type JudgeEval, KEEP_KEY, KEYS, ROLES, at, differs, effortChoices, howHard, judgesIn, keepDays, keepValue, machineName, machineSwitch, modelChoices, reachKey, shownValue, gitNoteOn } from '../settings';
+import { ENTRIES, type Entry, HOW_HARD, type HowHard, type JudgeEval, KEEP_KEY, KEYS, ROLES, at, differs, digitsOnly, effortChoices, howHard, judgesIn, keepDays, keepValue, machineName, machineSwitch, modelChoices, reachKey, shownValue, gitNoteOn } from '../settings';
 import { fill, w } from '../words';
 import { HarnessesTab, ProjectRingFrame, RingFrameTab, ringFrameAddable, useProjectRules, useSupported } from './RingFrameSettings';
 import { Mark } from './Tree';
@@ -177,15 +177,20 @@ export function MachineSettings({ machine, wide, tab }: { machine: api.Machine; 
  * typed in, when a change told by the machine waits until it is left. Left, or on Enter, `keep` gets what
  * the field holds then (a quick edit may not be drawn yet) and what applies, and sends it, or sends nothing
  * and the field says what applies again. Once a send is answered, the field says what applies, unless it
- * was typed in since. */
-function useSettingField(applies: () => string, keep: (text: string, applies: string) => Promise<unknown> | undefined) {
+ * was typed in since. `only` keeps what may be typed in it. */
+function useSettingField(applies: () => string, keep: (text: string, applies: string) => Promise<unknown> | undefined, only: (text: string) => string = (t) => t) {
   const said = applies();
   const [typed, setTyped] = useState(said);
   const editing = useRef(false);
   useEffect(() => void (editing.current || setTyped(said)), [said]);
   return {
     value: typed,
-    onInput: (ev: Event) => setTyped((ev.target as HTMLInputElement).value),
+    onInput: (ev: Event) => {
+      const input = ev.target as HTMLInputElement;
+      const text = only(input.value);
+      if (text !== input.value) input.value = text;
+      setTyped(text);
+    },
     onFocus: () => void (editing.current = true),
     onBlur: (ev: Event) => {
       editing.current = false;
@@ -219,8 +224,8 @@ function MachineName({ project, listed }: { project: string; listed: string }) {
   );
 }
 
-/** How many days an ended session stays listed, typed and kept on Enter or leaving. Emptied, the
- * machine's default applies again; what is not a whole number of days is not sent. */
+/** How many days an ended session stays listed, typed in digits only and kept on Enter or leaving.
+ * Emptied, the machine's default applies again. */
 function KeepSessions({ project }: { project: string }) {
   const field = useSettingField(
     () => String(keepDays(m.settings.value[project])),
@@ -228,6 +233,7 @@ function KeepSessions({ project }: { project: string }) {
       const value = keepValue(text);
       return value === undefined || String(value) === days ? undefined : m.setSetting(project, 'machine', KEEP_KEY, value);
     },
+    digitsOnly,
   );
   return (
     <div class="settings-row settings-row--setting settings-keep">
@@ -236,7 +242,7 @@ function KeepSessions({ project }: { project: string }) {
         <span class="settings-sub">{w('web.machine.keep_sessions_what')}</span>
       </label>
       <span class="settings-days">
-        <input id="machine-keep-days" class="settings-input" type="text" inputMode="numeric" autocomplete="off" {...field} />
+        <input id="machine-keep-days" class="settings-input" type="text" inputMode="numeric" pattern="[0-9]*" autocomplete="off" {...field} />
         <span class="settings-unit">{w('web.machine.days')}</span>
       </span>
     </div>

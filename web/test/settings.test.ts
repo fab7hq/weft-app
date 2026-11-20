@@ -1,6 +1,6 @@
 // A machine's switches, as its settings say them.
 import { describe, expect, it } from 'vitest';
-import { KEEP_DAYS, KEEP_KEY, KEYS, gitNoteOn, keepDays, keepValue, machineName, machineSwitch, type Settings } from '../src/settings';
+import { KEEP_DAYS, KEEP_KEY, KEYS, digitsOnly, gitNoteOn, keepDays, keepValue, machineName, machineSwitch, type Settings } from '../src/settings';
 
 const said = (machine: Record<string, unknown>): Settings => ({ machine, project: null, effective: {} });
 
@@ -181,5 +181,12 @@ describe('how long ended sessions stay listed', () => {
     expect(keepValue('')).toBeNull();
     expect(keepValue('   ')).toBeNull();
     for (const bad of ['-1', '2.5', 'seven', '7d', '1e3', '99999999999999999999']) expect(keepValue(bad)).toBeUndefined();
+  });
+
+  it('takes digits only as they are typed', () => {
+    expect(digitsOnly('14')).toBe('14');
+    expect(digitsOnly('2 weeks')).toBe('2');
+    expect(digitsOnly('-1.5e3')).toBe('153');
+    expect(digitsOnly('seven')).toBe('');
   });
 });

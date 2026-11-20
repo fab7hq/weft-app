@@ -5,7 +5,7 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import { FakeMachine, atlas } from './fake-machine';
 import { person, signIn } from './seed';
-import { RUNNING, STILL, VIEW } from './atlas-fixtures';
+import { ITEMS, RUNNING, STILL, VIEW, item } from './atlas-fixtures';
 
 async function opened(page: Page, context: BrowserContext, views: Record<string, unknown>[] = [VIEW]) {
   const machine = await FakeMachine.start();
@@ -159,4 +159,33 @@ test('M6.7 D6.7 M17.6 D17.6: while it runs, a ring of reads, its steps, and the 
   await expect(view.locator('.ev-row', { hasText: 'Sessions end after 1 hour' }).locator('.ev-again')).toHaveText('reading again');
   await expect(view.getByText('npm test is running')).toBeVisible();
   await expect(view.getByText('The rest appear here when the first read is in.')).toHaveCount(0);
+});
+
+test('a change with more than the screen holds scrolls to its end: its detail, its lines, and the list', async ({ page, context }) => {
+  const why = Array.from({ length: 60 }, (_, n) => `Reason ${n} it is here.`);
+  const items = [...ITEMS.map((it) => (it.key === 'w|w_sess' ? { ...it, why } : it)),
+    ...Array.from({ length: 40 }, (_, n) => item(`r|more/${n}`, 'settled', `Settled change ${n}`))];
+  const lines = Array.from({ length: 200 }, (_, n) => ({ n: n + 1, text: `line ${n + 1}`, lit: false }));
+  const view = { ...VIEW, items, lines: { ...VIEW.lines, w_sess: { path: 'src/auth/session.ts', lines } } };
+  const { view: shown } = await opened(page, context, [view]);
+  // What overflows is in a box the person can scroll, the page or one that scrolls, never one that cuts it off.
+  const reaches = async (last: ReturnType<Page['locator']>) => {
+    const box = await last.evaluate((e) => {
+      for (let at = e.parentElement; at; at = at.parentElement) {
+        if (at.scrollHeight <= at.clientHeight + 1) continue;
+        if (at === document.scrollingElement || at === document.body) return 'the page';
+        const y = getComputedStyle(at).overflowY;
+        return y === 'auto' || y === 'scroll' ? 'a scroll' : `cut off by .${at.className}`;
+      }
+      return 'the page';
+    });
+    expect(box).not.toMatch(/^cut off/);
+    await last.scrollIntoViewIfNeeded();
+    await expect(last).toBeInViewport();
+  };
+  await reaches(shown.locator('.ev-row').last());
+  await shown.getByRole('button', { name: 'Sessions end after 1 hour, not 24' }).click();
+  await reaches(shown.getByText('Reason 59 it is here.'));
+  await shown.getByRole('button', { name: 'The lines that show it ›' }).click();
+  await reaches(shown.locator('.ev-line').last());
 });

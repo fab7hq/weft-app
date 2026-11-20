@@ -1,6 +1,5 @@
 // The confirmation bar (M4.5–M4.14, D4.5–D4.14), wherever the person is:
-// what the machine is about to type, Cancel beside Send; Send anyway when its
-// agent has not said it is ready; Resume a session by its id, after an act no
+// what the machine is about to type, Cancel beside Send; Resume a session by its id, after an act no
 // agent runs for, or Start an agent when there is none to resume. Answered on the machine first, it says so and
 // closes. On a phone Cancel and the go are halves of the width; on a desktop
 // they sit at the right.
@@ -171,7 +170,6 @@ function SendBar() {
   const pending = m.pendings.value.find((p) => p.id === id) ?? null;
   const [kept, setKept] = useState<m.Pending | null>(null);
   const [answered, setAnswered] = useState(false);
-  const [unready, setUnready] = useState<string | null>(null);
   // SEND TO, for a send: the agent that wrote it until the person picks another.
   const [to, setTo] = useState<Dest | null>(null);
   // This device's own answer, sent and not yet answered: the machine says it
@@ -194,7 +192,7 @@ function SendBar() {
   }, [answered]);
   const showing = pending ?? (kept?.id === id ? kept : null);
   if (!id || !showing || went) return null;
-  const answer = async (yes: boolean, force = false) => {
+  const answer = async (yes: boolean) => {
     if (sending || working.value) return;
     // An Eval's yes: RingFrame opens it, which can take long; its block shows until the machine answers.
     const opens = yes && read && first && showing.go?.word === 'act.eval' ? read : null;
@@ -203,15 +201,12 @@ function SendBar() {
     if (yes) setWent(true);
     // Another agent here, or a new one the machine starts for it.
     const where = !yes || !to ? {} : 'agent' in to ? (to.agent === showing.agent ? {} : { to: to.agent }) : { start: to.start };
-    const resolve = () => m.request({ type: 'resolve', pending: id, yes, ...(force ? { force } : {}), ...where });
-    // Weft types on its own only into an agent that has said it is ready: that is said in the dialog.
+    const resolve = () => m.request({ type: 'resolve', pending: id, yes, ...where });
     const said = yes
-      ? await during({ words: w(stops ? 'wait.stopping_eval' : 'wait.sending'), about: stops ? (work ?? showing.what) : target }, resolve, (a) => a.code === 'not_ready')
+      ? await during({ words: w(stops ? 'wait.stopping_eval' : 'wait.sending'), about: stops ? (work ?? showing.what) : target }, resolve)
       : await resolve();
     setSending(false);
     setWent(false);
-    if (said?.type === 'error' && said.code === 'not_ready') return setUnready(String(said.message));
-    setUnready(null);
     shown.value = null;
     if (yes && said?.type === 'ok' && (!to || 'agent' in to)) into(to?.agent ?? showing.agent);
   };
@@ -232,18 +227,6 @@ function SendBar() {
   const read = reading.value?.pending === id ? reading.value : null;
   const first = read && (read.first ?? readerOf(judgesIn(m.settings.value[read.project]?.effective), said.map((s) => named(s, w('dialog.eval.judges'))).find(Boolean) ?? null, m.harnesses.value.filter((h) => h.project === read.project), read.fallback));
   // Its read and its first reader are known before any of its dialogs is drawn: an answer reads them.
-  if (unready && !answered) {
-    return (
-      <div class="pending-bar" role="dialog" aria-label={w('not_ready.title')}>
-        <div class="pending-head">
-          <span class="pending-what">{w('not_ready.title')}</span>
-        </div>
-        <p class="pending-why">{unready}</p>
-        <p class="pending-why">{w('not_ready.why')}</p>
-        <Acts cancel={() => void answer(false)} go={[w('act.send_anyway'), () => void answer(true, true)]} busy={sending} />
-      </div>
-    );
-  }
   if (answered) {
     return (
       <div class="pending-bar pending-bar--answered" role="dialog" aria-label={showing.what}>

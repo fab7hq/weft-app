@@ -703,15 +703,6 @@ const SCREENS: Screen[] = [
       if (m === 'M4.6') await bar.getByRole('button', { name: /^SEND TO/ }).click();
     },
   })),
-  { ids: ['M4.11', 'D4.11'], run: async (at) => {
-    at.machine.onAct = staging(CODEX, 'Eval this work?', 'The agent will run the judges.', '/rf:eval debate evl_2');
-    at.machine.onResolve = (m) => [{ type: 'error', req: m.req, code: 'not_ready', message: 'Weft did not type it: the agent is working.' }];
-    await barOn(at);
-    await at.page.getByRole('dialog', { name: 'Eval this work?' }).getByRole('button', { name: 'Send', exact: true }).click();
-    await expect(at.page.getByRole('dialog', { name: 'The agent has not said it is ready' })).toBeVisible();
-    // On a phone the card shows it over claude's view.
-    if (!at.wide) await button(at, 'NEEDS YOU 1').click();
-  } },
   // No agent runs where the act goes: the machine names the session to resume, by its id.
   { ids: ['M4.12', 'D4.12'], run: async (at) => {
     const ended = { ...SESSIONS[2], state: 'ended' as const, turn: null, agent: null };

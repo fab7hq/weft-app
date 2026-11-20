@@ -1,5 +1,5 @@
-// Send anyway, Resume the session the machine names, nothing to resume,
-// answered on the machine (M4.11–M4.14, D4.11–D4.14).
+// Resume the session the machine names, nothing to resume, answered on the
+// machine (M4.12–M4.14, D4.12–D4.14).
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import { FakeMachine, atlas } from './fake-machine';
 import { SESSIONS } from './atlas-fixtures';
@@ -23,22 +23,6 @@ async function machineOf(sample = atlas()) {
   Object.assign(machine, sample);
   return machine;
 }
-
-test('M4.11 D4.11: an agent not ready: the TUI\'s why, then Send anyway forces it', async ({ page, context }) => {
-  const machine = await machineOf();
-  machine.onAct = (m) => pending(m.req);
-  machine.onResolve = (m) =>
-    m.force ? [{ type: 'ok', req: m.req }] : [{ type: 'error', req: m.req, code: 'not_ready', message: 'Weft did not type it: the agent is working.' }];
-  await evalOn(page, context, machine);
-  await page.getByRole('button', { name: 'Send', exact: true }).click();
-  const bar = page.getByRole('dialog', { name: 'The agent has not said it is ready' });
-  await expect(bar.getByText('Weft did not type it: the agent is working.')).toBeVisible();
-  await expect(bar.getByText('Weft types on its own only into an agent that has said it is ready. If you can see it is, say so and Weft will type.')).toBeVisible();
-  await bar.getByRole('button', { name: 'Send anyway', exact: true }).click();
-  await expect.poll(() => machine.of('resolve').map((r) => [r.yes, r.force ?? false])).toEqual([[true, false], [true, true]]);
-  await expect(bar).toHaveCount(0);
-  await machine.close();
-});
 
 test('M4.12 D4.12: no agent runs where the act goes: Resume the session the machine names, by its id, then the act', async ({ page, context }) => {
   const machine = await machineOf();

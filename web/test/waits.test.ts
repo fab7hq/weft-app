@@ -87,7 +87,7 @@ describe('an act after a yes', () => {
   });
 
   it('leaves to its caller a refusal it says elsewhere', async () => {
-    await W.during({ words: 'Sending…', about: '' }, () => Promise.resolve({ type: 'error', code: 'not_ready', message: 'working' }), (a) => a.code === 'not_ready');
+    await W.during({ words: 'Sending…', about: '' }, () => Promise.resolve({ type: 'error', code: 'not_running', message: 'not running' }), (a) => a.code === 'not_running');
     expect(W.failed.value).toBeNull();
   });
 });

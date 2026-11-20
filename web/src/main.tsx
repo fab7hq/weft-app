@@ -12,6 +12,8 @@ import './css/detail.css';
 import './css/eval.css';
 import './css/settings.css';
 import './css/start.css';
+import './css/wait.css';
+import './css/skip.css';
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(() => {});

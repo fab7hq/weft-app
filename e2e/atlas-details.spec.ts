@@ -2,12 +2,15 @@
 // workflow, each step opening its own; an Ask under a breadcrumb whose parts
 // are links; an Eval once, with Seal; a Seal once, its Asks a page at a time;
 // a session, resumed by its id after a confirm. The earlier sessions unfold
-// in the tree (M11.7, D11.7).
+// in the tree a page at a time (M11.13, D11.13).
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import { FakeMachine, atlas, type Ask } from './fake-machine';
-import { CLAUDE, README_SESSION, large } from './atlas-fixtures';
+import { CLAUDE, README_SESSION, at, large } from './atlas-fixtures';
 import { row, wideOf } from './open';
 import { person, signIn } from './seed';
+
+// An agent's time carries its day on the device's clock: the samples' day, in UTC.
+test.use({ timezoneId: 'UTC' });
 
 async function opened(page: Page, context: BrowserContext, sample = atlas()) {
   const machine = await FakeMachine.start();
@@ -245,7 +248,10 @@ test('M11.4 D11.4: a Seal\'s Details, once: its decision, when, by whom, its Eva
   await seal4(page);
   const view = region(page, 'Seal 4');
   await expect(view).toBeVisible();
-  await expect.poll(() => machine.of('read').at(-1)).toEqual(expect.objectContaining({ what: 'seal', project: 'weft', seal: 'rcp_7f3a2c' }));
+  await expect.poll(() => machine.of('read').filter((r) => r.what === 'seal').at(-1)).toEqual(expect.objectContaining({ project: 'weft', seal: 'rcp_7f3a2c' }));
+  // Whether its receipt holds is its own read, of the same Seal.
+  await expect(view.getByText('The receipt still matches what RingFrame wrote.')).toBeVisible();
+  expect(machine.of('read').filter((r) => r.what === 'receipt').at(-1)).toMatchObject({ project: 'weft', seal: 'rcp_7f3a2c' });
   if (wideOf(page)) {
     // D11.4: the decision in the breadcrumb and large, its facts as labelled lines.
     await expect(crumbs(page)).toHaveText('Seal 4›accepted');
@@ -365,37 +371,44 @@ test('M11.9 D11.9: a running session no agent of Weft\'s holds, whose resume joi
 test('M11.5: a quiet session: its last active time on the row and in its Details; Resume starts it at once', async ({ page, context }) => {
   const sample = atlas();
   Object.assign(sample.tree[0].agents.rows[4], { state: 'quiet', ask: { key: 'why.quiet', harness: 'codex' } });
+  await page.clock.setFixedTime(at(12, 0));
   const machine = await opened(page, context, sample);
   // On the row the status is its shape, the words its name.
-  await expect(row(page, 'codex · lint pass').locator('.agent-dot')).toHaveAttribute('aria-label', 'last active 08:30');
+  await expect(row(page, 'codex · lint pass').locator('.agent-dot')).toHaveAttribute('aria-label', 'last active Today 08:30');
   await details(page, 'codex · lint pass');
-  await expect(region(page, /^codex · 0199c0a8/).getByText('last active 08:30').first()).toBeVisible();
+  await expect(region(page, /^codex · 0199c0a8/).getByText('last active Today 08:30').first()).toBeVisible();
   await act(page, 'Resume').click();
   await expect.poll(() => machine.of('start')).toEqual([expect.objectContaining({ type: 'start', project: 'weft', harness: 'codex' })]);
   await machine.close();
 });
 
-test('M11.7 D11.7: n earlier sessions unfolds in the tree, newest first, and the sessions take its row; a row opens its session', async ({ page, context }) => {
+test('M11.13 D11.13: Earlier sessions shows how many; opened, it lists them newest first under it, each with its day; a row opens its session', async ({ page, context }) => {
+  await page.clock.setFixedTime(at(12, 0));
   const machine = await opened(page, context);
-  const more = row(page, '12 earlier sessions');
+  const group = row(page, 'Earlier sessions');
   const past = page.locator('.tree-row--past');
-  await expect(more).toHaveText('12 earlier sessions ›');
+  await expect(group).toHaveText(/^▸ Earlier sessions\s*12$/);
+  await expect(group).toHaveAttribute('aria-expanded', 'false');
   await expect(past).toHaveCount(0);
   expect(machine.of('read')).toHaveLength(0);
-  await more.click();
-  // Unfolded, the row goes: the sessions are in its place.
-  await expect(more).toHaveCount(0);
+  await group.click();
+  // Opened, the row stays, with its count; the sessions follow it.
+  await expect(group).toHaveText(/^▾ Earlier sessions\s*12$/);
+  await expect(group).toHaveAttribute('aria-expanded', 'true');
   await expect(past).toHaveCount(12);
   const reads = () => machine.of('read').filter((r) => r.what === 'sessions');
   expect(reads()).toEqual([expect.objectContaining({ project: 'weft' })]);
   expect(reads()[0]).not.toHaveProperty('q');
-  // Newest first, as the agents above: the ended shape, harness, the title, the time.
-  const first = past.first();
-  await expect(first).toContainText('codex');
-  await expect(first).toContainText('flaky test');
-  await expect(first).toContainText('07:40');
-  await expect(row(page, 'claude · turn-state map')).toContainText('Tue 18:22');
+  // Newest first: the ended shape, the title, then its harness and its day and time.
+  await expect(past.first().locator('.agent-title')).toHaveText('flaky test');
+  await expect(past.first().locator('.agent-about')).toHaveText('codex · Today 07:40');
+  await expect(row(page, 'claude · eval view rows').locator('.agent-about')).toHaveText('claude · Yesterday 17:40');
+  await expect(row(page, 'claude · turn-state map').locator('.agent-about')).toHaveText('claude · Oct 6 18:22');
   await expect(row(page, 'claude · turn-state map').locator('.agent-dot')).toHaveText('□');
+  // Every one is shown: nothing more to read.
+  await expect(page.locator('.tree-row--show-more')).toHaveCount(0);
+  const [head, first] = await Promise.all([group.boundingBox(), past.first().boundingBox()]);
+  expect(head!.y).toBeLessThan(first!.y);
   expect(reads()).toHaveLength(1);
   await row(page, 'codex · ci cache').click();
   await expect(region(page, /^codex · 01997a2d/)).toBeVisible();
@@ -403,23 +416,70 @@ test('M11.7 D11.7: n earlier sessions unfolds in the tree, newest first, and the
   if (!wideOf(page)) {
     await page.goBack();
     await expect(past).toHaveCount(12);
-    await expect(row(page, '12 earlier sessions')).toHaveCount(0);
   }
+  // Folded again, the sessions go and its count stays; unfolded, they are back without a read.
+  await group.click();
+  await expect(group).toHaveText(/^▸ Earlier sessions\s*12$/);
+  await expect(past).toHaveCount(0);
+  await group.click();
+  await expect(past).toHaveCount(12);
+  expect(reads()).toHaveLength(1);
   await machine.close();
 });
 
-test('M11.7 D11.7: a large project\'s earlier sessions read a page at a time as the tree scrolls', async ({ page, context }) => {
-  const big = large();
+/** A project with 120 earlier sessions, newest first. */
+function many() {
   const sample = atlas();
-  sample.reads.earlier.weft = big.earlier;
-  sample.tree[0].agents.earlier = big.earlier.length;
+  sample.reads.earlier.weft = large().earlier.slice(0, 120);
+  sample.tree[0].agents.earlier = 120;
+  return sample;
+}
+
+test('M11.13 D11.13: the earlier sessions come 50 at a time; Show more reads the next, the rest when fewer are left, and goes once all are shown', async ({ page, context }) => {
+  const sample = many();
   const machine = await opened(page, context, sample);
-  await row(page, '295 earlier sessions').click();
+  const group = row(page, 'Earlier sessions');
   const rows = page.locator('.tree-row--past');
+  const more = page.locator('.tree-row--show-more');
+  await expect(group).toHaveText(/^▸ Earlier sessions\s*120$/);
+  await group.click();
   await expect(rows).toHaveCount(50);
+  await expect(more).toHaveText(/^Show 50 more\s*50 of 120$/);
+  // Scrolling to the last one reads nothing: only Show more does.
   await rows.nth(49).scrollIntoViewIfNeeded();
-  await expect(rows).toHaveCount(100);
   const pages = () => machine.of('read').filter((r) => r.what === 'sessions');
-  expect(pages()[1]).toMatchObject({ project: 'weft', after: big.earlier[49].session });
+  expect(pages()).toHaveLength(1);
+  await more.click();
+  await expect(rows).toHaveCount(100);
+  // The machine's cursor goes back as it came.
+  const last = sample.reads.earlier.weft[49];
+  expect(pages()[1]).toMatchObject({ project: 'weft', after: `${last.harness}/${last.session}` });
+  await expect(more).toHaveText(/^Show 20 more\s*100 of 120$/);
+  await more.click();
+  await expect(rows).toHaveCount(120);
+  await expect(more).toHaveCount(0);
+  expect(pages()).toHaveLength(3);
+  // Newest first, page after page, none twice.
+  const titles = await rows.locator('.agent-title').allTextContents();
+  expect(titles).toEqual(sample.reads.earlier.weft.map((e) => e.title));
+  await expect(group).toHaveText(/^▾ Earlier sessions\s*120$/);
+  await machine.close();
+});
+
+test('M11.13 D11.13: a search finds an earlier session beyond the rows shown, and a count in the thousands reads with its separator', async ({ page, context }) => {
+  const sample = many();
+  sample.tree[0].agents.earlier = 1204;
+  const machine = await opened(page, context, sample);
+  const group = row(page, 'Earlier sessions');
+  await expect(group).toHaveText(/^▸ Earlier sessions\s*1,204$/);
+  await group.click();
+  await expect(page.locator('.tree-row--past')).toHaveCount(50);
+  // The 101st is not shown, yet the search finds it.
+  const target = sample.reads.earlier.weft[100];
+  await page.getByRole('searchbox', { name: 'Search agents and works' }).fill(target.title!);
+  await expect(page.locator('.tree-row--past')).toHaveCount(1);
+  await expect(page.locator('.tree-row--past .agent-title')).toHaveText(target.title!);
+  await expect(group.locator('.tree-aside')).toHaveText('1');
+  expect(machine.of('read').filter((r) => r.what === 'sessions').at(-1)).toMatchObject({ project: 'weft', q: target.title });
   await machine.close();
 });

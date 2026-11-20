@@ -1,0 +1,99 @@
+/* Files an Eval should skip: the Eval dialog's findings (17.28), a project's
+   settings section (9.13, 9.14), and an Eval's Not read (11.16). A phone
+   first; a desktop below. */
+
+/* A finding: its mark, its path and what it holds, its line, and its button. */
+.skip-row { display: grid; grid-template-columns: 14px minmax(0, 1fr); column-gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--fab7-line); font-size: 13px; line-height: 1.45; }
+.skip-mark { padding-top: 2px; text-align: center; font: 11px/1.45 var(--font-mono); color: var(--fab7-amber-text); }
+.skip-row--added .skip-mark { padding-top: 0; font-size: 14px; font-weight: 700; color: var(--fab7-teal); }
+.skip-row--sub .skip-mark, .skip-row--sub .skip-what { color: var(--fab7-faint); }
+.skip-body { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.skip-what { min-width: 0; overflow-wrap: anywhere; }
+.skip-path { font-family: var(--font-mono); font-size: 11.5px; overflow-wrap: anywhere; }
+.skip-about { color: var(--fab7-muted); }
+.skip-added { font-weight: 600; color: var(--fab7-teal); }
+/* A taken line on a phone: the line itself, then how many files are no longer read. */
+.skip-added-path, .skip-gone-sep, .skip-row--added .skip-line { display: none; }
+.skip-gone { display: block; font-size: 12px; }
+.skip-line { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.skip-file { font: 11px var(--font-mono); color: var(--fab7-faint); }
+.skip-code { display: block; padding: 4px 8px; background: var(--fab7-void); color: var(--fab7-text); font: 11.5px/1.5 var(--font-mono); border-radius: var(--weft-radius-control); }
+/* It wraps only between its words; a word longer than the line ends in an ellipsis. */
+.skip-word { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: top; }
+.skip-take { grid-column: 2; margin-top: 4px; height: 40px; padding: 0 14px; border: 1px solid var(--fab7-teal); background: var(--fab7-surface); color: var(--fab7-teal); font: 600 14px var(--font-sans); cursor: pointer; border-radius: var(--weft-radius-control); }
+.skip-take { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.skip-take[aria-busy="true"] { cursor: progress; }
+.skip-take .wait-dot { background: var(--fab7-teal); }
+
+/* The Eval dialog's: in a box under the Reads row, how many are left beside its title. */
+.skip-check { display: flex; flex-direction: column; gap: 6px; }
+.skip-check-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; }
+.skip-check-title { font-size: 13px; font-weight: 600; }
+.skip-check-left { font-size: 12px; color: var(--fab7-faint); }
+.skip-list--dialog { max-height: 40vh; overflow-y: auto; border: 1px solid var(--fab7-line); background: var(--fab7-canvas); border-radius: var(--weft-radius-control); }
+.skip-list--dialog .skip-row { padding: 10px 12px; }
+.skip-list--dialog .skip-row:last-child { border-bottom: 0; }
+.skip-list--dialog .skip-body { gap: 5px; }
+.skip-list--dialog .skip-take { margin-top: 8px; }
+.skip-list--dialog .skip-code { padding: 5px 8px; font-size: 12px; }
+.skip-list--dialog .skip-row--sub .skip-what { font-size: 12px; }
+/* On a phone, what a finding holds goes under its path. */
+.skip-list--dialog .skip-row:not(.skip-row--added) .skip-about { display: block; font-size: 12px; }
+.skip-list--dialog .skip-dash { display: none; }
+
+/* A project's settings: FILES AN EVAL SHOULD SKIP, Check again at its right. */
+.skip-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 20px 16px 8px; border-bottom: 1px solid var(--fab7-line); font: 600 11px var(--font-mono); letter-spacing: 0.08em; color: var(--fab7-faint); }
+.skip-again { flex: none; padding: 0; border: 0; background: none; color: var(--fab7-accent); font: 400 14px var(--font-sans); letter-spacing: 0; cursor: pointer; }
+.skip-again { display: inline-flex; align-items: center; gap: 8px; }
+.skip-again[aria-busy="true"] { cursor: progress; }
+.skip-none { display: flex; gap: 10px; align-items: center; padding: 14px 16px; font-size: 15px; color: var(--fab7-muted); }
+.skip-none .skip-mark { width: 14px; padding: 0; font-size: inherit; font-weight: 700; color: var(--fab7-teal); }
+.skip-refused { margin: 0; padding: 10px 16px; font-size: 13px; }
+
+/* What an Eval did not read: a row per kind, its count over where they are. */
+.nr { margin-top: 16px; }
+.nr-head { display: flex; align-items: baseline; gap: 8px; padding-bottom: 4px; border-bottom: 1px solid var(--fab7-line); }
+.nr-title { font-weight: 600; }
+.nr-total { font-size: 13px; color: var(--fab7-faint); }
+.nr-row { display: flex; flex-direction: column; padding: 6px 0; border-bottom: 1px solid var(--fab7-line); line-height: 1.4; }
+.nr-row:last-child { border-bottom: 0; }
+.nr-where { min-width: 0; font-size: 13px; color: var(--fab7-muted); overflow-wrap: anywhere; }
+.nr-path { font: 11.5px var(--font-mono); }
+
+@media (min-width: 768px) {
+  .skip-row { grid-template-columns: 14px minmax(0, 1fr) auto; column-gap: 12px; align-items: center; padding: 11px 0; font-size: 14px; }
+  .skip-mark, .skip-row--added .skip-mark { padding-top: 0; }
+  .skip-path { font-size: 13px; overflow-wrap: normal; }
+  .skip-what { overflow-wrap: anywhere; }
+  .skip-added-path, .skip-gone-sep { display: inline; }
+  .skip-row--added .skip-line { display: flex; }
+  .skip-added-line { display: none; }
+  .skip-gone { display: inline; font-size: inherit; }
+  .skip-line { flex-direction: row; align-items: baseline; gap: 10px; font-size: 12px; }
+  .skip-file { flex: none; width: 104px; }
+  .skip-code { min-width: 0; padding: 1px 6px; font-size: 12px; line-height: inherit; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .skip-word { display: inline; max-width: none; overflow: visible; }
+  .skip-take { grid-column: 3; grid-row: 1; margin: 0; height: 30px; font-size: 13px; white-space: nowrap; }
+
+  .skip-check { margin-top: 2px; }
+  .skip-list--dialog .skip-row { padding: 9px 14px; font-size: 13px; }
+  .skip-list--dialog .skip-body { gap: 3px; }
+  .skip-list--dialog .skip-path { font-size: 13px; }
+  .skip-list--dialog .skip-code { padding: 1px 6px; font-size: 12px; }
+  .skip-list--dialog .skip-row--sub .skip-what { font-size: 13px; }
+  .skip-list--dialog .skip-row:not(.skip-row--added) .skip-about { display: inline; font-size: inherit; }
+  .skip-list--dialog .skip-dash { display: inline; }
+
+  .skip-head { padding: 26px 0 8px; }
+  .skip-again { font-size: 13px; }
+  .skip-none { gap: 12px; padding: 12px 0; font-size: 14px; }
+  .skip-refused { padding: 10px 0; }
+
+  .nr { margin-top: 26px; }
+  .nr-head { padding-bottom: 6px; }
+  .nr-total { font-size: inherit; }
+  .nr-row { flex-direction: row; align-items: baseline; gap: 16px; padding: 7px 0; line-height: inherit; }
+  .nr-count { flex: none; width: 140px; }
+  .nr-where { flex: 1; font-size: inherit; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; }
+  .nr-path { font-size: 12.5px; }
+}

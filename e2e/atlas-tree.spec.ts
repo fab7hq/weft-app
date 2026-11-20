@@ -4,7 +4,7 @@
 // and the desktop.
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import { FakeMachine, agent, atlas, project, sessionOf, type Project, type Session, reportOf } from './fake-machine';
-import { CLAUDE, README_SESSION, large } from './atlas-fixtures';
+import { CLAUDE, README_SESSION, at, large } from './atlas-fixtures';
 import { row, wideOf } from './open';
 import { person, signIn } from './seed';
 
@@ -21,12 +21,17 @@ async function opened(page: Page, context: BrowserContext, sample: Partial<Retur
   return machine;
 }
 
+// An agent's time carries its day on the device's clock: the samples' day, in UTC.
+test.use({ timezoneId: 'UTC' });
+const onTheSamplesDay = (page: Page) => page.clock.setFixedTime(at(12, 0));
+
 const bar = (page: Page, name: string) => page.locator('.tree-bar .tree-acts').getByRole('button', { name, exact: true });
 const said = (page: Page) => page.locator('.tree-bar .tree-said');
 const empty = (ask: Project['ask'], setup: Project['setup'] = null): Project[] => [{ ...project('weft', []), ask, setup }];
 const noneDisabled = (page: Page) => expect(page.locator('button:disabled, input:disabled, textarea:disabled, select:disabled')).toHaveCount(0);
 
 test('M11.12 D11.12: AGENTS and WORK, as the cards draw them: an agent on two lines, its name then harness · state · time, amber only for an agent that needs you', async ({ page, context }) => {
+  await onTheSamplesDay(page);
   const machine = await opened(page, context);
   // Open, a project says nothing more of itself; its rows say it.
   // ⋯ opens the project's own settings (M9.12, D9.12).
@@ -37,19 +42,19 @@ test('M11.12 D11.12: AGENTS and WORK, as the cards draw them: an agent on two li
   const read = (i: number) => agents.nth(i).evaluate((e) => ['.agent-dot', '.agent-title', '.agent-about'].map((c) => e.querySelector(c)?.textContent ?? null));
   const state = (i: number) => agents.nth(i).locator('.agent-dot').getAttribute('aria-label');
   // An agent nothing has named shows its harness, and its second line leaves the harness out.
-  expect(await read(0)).toEqual(['●', 'codex', 'running · 11:31']);
+  expect(await read(0)).toEqual(['●', 'codex', 'running · Today 11:31']);
   expect(await state(0)).toBe('working');
-  expect(await read(1)).toEqual(['■', 'fix login', 'claude · needs you · 11:29']);
+  expect(await read(1)).toEqual(['■', 'fix login', 'claude · needs you · Today 11:29']);
   expect(await state(1)).toBe('needs you');
-  expect(await read(2)).toEqual(['●', 'health endpoint', 'codex · running · 10:52']);
+  expect(await read(2)).toEqual(['●', 'health endpoint', 'codex · running · Today 10:52']);
   expect(await state(2)).toBe('turn ended');
-  expect(await read(3)).toEqual(['□', 'readme fix', 'claude · ended · 09:12']);
-  expect(await read(4)).toEqual(['□', 'lint pass', 'codex · ended · 08:30']);
-  expect(await read(5)).toEqual(['□', 'claude', 'ended · 08:02']);
+  expect(await read(3)).toEqual(['□', 'readme fix', 'claude · ended · Today 09:12']);
+  expect(await read(4)).toEqual(['□', 'lint pass', 'codex · ended · Today 08:30']);
+  expect(await read(5)).toEqual(['□', 'claude', 'ended · Today 08:02']);
   expect(await state(5)).toBe('ended');
   // The turn's own words stay off the rows.
   for (const word of ['working', 'turn ended', 'no Ask yet']) await expect(page.locator('.tree').getByText(word, { exact: true })).toHaveCount(0);
-  await expect(row(page, '12 earlier sessions')).toBeVisible();
+  await expect(row(page, 'Earlier sessions')).toHaveText(/^▸ Earlier sessions\s*12$/);
   // WORK: a row per unit, its title, its harness and one status; no rounds.
   const status = (name: string) => row(page, name).locator('.work-status');
   await expect(status('fix login')).toHaveText('asked');
@@ -135,13 +140,70 @@ test('M11.1 D11.1: a session run by another program reads the same; Ask on it sa
   await machine.close();
 });
 
+/** The machine's Eval dialog, read by the harness the act names, else by the work's own. */
+function evalDialogs(machine: FakeMachine): void {
+  let n = 0;
+  machine.onAct = (m) => {
+    const id = `pnd_e${++n}`;
+    const by = m.start === 'codex' ? 'Codex' : 'Claude Code';
+    return [
+      { type: 'pending', id, agent: '', what: 'Eval this work?', why: `fix login · 1 Ask\n${by} reads the whole change against what you asked, and reads again only where it is unsure.\nNothing is typed into the agent's pane.`, text: '', go: { word: 'act.eval', warn: false } },
+      { type: 'ok', req: m.req, pending: id },
+    ];
+  };
+}
+
+test('17.3: Read by starts on the work\'s latest agent and lists every harness the project starts; a pick stages the dialog again, and only Eval runs it', async ({ page, context }) => {
+  const machine = await opened(page, context);
+  evalDialogs(machine);
+  await row(page, 'fix login').click();
+  await bar(page, 'Eval').click();
+  const dialog = page.getByRole('dialog', { name: 'Eval this work?' });
+  const pick = dialog.locator('#read-by');
+  await expect(pick).toHaveValue('claude');
+  await expect(pick.locator('option')).toHaveText(['Claude Code', 'Codex']);
+  await expect(dialog.locator('.pending-read-note')).toHaveText('the work’s latest agent');
+  await pick.selectOption('codex');
+  await expect.poll(() => machine.of('act')).toEqual([
+    expect.objectContaining({ act: 'eval', project: 'weft', unit: 'ask_1' }),
+    expect.objectContaining({ act: 'eval', project: 'weft', unit: 'ask_1', start: 'codex' }),
+  ]);
+  expect(machine.of('act')[0]).not.toHaveProperty('start');
+  // The dialog it replaces is cancelled; the new one says who reads.
+  await expect.poll(() => machine.of('resolve')).toEqual([expect.objectContaining({ pending: 'pnd_e1', yes: false })]);
+  await expect(dialog.getByText(/^Codex reads the whole change/)).toBeVisible();
+  await expect(pick).toHaveValue('codex');
+  await expect(dialog.locator('.pending-read-note')).toHaveCount(0);
+  // Back to the work's own: the act names no harness.
+  await pick.selectOption('claude');
+  await expect.poll(() => machine.of('act')).toHaveLength(3);
+  expect(machine.of('act')[2]).not.toHaveProperty('start');
+  await expect(dialog.getByText(/^Claude Code reads the whole change/)).toBeVisible();
+  await dialog.getByRole('button', { name: 'Eval', exact: true }).click();
+  await expect.poll(() => machine.of('resolve').at(-1)).toEqual(expect.objectContaining({ pending: 'pnd_e3', yes: true }));
+  await machine.close();
+});
+
+test('17.3: Read by starts on the harness Settings route Evals to, and says so', async ({ page, context }) => {
+  const machine = await opened(page, context);
+  machine.settings = { ...machine.settings, effective: { routing: { eval: 'codex' } } };
+  evalDialogs(machine);
+  await row(page, 'fix login').click();
+  await bar(page, 'Eval').click();
+  const dialog = page.getByRole('dialog', { name: 'Eval this work?' });
+  await expect(dialog.locator('#read-by')).toHaveValue('codex');
+  await expect(dialog.locator('.pending-read-note')).toHaveText('set in Settings');
+  await machine.close();
+});
+
 test('D11.1: the bar names the selection; Ask, Eval and Seal are in the bar only, never on a row', async ({ page, context }, info) => {
   test.skip(info.project.name !== 'desktop', 'a desktop');
+  await onTheSamplesDay(page);
   const machine = await opened(page, context);
   await expect(page.locator('.tree-selected')).toHaveCount(0);
   await expect(page.locator('.tree-row button.row-act, .tree-row .row-act')).toHaveCount(0);
   await row(page, 'claude · fix login').click();
-  await expect(page.locator('.tree-selected')).toHaveText('selected: claude · 11:29');
+  await expect(page.locator('.tree-selected')).toHaveText('selected: claude · Today 11:29');
   await bar(page, 'Ask').click();
   await expect(page.getByRole('dialog', { name: 'What do you want done?' }).getByRole('button', { name: /^SEND TO/ })).toHaveAccessibleName('SEND TO weft · claude');
   await page.getByRole('dialog', { name: 'What do you want done?' }).getByRole('button', { name: 'Cancel', exact: true }).click();
@@ -151,7 +213,7 @@ test('D11.1: the bar names the selection; Ask, Eval and Seal are in the bar only
   await expect.poll(() => machine.of('act')).toEqual([expect.objectContaining({ act: 'eval', project: 'weft', unit: 'ask_1' })]);
   await page.getByRole('dialog', { name: 'Eval this work?' }).getByRole('button', { name: 'Cancel', exact: true }).click();
   await row(page, 'claude · readme fix').click();
-  await expect(page.locator('.tree-selected')).toHaveText('selected: claude · ended 09:12');
+  await expect(page.locator('.tree-selected')).toHaveText('selected: claude · ended Today 09:12');
   await machine.close();
 });
 

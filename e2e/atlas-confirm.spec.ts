@@ -36,7 +36,8 @@ for (const card of CARDS) {
       await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
       await page.goto('/');
       await page.getByRole('treeitem', { name: 'fix login', exact: true }).click();
-      await page.getByRole('button', { name: 'Eval', exact: true }).click();
+      // The tree's bar: on a desktop the work's Details, open beside it, has its own Eval too.
+      await page.locator('.tree-acts').getByRole('button', { name: 'Eval', exact: true }).click();
       const bar = page.getByRole('dialog', { name: card.what });
       await expect(bar).toBeVisible();
       // A send names no agent in its head: SEND TO says where it goes, the agent that wrote it to start with.
@@ -67,7 +68,7 @@ test('M4.6 D4.6: SEND TO on a send: the agent that wrote it on top and picked; a
     await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
     await page.goto('/');
     await page.getByRole('treeitem', { name: 'fix login', exact: true }).click();
-    await page.getByRole('button', { name: 'Eval', exact: true }).click();
+    await page.locator('.tree-acts').getByRole('button', { name: 'Eval', exact: true }).click();
     const bar = page.getByRole('dialog', { name: 'Ready to send' });
     await bar.getByRole('button', { name: /^SEND TO / }).click();
     const list = bar.getByRole('listbox', { name: 'SEND TO' });

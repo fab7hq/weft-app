@@ -38,9 +38,3 @@ export function arcs(lights: Light[]): Arc[] {
     breathes: l === 'now',
   }));
 }
-
-/** A step as it reads: one done is ticked. */
-export const stepText = (s: Lit) => (s.light === 'done' ? `✓ ${s.name}` : s.name);
-
-/** A step's colour: done muted, under way the text's, still to come faint. */
-export const stepTone = (l: Light) => (l === 'done' ? 'muted' : l === 'now' ? 'text' : 'faint');

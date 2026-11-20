@@ -6,6 +6,7 @@ import * as m from '../machine';
 import { back, swap } from '../nav';
 import { selected } from './Tree';
 import { fill, w } from '../words';
+import { during, failed, working } from '../waits';
 
 /** The project an agent starts in when none was chosen: the selection's, else the first. */
 function project(): string | undefined {
@@ -18,15 +19,14 @@ export function StartPanel({ machine, harness, project: chosen, phone = false }:
   const at = chosen ?? project();
   const starts = m.harnesses.value.filter((s) => s.project === at);
   const [pick, setPick] = useState(Math.max(0, starts.findIndex((s) => s.harness === harness)));
-  const [said, setSaid] = useState<string | null>(null);
+  // Starting… in the bar's place until it runs, a second press doing nothing; why not stays here after.
   const start = async () => {
     const s = starts[pick];
-    if (!s) return;
-    setSaid(null);
-    const answer = await m.request({ type: 'start', project: s.project, harness: s.harness });
+    if (!s || working.value) return;
+    const answer = await during({ words: fill('wait.starting', { harness: s.harness }), about: s.project }, () => m.request({ type: 'start', project: s.project, harness: s.harness }));
     if (answer?.type === 'ok' && answer.agent) swap({ name: 'agent', machine: machine.id, agent: String(answer.agent) });
-    else if (answer?.type === 'error') setSaid(String(answer.message));
   };
+  const said = failed.value;
   const acts = (
     <>
       <button class="tree-act" type="button" onClick={back}>{w('act.cancel')}</button>
@@ -53,7 +53,7 @@ export function StartPanel({ machine, harness, project: chosen, phone = false }:
             </div>
           </>
         )}
-        {said && <p class="start-said" role="status">{said}</p>}
+        {said && <p class="start-said ask-hint" role="alert">{said}</p>}
       </div>
       {phone ? (
         <div class="tree-bar">

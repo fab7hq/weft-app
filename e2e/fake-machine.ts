@@ -144,6 +144,7 @@ export interface SealDetail {
   decision: string;
   at: number | null;
   eval: { eval: string; n: number; report: Report | null } | null;
+  /** Whether its receipt holds: `read receipt`, apart from its facts. */
   receipt: string;
   holds: boolean | null;
   broken: string[];
@@ -272,6 +273,10 @@ export class FakeMachine {
   onText: ((m: Record<string, unknown>) => Record<string, unknown>) | null = null;
   /** How a `start` is answered; else `ok` with a new agent. */
   onStart: ((m: Record<string, unknown>) => Record<string, unknown>[]) | null = null;
+  /** Each project's files an Eval should skip, said after a welcome. */
+  skip: Record<string, unknown[]> = {};
+  /** How a `skip_check` or a `skip_add` is answered; else `ok` with the project's findings. */
+  onSkip: ((m: Record<string, unknown>) => Record<string, unknown>[]) | null = null;
   /** Answer `pair` with `asking`, then `paired` at once. */
   allowAtOnce = true;
   /** Each agent's conversation, by its id; an agent with none cannot be read. */
@@ -320,6 +325,7 @@ export class FakeMachine {
             return;
           }
           ws.send(JSON.stringify(this.welcome()));
+          for (const [project, findings] of Object.entries(this.skip)) ws.send(JSON.stringify({ type: 'skip', project, findings }));
         }
         if (m.type === 'act' && m.act === 'dismiss') {
           // A reopened project dismissed: it closes on the machine.
@@ -340,6 +346,9 @@ export class FakeMachine {
           else if (sheet === undefined) ws.send(JSON.stringify({ type: 'ok', req: m.req, settings: null }));
         } else if (m.type === 'settings' || m.type === 'set') {
           ws.send(JSON.stringify(this.setting(m)));
+        } else if (m.type === 'skip_check' || m.type === 'skip_add') {
+          const out = this.onSkip ? this.onSkip(m) : [{ type: 'ok', req: m.req, findings: this.skip[String(m.project)] ?? [] }];
+          for (const o of out) ws.send(JSON.stringify(o));
         } else if (m.type === 'follow') {
           const also: { agent: string }[] = Array.isArray(m.also) ? m.also : [];
           this.following.set(ws, new Set([m.agent, ...also.map((a) => a.agent)].filter((a): a is string => typeof a === 'string')));
@@ -368,7 +377,11 @@ export class FakeMachine {
       turbo: true,
       routing: { eval: 'claude' },
       eval: { debate: { harness: 'codex', reduce: { model: 'gpt-6-luna' } } },
-      ringframe: { deltas: { 'practices/software-development': { entries: [{ id: 'practice.hyrum', tier: 'core' }, { id: 'practice.postel', enabled: false }] } } },
+      ringframe: { deltas: {
+        'practices/software-development': { entries: [{ id: 'practice.hyrum', tier: 'core' }, { id: 'practice.postel', enabled: false }] },
+        'practices/autonomous-trading': { domain: 'autonomous-trading' },
+        'practices/machine-learning': { domain: 'machine-learning' },
+      } },
     },
     project: { routing: { eval: 'codex' }, ringframe: { deltas: { 'practices/software-development': { entries: [{ id: 'practice.hyrum', tier: 'situational' }] } } } },
     effective: {},
@@ -400,7 +413,15 @@ export class FakeMachine {
     };
     const ok = (settings: unknown) => ({ type: 'ok', req: m.req, settings });
     if (m.what === 'rules') {
-      return ok({ domains: [{ domain: 'software-development', base: true }, { domain: 'autonomous-trading', base: false, description: 'Trading strategies and the systems that run them' }], catalogs: [base(m.unit === 'project'), host], judges: { deny: ['Push to any remote.'], from: 'default' } });
+      // Every practice's catalog is listed, turned on or not; the settings say which are on.
+      const trading = { catalog: 'practices/autonomous-trading', entries: [
+        rule('trading.no_lookahead', 'No Lookahead', 'Let each decision use only data available at decision time…', { tier: 'situational' }),
+        rule('trading.indicator_code', 'Indicator Code', 'Port an indicator from its reference formula…', { tier: 'situational' }),
+      ] };
+      const learning = { catalog: 'practices/machine-learning', entries: [
+        rule('ml.simplest_model', 'Simplest Model', 'Start from the simplest model that could work…', { tier: 'situational' }),
+      ] };
+      return ok({ domains: [{ domain: 'software-development', base: true }, { domain: 'autonomous-trading', base: false, description: 'Trading strategies and the systems that run them' }, { domain: 'machine-learning', base: false, description: 'Training, evaluating and shipping models' }], catalogs: [base(m.unit === 'project'), host, trading, learning], judges: { deny: ['Push to any remote.'], from: 'default' } });
     }
     if (m.what === 'profile') {
       return ok({ capabilities: [
@@ -452,7 +473,12 @@ export class FakeMachine {
         const s = r.seals[String(m.seal)];
         if (!s) return refused('no_seal');
         const { rows, next } = page(s.asks, m.after, (a) => a.unit);
-        return ok('seal', { ...s, asks: rows, next, total: s.asks.length });
+        const { receipt: _r, holds: _h, broken: _b, ...facts } = s;
+        return ok('seal', { ...facts, asks: rows, next, total: s.asks.length });
+      }
+      case 'receipt': {
+        const s = r.seals[String(m.seal)];
+        return s ? ok('receipt', { receipt: s.receipt, holds: s.holds, broken: s.broken }) : refused('no_seal');
       }
       case 'session': {
         const s = r.sessions[String(m.session)] ?? this.sessionOf(String(m.project), String(m.session));
@@ -467,7 +493,8 @@ export class FakeMachine {
       case 'sessions': {
         const q = typeof m.q === 'string' ? m.q.toLowerCase() : '';
         const found = (r.earlier[String(m.project)] ?? []).filter((x) => !q || [x.title ?? '', x.harness, x.session].some((t) => t.toLowerCase().includes(q)));
-        const { rows, next } = page(found, m.after, (x) => x.session);
+        // Its cursor is opaque to a device: the harness and the id of the last row read.
+        const { rows, next } = page(found, m.after, (x) => `${x.harness}/${x.session}`);
         return ok('sessions', { total: found.length, rows, next });
       }
       default:

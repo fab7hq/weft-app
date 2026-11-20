@@ -10,7 +10,7 @@ import { FakeMachine, atlas, project, sessionOf, type Agent, type Detail, type P
 import { pull, swipeLeft } from './touch';
 import { drawWithDom, openAgent } from './open';
 import { person, signIn } from './seed';
-import { CLAUDE, CODEX, CODEX_NEW, DETAILS, RUNNING, SESSIONS, STILL, VIEW, at } from './atlas-fixtures';
+import { CLAUDE, CODEX, CODEX_NEW, DETAILS, RUNNING, SESSIONS, STILL, VIEW, at, large } from './atlas-fixtures';
 
 const OUT = 'gallery';
 
@@ -25,6 +25,15 @@ const SEAL_QUESTIONS = [
   { id: 'q5', ask: 'what_did_you_mean', behaviour: 'What you meant by “show an error”.', why: 'It can be read two ways.' },
 ];
 mkdirSync(OUT, { recursive: true });
+/** What the read check found in fab7, as 9.13 and 17.28 draw it. */
+const SKIP_OUTPUT = { kind: 'untracked_bulk', path: 'output/', files: 329, bytes: 4_000_000, commits: 0, kinds_of_files: [['png', 329]], fix: { file: '.gitignore', line: '/output/' } };
+const SKIP_EVIDENCE = {
+  kind: 'data_bulk', path: 'research/papers/to-err-is-agentic/evidence/', files: 13708, bytes: 52_000_000, commits: 0, kinds_of_files: [['json', 13708]],
+  fix: { file: '.gitattributes', line: 'research/papers/*/evidence/** linguist-generated=true' },
+};
+const SKIP_MEDIA = { kind: 'committed_media', path: 'marketing/weft/assets/final/', files: 24, bytes: 0, commits: 0, kinds_of_files: [['png', 20], ['mp4', 4]], fix: { file: '.gitattributes', line: 'marketing/weft/assets/final/** linguist-generated=true' } };
+const SKIP_DUMP = { kind: 'large_text', path: 'data/dump.sql', files: 1, bytes: 48_000_000, commits: 0, kinds_of_files: [['sql', 1]], fix: { file: '.gitattributes', line: 'data/dump.sql linguist-generated=true' } };
+
 
 interface At {
   page: Page;
@@ -436,6 +445,16 @@ const health = (status: WorkRow['status'], judged: Step, sealed: Step | null, of
   ],
   follows: 'evl_2', eval: null, seal: null, ...(offers ? { offers } : {}),
 });
+/** 17.25, 17.26: weft alone, codex at work on health endpoint, and the two works the cards draw. */
+const waiting = () => {
+  const s = withTree((t) => {
+    t.splice(1);
+    t[0].needs = 0;
+    t[0].agents = { ...t[0].agents, running: 1, ended: 0, earlier: 0, rows: t[0].agents.rows.filter((r) => r.agent === CODEX) };
+    t[0].work = { units: t[0].work.units.filter((u) => u.unit === 'ask_3' || u.unit === 'ask_4'), earlier: 0 };
+  });
+  return { ...s, agents: s.agents.filter((a) => a.agent === CODEX) };
+};
 /** The sample with health endpoint sealed. */
 const sealedAs = (decision: string) => () => withTree((t) => (t[0].work.units[1].status = { state: 'sealed', decision }));
 /** 17.13: a follow-up's words, from what Eval 2 found. */
@@ -823,6 +842,17 @@ const SCREENS: Screen[] = [
     await at.page.getByRole('button', { name: "weft's settings" }).first().click();
     await expect(at.page.getByText('RingFrame · Hyrum')).toBeVisible();
   } },
+  // 9.13, 9.14: weft's settings, with what an Eval there should skip, and with nothing to.
+  ...([['9.13', [SKIP_OUTPUT, SKIP_EVIDENCE, SKIP_MEDIA, SKIP_DUMP]], ['9.14', []]] as const).map(([n, findings]): Screen => ({
+    ids: [`M${n}`, `D${n}`],
+    run: async (at) => {
+      at.machine.skip = { weft: [...findings] };
+      await settingsOpen(at);
+      await at.page.getByRole('button', { name: "weft's settings" }).first().click();
+      await expect(at.page.getByRole('region', { name: 'FILES AN EVAL SHOULD SKIP' })).toBeVisible();
+      await at.page.getByRole('region', { name: 'FILES AN EVAL SHOULD SKIP' }).scrollIntoViewIfNeeded();
+    },
+  })),
   { ids: ['M9.2'], run: async (at) => {
     at.machine.vapid = 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U';
     await settingsOpen(at);
@@ -907,6 +937,24 @@ const SCREENS: Screen[] = [
     await folded(at, ['docs']);
     await roundOpen(at);
   } },
+  // 11.16: Eval 3's Details with what its readers counted and did not read.
+  ...(['M11.16', 'D11.16'] as const).map((id): Screen => ({
+    ids: [id],
+    run: async (at) => {
+      at.machine.reads.evals.evl_3 = { ...at.machine.reads.evals.evl_3, not_read: [
+        { kind: 'generated', folder: 'research/papers/to-err-is-agentic/evidence/', files: 13708 },
+        { kind: 'binary', folder: 'marketing/weft/assets/final/', files: 12 },
+        { kind: 'binary', folder: 'weft-app/web/public/', files: 4 },
+        { kind: 'binary', folder: 'site/', files: 2 },
+        { kind: 'binary', folder: 'logo.png', files: 1 },
+        { kind: 'lock', folder: 'weft/Cargo.lock', files: 1 },
+        { kind: 'lock', folder: 'weft-app/package-lock.json', files: 1 },
+      ] } as typeof at.machine.reads.evals.evl_3;
+      await folded(at, ['docs']);
+      await roundOpen(at);
+      await expect(at.page.getByRole('region', { name: 'Not read' })).toBeVisible();
+    },
+  })),
   ...(['M11.4', 'D11.4'] as const).map((id): Screen => ({
     ids: [id],
     run: async (at) => {
@@ -949,8 +997,25 @@ const SCREENS: Screen[] = [
     run: async (at) => {
       await folded(at, ['docs']);
       await tree(at);
-      await item(at, '12 earlier sessions').click();
+      await item(at, 'Earlier sessions').click();
       await expect(at.page.locator('.tree-row--past')).toHaveCount(12);
+    },
+  })),
+  // 11.13: earlier sessions a page at a time: the first 50 listed, and Show 50 more under them.
+  ...(['M11.13', 'D11.13'] as const).map((id): Screen => ({
+    ids: [id],
+    sample: () => {
+      const s = atlas();
+      s.reads.earlier.weft = large().earlier.slice(0, 120);
+      s.tree[0].agents.earlier = 120;
+      return s;
+    },
+    run: async (at) => {
+      await folded(at, ['docs']);
+      await tree(at);
+      await item(at, 'Earlier sessions').click();
+      await expect(at.page.locator('.tree-row--past')).toHaveCount(50);
+      await at.page.locator('.tree-row--show-more').scrollIntoViewIfNeeded();
     },
   })),
   ...(['M11.8', 'D11.8'] as const).map((id): Screen => ({
@@ -1171,7 +1236,10 @@ const SCREENS: Screen[] = [
     await expect(at.page.getByRole('dialog', { name: 'Ask claude?' })).toBeVisible();
   } })),
   ...(['M17.3', 'D17.3'] as const).map((id): Screen => ({ ids: [id], run: async (at) => {
-    at.machine.onAct = staged(CODEX, 'Eval this work?', 'health endpoint · 2 Asks\nclaude reads the whole change against what you asked, and reads again only where it is unsure.\nNothing is typed into the agent’s pane.', { word: 'act.eval', warn: false });
+    // What it reads: 3 commits and 14 files since its first Ask this morning.
+    const reads = { since: 'ask', when: new Date(new Date().setHours(9, 12, 0, 0)).toISOString(), commits: 3, files: 14, skipped: { generated: 1, binary: 1 }, large: false };
+    const stage = staged(CODEX, 'Eval this work?', 'health endpoint · 2 Asks\nclaude reads the whole change against what you asked, and reads again only where it is unsure.\nNothing is typed into the agent’s pane.', { word: 'act.eval', warn: false });
+    at.machine.onAct = (m) => stage(m).map((o) => (o.type === 'pending' ? { ...o, reads } : o));
     await folded(at);
     if (at.wide) await agentOpen(at, 'codex');
     else await tree(at);
@@ -1179,6 +1247,109 @@ const SCREENS: Screen[] = [
     await at.page.locator('.tree-acts').getByRole('button', { name: 'Eval', exact: true }).click();
     await expect(at.page.getByRole('dialog', { name: 'Eval this work?' })).toBeVisible();
   } })),
+  // 17.28: the dialog once output/ was ignored, the evidence still to mark and a nested repository said.
+  ...(['M17.28', 'D17.28'] as const).map((id): Screen => ({ ids: [id], run: async (at) => {
+    const reads = {
+      since: 'ask', when: '2026-11-08T10:00:00Z', commits: 52, files: 13852, files_before: 14181, skipped: { generated: 0, vendored: 0, binary: 19, lock: 2 },
+      folder: 'research/papers/to-err-is-agentic/evidence/', folder_files: 13708, large: true,
+      findings: [{ ...SKIP_OUTPUT, added: true }, SKIP_EVIDENCE, { kind: 'sub_repo', path: 'homepage/', files: 12, bytes: 0, commits: 0, kinds_of_files: [], fix: null }],
+    };
+    const stage = staged(CODEX, 'Eval this work?', 'health endpoint · 2 Asks\nclaude reads the whole change against what you asked, and reads again only where it is unsure.\nNothing is typed into the agent’s pane.', { word: 'act.eval', warn: false });
+    at.machine.onAct = (m) => stage(m).map((o) => (o.type === 'pending' ? { ...o, reads } : o));
+    await folded(at);
+    if (at.wide) await agentOpen(at, 'codex');
+    else await tree(at);
+    await item(at, 'health endpoint').click();
+    await at.page.locator('.tree-acts').getByRole('button', { name: 'Eval', exact: true }).click();
+    await expect(at.page.getByRole('dialog', { name: 'Eval this work?' }).locator('.skip-row--added')).toBeVisible();
+  } })),
+  // 17.25: Eval's yes, still opening: its steps, the files read so far and the bar filled by the share done.
+  ...(['M17.25', 'D17.25'] as const).map((id): Screen => ({ ids: [id], sample: waiting, run: async (at) => {
+    const stage = staged(CODEX, 'Eval this work?', 'health endpoint · 2 Asks\nclaude reads the whole change against what you asked, and reads again only where it is unsure.\nNothing is typed into the agent’s pane.', { word: 'act.eval', warn: false });
+    at.machine.onAct = (m) => stage(m).map((o) => (o.type === 'pending' ? { ...o, reads: { since: 'ask', when: new Date(new Date().setHours(9, 12, 0, 0)).toISOString(), commits: 3, files: 14, skipped: {}, large: false } } : o));
+    // The yes is never answered: the Eval is still opening.
+    let req: unknown = null;
+    at.machine.onResolve = (m) => ((req = m.yes ? m.req : req), []);
+    await folded(at);
+    if (at.wide) await agentOpen(at, 'codex');
+    else await tree(at);
+    await item(at, 'health endpoint').click();
+    await at.page.locator('.tree-acts').getByRole('button', { name: 'Eval', exact: true }).click();
+    await at.page.getByRole('dialog', { name: 'Eval this work?' }).getByRole('button', { name: 'Eval', exact: true }).click();
+    await expect.poll(() => req).not.toBeNull();
+    at.machine.send({ type: 'progress', project: 'weft', req, job: {
+      id: 'job_5', kind: 'eval_open', on: { work: 'ask_3' }, age_ms: 18_000, share: 0.2,
+      steps: [
+        { key: 'step.reading_change', state: 'now', ms: 18_000, done: 38, total: 103, unit: 'files', args: { new: '9' } },
+        { key: 'step.dividing', state: 'next' },
+        { key: 'step.preparing_readers', state: 'next' },
+        { key: 'step.starting_readers', state: 'next', args: { harness: 'claude' } },
+      ],
+    } });
+    await expect(at.page.getByRole('dialog', { name: 'Opening the Eval…' }).locator('.wait-step-count')).toHaveText('38 of 103 files · 9 of them new');
+  } })),
+  // 17.26: Seal's yes, still sealing: its steps, the files read as they are now, and the bar.
+  ...(['M17.26', 'D17.26'] as const).map((id): Screen => ({ ids: [id], sample: waiting, run: async (at) => {
+    // The act is never answered: the Seal is still under way.
+    let req: unknown = null;
+    at.machine.onAct = (m) => ((req = m.req), []);
+    await folded(at);
+    if (at.wide) await agentOpen(at, 'codex');
+    else await tree(at);
+    await item(at, 'health endpoint').click();
+    await at.page.locator('.tree-acts').getByRole('button', { name: 'Seal', exact: true }).click();
+    await at.page.getByRole('dialog', { name: 'Seal this work?' }).getByRole('button', { name: 'Seal', exact: true }).click();
+    await expect.poll(() => req).not.toBeNull();
+    at.machine.send({ type: 'progress', project: 'weft', req, job: {
+      id: 'job_7', kind: 'seal', on: { work: 'ask_3' }, age_ms: 9_000, share: 0.4,
+      steps: [
+        { key: 'step.checking_work', state: 'done', ms: 2_000 },
+        { key: 'step.reading_files_now', state: 'now', ms: 7_000, done: 8412, total: 15902, unit: 'files' },
+        { key: 'step.writing_decision', state: 'next' },
+        { key: 'step.noting_git', state: 'next' },
+      ],
+    } });
+    await expect(at.page.getByRole('dialog', { name: 'Sealing…' }).locator('.wait-step-count')).toHaveText('8,412 of 15,902 files');
+  } })),
+  // 11.14: a Seal's Details while its receipt is checked, the files counted, the rest still coming.
+  ...(['M11.14', 'D11.14'] as const).map((id): Screen => ({ ids: [id], run: async (at) => {
+    // Its facts come at once; RingFrame's check of its receipt is never answered.
+    at.machine.onRead = (m) => (m.what === 'receipt' ? { type: 'noop' } : null);
+    await tree(at);
+    const unit = item(at, 'readme fix');
+    if (at.wide) await unit.click();
+    else await unit.getByRole('button', { name: 'Details of readme fix' }).click();
+    await at.page.locator('.workflow').getByRole('button', { name: 'Seal 4', exact: true }).click();
+    at.machine.send({ type: 'progress', project: 'weft', job: {
+      id: 'job_8', kind: 'seal_check', on: { seal: 'rcp_7f3a2c' }, age_ms: 3_000, share: 0.53,
+      steps: [{ key: 'step.reading_files_now', state: 'now', ms: 3_000, done: 8412, total: 15902, unit: 'files' }],
+    } });
+    await expect(at.page.locator('.wait-fact .wait-fact-count')).toHaveText('8,412 of 15,902 files');
+  } })),
+  // 11.15: the same Seal's receipt could not be checked: why, in amber, and Try again.
+  ...(['M11.15', 'D11.15'] as const).map((id): Screen => ({ ids: [id], run: async (at) => {
+    at.machine.onRead = (m) => (m.what === 'receipt' ? { type: 'error', req: m.req, code: 'refused', message: "RingFrame could not read the Seal's record (seals/seal_01M7….json is missing)" } : null);
+    await tree(at);
+    const unit = item(at, 'readme fix');
+    if (at.wide) await unit.click();
+    else await unit.getByRole('button', { name: 'Details of readme fix' }).click();
+    await at.page.locator('.workflow').getByRole('button', { name: 'Seal 4', exact: true }).click();
+    await expect(at.page.getByRole('alert').getByRole('button', { name: 'Try again', exact: true })).toBeVisible();
+  } })),
+  // 17.27: the Eval dialog of a large change: what it reads, the amber note and Eval anyway.
+  { ids: ['D17.27'], run: async (at) => {
+    const reads = {
+      since: 'ask', when: '2026-11-08T10:00:00Z', commits: 52, files: 13852, skipped: {},
+      folder: 'research/papers/to-err-is-agentic/evidence/', folder_files: 13708, large: true,
+    };
+    const stage = staged(CODEX, 'Eval this work?', 'health endpoint · 2 Asks\nclaude reads the whole change against what you asked, and reads again only where it is unsure.\nNothing is typed into the agent’s pane.', { word: 'act.eval', warn: false });
+    at.machine.onAct = (m) => stage(m).map((o) => (o.type === 'pending' ? { ...o, reads } : o));
+    await folded(at);
+    await agentOpen(at, 'codex');
+    await item(at, 'health endpoint').click();
+    await at.page.locator('.tree-acts').getByRole('button', { name: 'Eval', exact: true }).click();
+    await expect(at.page.getByRole('dialog', { name: 'Eval this work?' }).getByRole('button', { name: 'Eval anyway', exact: true })).toBeVisible();
+  } },
   ...([['M17.4', false], ['D17.4', false], ['M17.5', true], ['D17.5', true]] as const).map(([id, why]): Screen => ({
     ids: [id],
     sample: () => withTree((t) => (t[0].work.units[1].status = { state: 'evaluated', report: reportOf('found') })),
@@ -1217,7 +1388,14 @@ const SCREENS: Screen[] = [
       await dialog.getByRole('radiogroup', { name: 'Why' }).getByRole('radio', { name: 'Not what I asked' }).click();
     },
   })),
-  ...(['M17.6', 'D17.6'] as const).map((id): Screen => ({ ids: [id], sample: judging, run: (at) => evalView(at, RUNNING) })),
+  ...(['M17.6', 'D17.6'] as const).map((id): Screen => ({ ids: [id], sample: judging, run: async (at) => {
+    await evalView(at, RUNNING);
+    // Its readers' job: each step's time, and the reads counted on the one under way.
+    at.machine.send({ type: 'progress', project: 'weft', job: { id: 'job_r', kind: 'readers', on: { work: 'ask_3', eval: 'evl_3' }, age_ms: 271_000, steps: [
+      { key: 'step.a', state: 'done', ms: 6_000 }, { key: 'step.b', state: 'now', ms: 265_000, done: 3, total: 7, unit: 'reads' }, { key: 'step.c', state: 'next' }, { key: 'step.d', state: 'next' },
+    ] } });
+    await expect(at.page.locator('.wait-step-count')).toHaveText('3 of 7 read');
+  } })),
   ...(['M17.10', 'D17.10'] as const).map((id): Screen => ({ ids: [id], sample: judging, run: async (at) => {
     at.machine.onAct = staged(CODEX, 'Stop this Eval?', 'The judges of Build account erasure stop, and the Eval is voided.', { word: 'dialog.stop_eval.go', warn: true });
     await evalView(at, RUNNING);

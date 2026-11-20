@@ -9,6 +9,8 @@ import * as m from '../machine';
 import { go, here } from '../nav';
 import { fill, reportTone, reportWord, w } from '../words';
 import { selected } from './Tree';
+import { why } from '../waits';
+import { Coming } from './Wait';
 
 /** The project whose Done list stands in the tree's place, if any. */
 export const doneOf = signal<string | null>(null);
@@ -16,10 +18,15 @@ export const doneOf = signal<string | null>(null);
 /** What was read: the rows so far, the `after` of the next page, and the search they answer. */
 const read = signal<{ rows: Done[]; next: string | null; q: string; total: number | null } | null>(null);
 const typed = signal('');
+/** Why the last page could not be read, for the search it was read for: never taken for none. */
+const failed = signal<{ q: string; why: string } | null>(null);
 
 async function load(project: string, q: string, after: string | null): Promise<void> {
   const answer = await m.request(doneRead(project, q, after));
-  if (answer?.type !== 'ok' || doneOf.value !== project || typed.value.trim() !== q.trim()) return;
+  if (doneOf.value !== project || typed.value.trim() !== q.trim()) return;
+  if (answer?.type === 'error' && answer.lost !== true) failed.value = { q, why: why(answer) };
+  if (answer?.type !== 'ok') return;
+  failed.value = null;
   const page = answer.done as { rows: Done[]; next: string | null; total?: number };
   const before = after ? read.value?.rows ?? [] : [];
   read.value = { rows: [...before, ...page.rows], next: page.next, q, total: page.total ?? null };
@@ -29,6 +36,7 @@ async function load(project: string, q: string, after: string | null): Promise<v
 export function leaveDone(): void {
   doneOf.value = null;
   read.value = null;
+  failed.value = null;
   typed.value = '';
 }
 
@@ -60,6 +68,7 @@ export function DoneList({ machine, project, wide }: { machine: Machine; project
   const section = (key: string) => (
     <div class="tree-section" role="none"><span class="tree-section-name">{w(key)}</span></div>
   );
+  const fail = failed.value?.q === q ? failed.value.why : null;
   const parked = rows.filter((d) => d.parked);
   const sealed = rows.filter((d) => !d.parked);
   return (
@@ -80,7 +89,10 @@ export function DoneList({ machine, project, wide }: { machine: Machine; project
       {parked.map((d) => <DoneRow key={d.unit} d={d} wide={wide} on={d.unit === on} onOpen={open} />)}
       {sealed.length > 0 && section('done.sealed')}
       {sealed.map((d) => <DoneRow key={d.unit} d={d} wide={wide} on={d.unit === on} onOpen={open} />)}
-      {read.value && rows.length === 0 && q && <p class="tree-next">{fill('done.none', { q })}</p>}
+      {/* Still coming: lines breathe where the rows will be; a read that failed says why. */}
+      {!fail && (!read.value || read.value.q !== q) && <div class="tree-row"><Coming lines={[70]} /></div>}
+      {fail && <p class="tree-next ask-hint" role="alert">{fill('wait.could_not_read', { why: fail })}</p>}
+      {!fail && read.value?.q === q && rows.length === 0 && q && <p class="tree-next">{fill('done.none', { q })}</p>}
       {next && <div ref={end} class="tree-more-rows" aria-hidden="true" />}
     </div>
   );

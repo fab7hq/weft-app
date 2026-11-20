@@ -25,6 +25,30 @@ export function clock(at: number): string {
   return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
 }
 
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const DAY = 24 * 60 * 60 * 1000;
+
+/** A time with its day, as an agent's row reads it, as the desktop app says
+ * one: `Today 11:29`, `Yesterday 18:40`, or its date, `Nov 12 08:15`, with
+ * the year when it is not this one, `Dec 12 2025 12:00`. `offset` is the
+ * distance from UTC, in milliseconds; a time after `now` is today. */
+export function dayTime(at: number, now: number, offset: number): string {
+  const local = at + offset;
+  const time = clock(local);
+  const days = Math.floor((now + offset) / DAY) - Math.floor(local / DAY);
+  if (days <= 0) return fill('time.today', { time });
+  if (days === 1) return fill('time.yesterday', { time });
+  const d = new Date(local);
+  const date = `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`;
+  const year = d.getUTCFullYear();
+  return year === new Date(now + offset).getUTCFullYear() ? `${date} ${time}` : `${date} ${year} ${time}`;
+}
+
+/** An agent's time with its day, on this device's clock; nothing when it has none. */
+export function agentTime(at: number, now: number = Date.now()): string {
+  return at > 0 ? dayTime(at, now, -new Date(now).getTimezoneOffset() * 60_000) : '';
+}
+
 /** At most `n` characters, ending in … when cut, as the desktop app clips. */
 export function clip(s: string, n: number): string {
   return s.length <= n ? s : `${s.slice(0, n - 1)}…`;
@@ -38,12 +62,7 @@ export function stamp(at: number): string {
 /** A day and a time, as a person reads them: `17 Nov 11:20`. */
 export function dayClock(at: number): string {
   const d = new Date(at);
-  return `${d.getUTCDate()} ${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getUTCMonth()]} ${clock(at)}`;
-}
-
-/** A weekday and a time, for a session earlier this week: `Tue 17:02`. */
-export function weekday(at: number): string {
-  return `${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][new Date(at).getUTCDay()]} ${clock(at)}`;
+  return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${clock(at)}`;
 }
 
 /** A dialog's yes button, as the machine names it. */

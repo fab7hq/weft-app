@@ -3,7 +3,8 @@
 // an item stands among the others; and a running Eval's ring of reads.
 import { describe, expect, it } from 'vitest';
 import { COLOUR, MARK, aside, chosen, pageOf, place, sections, toItem, toLines, windowsOf, type Item, type Kind, type Payload } from '../src/evalview';
-import { arcs, stepText, stepTone } from '../src/progress';
+import { evalLines } from '../src/jobs';
+import { arcs } from '../src/progress';
 
 const item = (key: string, kind: Kind, more: Partial<Item> = {}): Item => ({
   key, kind, text: key, count: 1, dots: [], again: false, head: '', big: '', why: [], sure: '', said: null, check: null, windows: [], reads: [], ...more,
@@ -75,9 +76,10 @@ describe('a running Eval', () => {
     expect(arcs(['now', 'next', 'next', 'next'])).toHaveLength(3);
   });
 
-  it('says its steps quietly: done with a tick, under way plain, still to come faint', () => {
-    expect(stepText({ name: 'What you asked', light: 'done' })).toBe('✓ What you asked');
-    expect(stepText({ name: 'Reading again where unsure', light: 'now' })).toBe('Reading again where unsure');
-    expect([stepTone('done'), stepTone('now'), stepTone('next')]).toEqual(['muted', 'text', 'faint']);
+  it('says its steps as the machine names them, each done, under way or to come, with no time before its readers\' job is heard', () => {
+    const lines = evalLines([{ name: 'What you asked', light: 'done' }, { name: 'Reading again where unsure', light: 'now' }, { name: 'Questions for your Seal', light: 'next' }], null, 0);
+    expect(lines.map((l) => [l.state, l.words, l.time, l.count])).toEqual([
+      ['done', 'What you asked', null, null], ['now', 'Reading again where unsure', null, null], ['next', 'Questions for your Seal', null, null],
+    ]);
   });
 });

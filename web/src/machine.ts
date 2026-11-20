@@ -3,10 +3,15 @@
 // machine says. The app holds no workflow rule: states, counts and pendings
 // are the machine's words.
 import type { Settings } from './settings';
+import { withPending } from './reads';
+import type { Finding, Fix } from './skip';
+import { w } from './words';
 import { computed, signal } from '@preact/signals';
 import * as api from './api';
 import { apart } from './judges';
+import { jobs } from './jobs';
 import * as store from './store';
+import { OPENING_TOLD_WITHIN, heardJobs, heardProgress, notToldAgain, save, welcomedAgain } from './waits';
 
 export interface Agent {
   agent: string;
@@ -132,6 +137,8 @@ export interface Pending {
   sends?: string | null;
   /** Its yes button, when not Send. */
   go?: import('./bar').Go | null;
+  /** An Eval's: what it will read. */
+  reads?: import('./reads').Reads | null;
 }
 
 export interface Frame {
@@ -180,6 +187,8 @@ export const resolved = signal<{ id: string; yes: boolean } | null>(null);
 export const current = signal<api.Machine | null>(null);
 /** Each open project's settings on this machine, as it last said (remote.md §6). */
 export const settings = signal<Record<string, Settings>>({});
+/** Each open project's files an Eval should skip, as the machine's read check last found them. */
+export const skips = signal<Record<string, Finding[]>>({});
 
 export const needsYou = computed(() => agents.value.filter((a) => a.turn === 'waiting').length);
 
@@ -208,6 +217,7 @@ let nextReq = 1;
 let hiddenClose: number | undefined;
 let opening: number | undefined;
 let unreachableTimer: number | undefined;
+let toldAgain: number | undefined;
 
 function wsUrl(address: string): string {
   return `${address.replace(/^https:/, 'wss:').replace(/^http:/, 'ws:').replace(/\/$/, '')}/ws`;
@@ -238,6 +248,7 @@ export function close(): void {
   unreachable.value = false;
   update.value = null;
   panes.value = 1;
+  jobs.value = {};
 }
 
 /** Not reached yet: after a while the page says it is waiting (M13.1). */
@@ -316,6 +327,8 @@ function heard(s: WebSocket, m: api.Machine, msg: Record<string, unknown>): void
       tree.value = (msg.tree as Project[]) ?? [];
       harnesses.value = (msg.harnesses as Start[]) ?? [];
       pendings.value = (msg.pendings as Pending[]) ?? [];
+      // Each open project's are said again after it.
+      skips.value = {};
       vapid.value = (msg.vapid as string | null) ?? null;
       update.value = (msg.update as { version?: string } | null)?.version ?? null;
       panes.value = typeof msg.panes === 'number' ? msg.panes : msg.split === true ? 2 : 1;
@@ -331,6 +344,10 @@ function heard(s: WebSocket, m: api.Machine, msg: Record<string, unknown>): void
       void store.get<store.Kept>('macs', m.id).then((k) => store.set('macs', m.id, { ...k, address: reached ?? undefined }));
       if (watching.size) sendWatch();
       sendSeen();
+      // What the machine is doing is said again after a welcome; what is not said by then has ended.
+      welcomedAgain();
+      clearTimeout(toldAgain);
+      toldAgain = window.setTimeout(notToldAgain, OPENING_TOLD_WITHIN);
       break;
     }
     case 'asking':
@@ -367,6 +384,12 @@ function heard(s: WebSocket, m: api.Machine, msg: Record<string, unknown>): void
     case 'tree':
       tree.value = msg.tree as Project[];
       break;
+    case 'progress':
+      heardProgress(msg);
+      break;
+    case 'jobs':
+      heardJobs(msg);
+      break;
     case 'harnesses':
       harnesses.value = msg.harnesses as Start[];
       break;
@@ -374,7 +397,10 @@ function heard(s: WebSocket, m: api.Machine, msg: Record<string, unknown>): void
       settings.value = { ...settings.value, [String(msg.project)]: msg.settings as Settings };
       break;
     case 'pending':
-      pendings.value = [...pendings.value.filter((p) => p.id !== msg.id), msg as unknown as Pending];
+      pendings.value = withPending(pendings.value, msg as unknown as Pending);
+      break;
+    case 'skip':
+      skips.value = { ...skips.value, [String(msg.project)]: (msg.findings as Finding[]) ?? [] };
       break;
     case 'resolved':
       pendings.value = pendings.value.filter((p) => p.id !== msg.id);
@@ -412,7 +438,8 @@ function ping(s: WebSocket): void {
 function lost(): void {
   clearInterval(pinger);
   clearTimeout(pongDue);
-  for (const done of waiting.values()) done({ type: 'error', code: 'unknown', message: 'Not known: the connection closed.' });
+  // `lost`: the machine may still be doing what was asked.
+  for (const done of waiting.values()) done({ type: 'error', code: 'unknown', lost: true, message: 'Not known: the connection closed.' });
   waiting.clear();
   if (!machine || link.value === 'refused') return;
   // Until it first answers, it is still connecting.
@@ -464,11 +491,14 @@ export function send(message: Record<string, unknown>): boolean {
   return true;
 }
 
+/** A request sent: its answer, and the number it went with, which the machine's job for it names. */
+export type Asked = Promise<Record<string, unknown>> & { req: number };
+
 /** A request: its answer, `ok` or `error`; not sent at all while not connected. */
-export function request(message: Record<string, unknown>): Promise<Record<string, unknown>> | null {
+export function request(message: Record<string, unknown>): Asked | null {
   const req = nextReq++;
   if (!send({ ...message, req })) return null;
-  return new Promise((done) => waiting.set(req, done));
+  return Object.assign(new Promise<Record<string, unknown>>((done) => waiting.set(req, done)), { req });
 }
 
 /** A project's settings, asked of the machine. */
@@ -490,12 +520,32 @@ export async function readSettings(project: string, what: 'rules' | 'preview' | 
 /** One setting changed on the machine, for every project or this one; every
  * device is told. What the machine would not take, it says. */
 export async function setSetting(project: string, scope: 'machine' | 'project', key: string[], value: unknown): Promise<string | null> {
-  const r = await request({ type: 'set', project, scope, key, value });
+  // Said saving while it goes; what the machine would not take stays said.
+  const r = await save(() => request({ type: 'set', project, scope, key, value }));
   if (r?.type === 'ok') {
     settings.value = { ...settings.value, [project]: r.settings as Settings };
     return null;
   }
   return r ? String(r.message ?? r.code) : null;
+}
+
+/** The project checked again for files an Eval should skip; what the machine
+ * would not do, it says. */
+export async function checkSkip(project: string): Promise<string | null> {
+  return skipAnswered(project, await request({ type: 'skip_check', project }));
+}
+
+/** A finding's line written into its file, and the project checked again. */
+export async function addSkip(project: string, fix: Fix): Promise<string | null> {
+  return skipAnswered(project, await request({ type: 'skip_add', project, file: fix.file, line: fix.line }));
+}
+
+function skipAnswered(project: string, r: Record<string, unknown> | null): string | null {
+  if (r?.type === 'ok') {
+    skips.value = { ...skips.value, [project]: (r.findings as Finding[]) ?? [] };
+    return null;
+  }
+  return r ? String(r.message ?? r.code) : w('web.why.not_connected');
 }
 
 /** Who hears what a followed agent's conversation adds (remote.md §6d). */

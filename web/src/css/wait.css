@@ -1,0 +1,107 @@
+/* Waiting and working: a breathing dot and words where the person acted;
+   past a few seconds a moving bar and the time so far. What is still coming
+   breathes where it will be; a failure is amber, with Try again. */
+@keyframes wait-breathe { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+@keyframes wait-slide { 0% { left: -30%; } 100% { left: 100%; } }
+.wait-dot { flex: none; display: inline-block; width: 8px; height: 8px; border-radius: var(--weft-radius-control); background: var(--fab7-accent); animation: wait-breathe 1.6s ease-in-out infinite; }
+.wait-bar { position: relative; display: block; height: 3px; overflow: hidden; background: var(--fab7-line); border-radius: var(--weft-radius-control); }
+.wait-bar i { position: absolute; top: 0; bottom: 0; width: 30%; background: var(--fab7-accent); border-radius: var(--weft-radius-control); animation: wait-slide 1.8s ease-in-out infinite; }
+/* Filled by how much is done, when the machine can tell. */
+.wait-bar--fill { height: 4px; }
+.wait-bar--fill b { position: absolute; top: 0; bottom: 0; left: 0; background: var(--fab7-accent); border-radius: var(--weft-radius-control); transition: width .4s ease-out; }
+.wait-bar--small { height: 3px; }
+/* A wait's steps: done ✓ teal, its words muted and its time; the one under
+   way its dot, its words, its count and its time; those to come ○ faint. */
+.wait-steps { display: flex; flex-direction: column; gap: 7px; font-size: 14px; }
+.wait-step { display: flex; align-items: flex-start; gap: 10px; min-width: 0; }
+.wait-step-mark { flex: none; width: 14px; height: 20px; display: flex; align-items: center; justify-content: center; font: 400 13px var(--font-mono); color: var(--fab7-faint); }
+.wait-step--done .wait-step-mark { color: var(--fab7-teal); }
+.wait-step--failed .wait-step-mark, .wait-step--failed .wait-step-words { color: var(--fab7-amber-text); }
+/* Its count goes under its words; in a desktop's bar, beside them, as the desktop cards draw it. */
+.wait-step-body { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; column-gap: 10px; min-height: 20px; }
+.wait-step-words { min-width: 0; overflow-wrap: anywhere; }
+.wait-step-body .spacer { flex: 1; }
+.wait-step-count { order: 5; flex-basis: 100%; }
+.wait-step--done .wait-step-words { color: var(--fab7-muted); }
+.wait-step--next .wait-step-words, .wait-step--skipped .wait-step-words { color: var(--fab7-faint); }
+.wait-step-time { flex: none; font: 400 11px var(--font-mono); color: var(--fab7-faint); }
+.wait-step-count { font-size: 12px; color: var(--fab7-muted); overflow-wrap: anywhere; }
+/* Long words wrap under themselves, never push the time off their line. */
+.wait-step-words { flex: 1 1 0; }
+.wait-step-body .spacer { display: none; }
+/* The bar's steps are a line of text each, as the cards draw them. */
+.pending-bar .wait-step-mark { height: 18px; }
+.pending-bar .wait-step-body { min-height: 18px; }
+@media (min-width: 768px) {
+  .pending-bar .wait-steps { gap: 6px; font-size: 13px; }
+  .pending-bar .wait-step-mark { height: 17px; }
+  .pending-bar .wait-step-body { min-height: 17px; }
+  /* Its count beside its words, the time at the end of the line. */
+  .pending-bar .wait-step-words { flex: none; }
+  .pending-bar .wait-step-body .spacer { display: block; }
+  .pending-bar .wait-step-count { order: 0; flex-basis: auto; }
+  .pending-bar .wait-step-fresh { color: var(--fab7-faint); }
+}
+.wait-working { display: flex; flex-direction: column; gap: 12px; }
+.wait-head { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.wait-words { flex: none; font-size: 15px; font-weight: 600; }
+.wait-about { min-width: 0; font-size: 13px; color: var(--fab7-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wait-time { flex: none; font: 400 12px var(--font-mono); color: var(--fab7-faint); }
+.wait-inline { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--fab7-muted); }
+/* On a phone what it is on goes under its words, as the cards draw it. */
+@media (max-width: 767px) {
+  .wait-head { flex-wrap: wrap; }
+  .wait-head .wait-about { order: 5; flex-basis: 100%; white-space: normal; }
+  .wait-head .wait-words { flex: 1; }
+}
+.wait-coming { display: flex; flex-direction: column; gap: 10px; padding: 4px 0; max-width: 620px; }
+.wait-line { display: block; height: 12px; border-radius: var(--weft-radius-control); background: var(--fab7-surface); animation: wait-breathe 1.6s ease-in-out infinite; }
+.wait-failed { display: flex; flex-direction: column; gap: 12px; padding: 12px 14px; border: 1px solid var(--fab7-amber); background: var(--fab7-amber-bg); border-radius: var(--weft-radius-control); max-width: 720px; }
+.wait-failed-text { font-size: 14px; line-height: 1.45; color: var(--fab7-amber-text); overflow-wrap: anywhere; }
+.wait-failed .wait-again { flex: none; border: 1px solid var(--fab7-line); }
+@media (min-width: 768px) {
+  .wait-failed { flex-direction: row; align-items: center; gap: 14px; padding: 12px 16px; }
+  .wait-failed-text { flex: 1; }
+  .wait-failed .wait-again { padding: 9px 18px; }
+}
+/* A tree row while this device works on its work: the word in the accent. */
+.work-status.working { color: var(--fab7-accent); }
+/* A Details page still coming, or failed, has its place under its bar. */
+.wait-page { display: flex; flex-direction: column; gap: 16px; padding: 20px 16px; }
+@media (min-width: 768px) { .wait-page { padding: 28px 40px; } }
+/* The receipt line of a Seal still being checked: how many files are read, and a small filling bar. */
+.wait-fact { display: flex; align-items: flex-start; gap: 12px; font-size: 14px; }
+.wait-fact > .wait-dot { margin-top: 6px; }
+.wait-fact-label { width: 96px; flex: none; color: var(--fab7-muted); }
+.wait-fact-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; max-width: 420px; }
+.wait-fact-count { font: 400 12px var(--font-mono); color: var(--fab7-muted); }
+/* On a phone it takes the receipt's row among the facts, as does why it could not be checked. */
+.fact-wait { padding: 12px 16px; border-bottom: 1px solid var(--fab7-line); }
+.detail-pane .fact-wait { padding: 12px 20px; }
+.fact-wait .wait-fact-label { font-size: 15px; color: var(--fab7-text); }
+/* On a desktop it is the receipt's line in the grid: its words, its count and the bar in one row. */
+.grid-value .wait-fact { font-size: 13px; align-items: center; }
+.grid-value .wait-fact > .wait-dot { margin-top: 0; }
+.grid-value .wait-fact-body { flex-direction: row; align-items: center; gap: 14px; max-width: none; }
+.grid-value .wait-fact-body .wait-bar { flex: none; width: 120px; }
+/* The bar's place is the working bar's while it shows. */
+#app:has(> .pending-bar) .start-bar { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .wait-dot, .wait-line { animation: none; }
+  .wait-bar i { animation-duration: 4s; }
+}
+/* The app looking who is here: its mark breathes. */
+.app.loading .mark { animation: wait-breathe 1.6s ease-in-out infinite; }
+/* A start that failed says why in amber. */
+.start-said.ask-hint { color: var(--fab7-amber-text); }
+/* Any other button sent and not answered yet works as an act does. */
+.start-button[aria-busy="true"] { position: relative; overflow: hidden; pointer-events: none; }
+.start-button[aria-busy="true"]::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.22), transparent); transform: translateX(-100%); animation: working 1s ease-in-out infinite; }
+.tree-row .wait-coming { flex: 1; padding: 0; }
+.settings-saving {
+  position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 20;
+  margin: 0; padding: 8px 14px; max-width: calc(100vw - 32px); font-size: 13px; line-height: 19px;
+  background: var(--fab7-panel); border: 1px solid var(--fab7-line); border-radius: var(--weft-radius-panel);
+}
+.sure-act[aria-busy="true"] { position: relative; overflow: hidden; pointer-events: none; }
+.sure-act[aria-busy="true"]::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.22), transparent); transform: translateX(-100%); animation: working 1s ease-in-out infinite; }

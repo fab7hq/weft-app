@@ -34,7 +34,7 @@ test('M11.8 D11.8: the box is at the top of the tree; with text it has a ✕ tha
   await expect(clear(page)).toHaveCount(0);
   await expect(row(page, 'docs')).toBeVisible();
   await expect(row(page, 'weft')).toHaveAttribute('aria-expanded', 'true');
-  await expect(row(page, '12 earlier sessions')).toBeVisible();
+  await expect(row(page, 'Earlier sessions')).toHaveAttribute('aria-expanded', 'false');
   await expect(row(page, '4 sealed earlier')).toBeVisible();
   // An emptied box restores it as well.
   await box(page).fill('health');
@@ -80,8 +80,9 @@ test('M11.8 D11.8: an earlier session that matches appears, and its group opens 
   await box(page).fill('flaky');
   await expect(row(page, 'weft')).toContainText('1 match');
   await expect(row(page, 'docs')).toHaveCount(0);
-  // Opened by the search: the session that matches, in its group's place.
-  await expect(row(page, '1 earlier session')).toHaveCount(0);
+  // Opened by the search, with how many match: the session that matches, under it.
+  await expect(row(page, 'Earlier sessions')).toHaveAttribute('aria-expanded', 'true');
+  await expect(row(page, 'Earlier sessions').locator('.tree-aside')).toHaveText('1');
   await expect(page.locator('.tree-row--past')).toHaveText([/flaky test/]);
   await expect.poll(() => reads(machine)).toEqual([expect.objectContaining({ project: 'weft', q: 'flaky' })]);
   // Its id, too; the read is sent once the typing stops, not for each key.
@@ -98,9 +99,10 @@ test('M11.8 D11.8: an earlier session that matches appears, and its group opens 
   await expect(box(page)).toHaveValue('01997a2d');
   await expect(row(page, 'codex · ci cache')).toBeVisible();
   await expect(row(page, 'docs')).toHaveCount(0);
-  // Cleared, the group is as it was: folded.
+  // Cleared, the group is as it was: folded, with all of them counted.
   await clear(page).click();
-  await expect(row(page, '12 earlier sessions')).toBeVisible();
+  await expect(row(page, 'Earlier sessions')).toHaveAttribute('aria-expanded', 'false');
+  await expect(row(page, 'Earlier sessions').locator('.tree-aside')).toHaveText('12');
   await expect(page.locator('.tree-row--past')).toHaveCount(0);
   await machine.close();
 });

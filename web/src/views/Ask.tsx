@@ -6,7 +6,8 @@ import { signal } from '@preact/signals';
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import * as m from '../machine';
 import { act, acting } from './Asked';
-import { said } from './Bar';
+import { failed } from '../waits';
+import { Asking as Checking, WorkingLine } from './Wait';
 import { askWarning, setupOf } from '../bar';
 import { destinations, keyOf, SendTo, type Dest } from './SendTo';
 import { own } from '../textkeys';
@@ -83,15 +84,20 @@ function AskForm({ asked, docked }: { asked: Asking; docked: boolean }) {
   const [refused, setRefused] = useState<{ to: string; why: string } | null>(null);
   // Which reading is the newest: an answer to any other is dropped.
   const newest = useRef(0);
+  // A reading is out: the sheet says so until it answers.
+  const [out, setOut] = useState(false);
   useEffect(() => {
     if (!project || !harness) return;
     const words = text;
     const reading = ++newest.current;
+    // A reading still out for what was before is dropped: none is out until this one goes.
+    setOut(false);
     const t = setTimeout(() => {
       // The plan picked, '' for none: Sense reads the words again within the route and plan.
       const chosen = plan === undefined ? undefined : (plan ?? '');
       const agent = to && 'agent' in to ? to.agent : undefined;
       const read = (stage: 'heads' | 'full') => m.readSettings(project, 'ask', JSON.stringify({ harness, words, route, plan: chosen, stage }), agent);
+      setOut(true);
       void readInStages(read, () => newest.current === reading, (r) => {
         const no = (r as { refused?: string } | null)?.refused;
         if (no) {
@@ -103,28 +109,33 @@ function AskForm({ asked, docked }: { asked: Asking; docked: boolean }) {
         setSheetFor(words);
         setRefused(null);
         return true;
-      });
+      }).finally(() => newest.current === reading && setOut(false));
     }, askPause(words));
     return () => clearTimeout(t);
   }, [project, harness, picked, text, route, plan]);
   // One warning: what Weft read of the harness's setup first, else the machine's refusal.
   const setup = setupOf(m.tree.value.find((p) => p.project === project), harness, to && 'agent' in to ? to.agent : undefined);
   const warning = askWarning(setup, refused?.to === picked ? refused.why : null, m.current.value?.name ?? '');
-  const reading = sensing(sheet, sheetFor, text);
+  // Sense reads the words; before any sheet has come, the first is read as Sense would be.
+  const reading = sensing(sheet, sheetFor, text) || (out && !sheet && text.trim() !== '');
+  // Read again with no Sense to say so: the acts say it is checking.
+  const checking = out && !reading && sheetFor !== text;
   // Sense's heads are in: the route shows, and Ask waits for the plan and rules.
   const pending = !reading && rulesPending(sheet);
   const askable = canAsk(sheet) && !reading && !pending;
-  // Open until the machine answers, Ask showing it is working; then the bar
-  // takes its place, or the why above the acts says what went wrong.
+  // Open until the machine answers, saying it asks; then the bar takes its
+  // place, or the sheet says what went wrong and keeps the words.
+  const [askedAt, setAskedAt] = useState<number | null>(null);
   const send = async (e: Event) => {
     e.preventDefault();
     if (!text.trim() || !to || acting.value || !askable) return;
     // A new agent is started on the machine for it, then asked once it is ready.
     const where = 'agent' in to ? { agent: to.agent } : { project, start: to.start };
     const draft = sheet ? { draft: draftOf(sheet, { plan, picked: kept }) } : {};
+    setAskedAt(Date.now());
     const refused = await act(f ? { act: 'follow_up', ...where, unit: f.unit, text, ...draft } : { act: 'ask', ...where, text, ...draft });
-    close();
-    if (refused) said.value = String(refused.message);
+    setAskedAt(null);
+    if (!refused) close();
   };
   // Every practice listed, once the person asks for more or for another rule.
   const [all, setAll] = useState(false);
@@ -139,7 +150,10 @@ function AskForm({ asked, docked }: { asked: Asking; docked: boolean }) {
   const routePick = (drafting || pending) && sheet && <RoutePick sheet={sheet} onRoute={setRoute} />;
   const addRule = drafting && !all && <button type="button" class="ask-rule-add" onClick={() => setAll(true)}>{w('ask.add_rule')}</button>;
   const hint = drafting && sheet.route === null && <span class="ask-hint">{w('ask.pick_to_ask')}</span>;
-  const warn = warning && <span class="ask-hint">{warning}</span>;
+  // Why the Ask did not go, else the one warning; asking, or checking, while that is out.
+  const warn = askedAt === null && failed.value ? <span class="ask-hint" role="alert">{failed.value}</span> : warning && <span class="ask-hint">{warning}</span>;
+  const askingLine = askedAt !== null && <WorkingLine words={w('wait.asking')} since={askedAt} />;
+  const check = checking && !askingLine && <Checking words={w('wait.checking')} />;
   const go = <button class={askable ? 'tree-act tree-act--go' : 'tree-act tree-act--go tree-act--waiting'} type="submit" aria-busy={acting.value ? true : undefined}>{w('act.ask')}</button>;
   const cancel = <button class="tree-act" type="button" onClick={close}>{w('act.cancel')}</button>;
   return (
@@ -169,12 +183,14 @@ function AskForm({ asked, docked }: { asked: Asking; docked: boolean }) {
       )}
       {reading && <Sensing />}
       {(drafting || pending) && sheet && <AskDraft sheet={sheet} harness={harness} docked={docked} pending={pending} picked={kept} all={all} onAll={setAll} onPicked={setKept} addRule={docked ? null : addRule} />}
-      {/* The warning beside the acts on a desktop, over them on a phone. */}
+      {/* The warning beside the acts on a desktop, over them on a phone; asking above them. */}
       {!docked && warn}
+      {askingLine}
       {docked ? (
         <div class="ask-row">
           {addRule}
           {warn}
+          {check}
           <span class="spacer" />
           {hint}
           {cancel}
@@ -183,6 +199,7 @@ function AskForm({ asked, docked }: { asked: Asking; docked: boolean }) {
       ) : (
         <>
           {hint}
+          {check}
           <div class="ask-acts">{cancel}{go}</div>
         </>
       )}

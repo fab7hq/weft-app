@@ -1,17 +1,20 @@
 // A machine's own settings (M9.8, M9.9, D9.8, D9.9), from Settings › Machines:
-// General (every project's Turbo, Start at login and Notifications) and
+// General (its name, every project's Turbo, Start at login and Notifications, and
+// how long ended sessions stay listed) and
 // Workflow (who runs each step, Eval's judges). And a
 // project's own settings (M9.12, D9.12), from its row's ⋯: what differs from
 // every project's. Each is the machine's, changed there at once; every device
 // is told.
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import type * as api from '../api';
 import * as m from '../machine';
 import { back, swap } from '../nav';
-import { ENTRIES, type Entry, HOW_HARD, type HowHard, type JudgeEval, KEYS, ROLES, at, differs, effortChoices, howHard, judgesIn, machineSwitch, modelChoices, reachKey, shownValue, gitNoteOn } from '../settings';
+import { ENTRIES, type Entry, HOW_HARD, type HowHard, type JudgeEval, KEEP_KEY, KEYS, ROLES, at, differs, effortChoices, howHard, judgesIn, keepDays, keepValue, machineName, machineSwitch, modelChoices, reachKey, shownValue, gitNoteOn } from '../settings';
 import { fill, w } from '../words';
 import { HarnessesTab, ProjectRingFrame, RingFrameTab, ringFrameAddable, useProjectRules, useSupported } from './RingFrameSettings';
 import { Mark } from './Tree';
+import { Coming, Saving } from './Wait';
+import { SkipSection } from './Skip';
 
 type Which = 'turbo' | 'login' | 'notify';
 type Tab = 'general' | 'workflow' | 'ringframe' | 'harnesses';
@@ -20,7 +23,7 @@ type Tab = 'general' | 'workflow' | 'ringframe' | 'harnesses';
 const ROWS: [Which, string, string][] = [
   ['turbo', 'desktop.menu.turbo', 'desktop.settings.turbo_what'],
   ['login', 'desktop.menu.login', 'web.machine.login_what'],
-  ['notify', 'desktop.settings.notify', 'web.machine.notify_what'],
+  ['notify', 'desktop.settings.notify', 'desktop.settings.notify_what'],
 ];
 
 /** The project the machine answers for: any open one says its settings. */
@@ -31,12 +34,11 @@ function useSettings(project: string | undefined) {
   return project ? m.settings.value[project] : undefined;
 }
 
-/** The page's bar: on a desktop the machine and Back, on a phone Back and the title. */
-function Bar({ wide, machine, title, backTo }: { wide: boolean; machine: string; title: string; backTo: string }) {
+/** The page's bar: on a desktop the mark and Back, on a phone Back and the title. */
+function Bar({ wide, title, backTo }: { wide: boolean; title: string; backTo: string }) {
   return wide ? (
     <div class="appbar">
       <Mark />
-      <span class="settings-machine">{machine}</span>
       <span class="spacer" />
       <button class="back" type="button" onClick={back}>{`‹ ${w('web.settings.back')}`}</button>
     </div>
@@ -96,7 +98,8 @@ function Control({ e, value, project, scope, every, judge }: { e: Entry; value: 
 export function MachineSettings({ machine, wide, tab }: { machine: api.Machine; wide: boolean; tab: Tab }) {
   const project = m.tree.value[0]?.project;
   const s = useSettings(project);
-  const name = { machine: machine.name };
+  const named = machineName(s, machine.name);
+  const name = { machine: named };
   const tabs: [Tab, string][] = [
     ['general', 'desktop.settings.tab.general'],
     ['workflow', 'desktop.settings.tab.workflow'],
@@ -105,7 +108,7 @@ export function MachineSettings({ machine, wide, tab }: { machine: api.Machine; 
   ];
   return (
     <div class="app">
-      <Bar wide={wide} machine={machine.name} title={machine.name} backTo={w('web.settings.title')} />
+      <Bar wide={wide} title={named} backTo={w('web.settings.title')} />
       <div class={`settings settings--machine${tab === 'ringframe' || tab === 'harnesses' ? ' settings--rf' : ''}`}>
         {wide && <h1 class="settings-title">{fill('web.machine.title', name)}</h1>}
         <div class="settings-tabs" role="tablist">
@@ -114,11 +117,17 @@ export function MachineSettings({ machine, wide, tab }: { machine: api.Machine; 
               onClick={() => swap({ name: 'machine', machine: machine.id, tab: t })}>{w(word)}</button>
           ))}
         </div>
+        <Saving />
         {!project ? (
           <p class="settings-sub">{fill('web.machine.no_project', name)}</p>
+        ) : !s && (tab === 'general' || tab === 'workflow') ? (
+          // Until the machine says its settings, none is shown as its default.
+          <Coming />
         ) : tab === 'general' ? (
           <>
-            <div class="fab7-group settings-group">{fill('web.machine.every_project', name)}</div>
+            <div class="fab7-group settings-group">{w('desktop.settings.this_machine')}</div>
+            <MachineName project={project} listed={machine.name} />
+            <div class="fab7-group settings-group">{w('desktop.settings.every_project')}</div>
             {ROWS.map(([which, word, what]) => {
               const on = machineSwitch(s, which);
               const id = `machine-${which}`;
@@ -137,8 +146,9 @@ export function MachineSettings({ machine, wide, tab }: { machine: api.Machine; 
                 </label>
               );
             })}
+            <KeepSessions project={project} />
             <div class="settings-foot">
-              <p>{fill('web.machine.foot', name)}</p>
+              <p>{w('web.machine.foot')}</p>
             </div>
           </>
         ) : tab === 'ringframe' ? (
@@ -159,6 +169,76 @@ export function MachineSettings({ machine, wide, tab }: { machine: api.Machine; 
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+/** A setting field that keeps what is typed: it says what applies on the machine, except while it is
+ * typed in, when a change told by the machine waits until it is left. Left, or on Enter, `keep` gets what
+ * the field holds then (a quick edit may not be drawn yet) and what applies, and sends it, or sends nothing
+ * and the field says what applies again. Once a send is answered, the field says what applies, unless it
+ * was typed in since. */
+function useSettingField(applies: () => string, keep: (text: string, applies: string) => Promise<unknown> | undefined) {
+  const said = applies();
+  const [typed, setTyped] = useState(said);
+  const editing = useRef(false);
+  useEffect(() => void (editing.current || setTyped(said)), [said]);
+  return {
+    value: typed,
+    onInput: (ev: Event) => setTyped((ev.target as HTMLInputElement).value),
+    onFocus: () => void (editing.current = true),
+    onBlur: (ev: Event) => {
+      editing.current = false;
+      const text = (ev.target as HTMLInputElement).value;
+      const sent = keep(text, applies());
+      if (!sent) return setTyped(applies());
+      void sent.then(() => setTyped((now) => (now === text ? applies() : now)));
+    },
+    onKeyDown: (ev: KeyboardEvent) => void (ev.key === 'Enter' && (ev.target as HTMLInputElement).blur()),
+  };
+}
+
+/** The machine's name: what Weft and the person's devices call it, typed and kept on Enter or
+ * leaving. Emptied, or the system's own again, it is the system's: the machine forgets it. */
+function MachineName({ project, listed }: { project: string; listed: string }) {
+  const field = useSettingField(
+    () => machineName(m.settings.value[project], listed),
+    (text, named) => {
+      const name = text.trim();
+      return name === named ? undefined : m.setSetting(project, 'machine', ['name'], name === '' ? null : name);
+    },
+  );
+  return (
+    <div class="settings-row settings-row--setting settings-machine-name">
+      <label class="settings-text" for="machine-name">
+        <span>{w('desktop.settings.name')}</span>
+        <span class="settings-sub">{w('desktop.settings.name_what')}</span>
+      </label>
+      <input id="machine-name" class="settings-input" autocomplete="off" {...field} />
+    </div>
+  );
+}
+
+/** How many days an ended session stays listed, typed and kept on Enter or leaving. Emptied, the
+ * machine's default applies again; what is not a whole number of days is not sent. */
+function KeepSessions({ project }: { project: string }) {
+  const field = useSettingField(
+    () => String(keepDays(m.settings.value[project])),
+    (text, days) => {
+      const value = keepValue(text);
+      return value === undefined || String(value) === days ? undefined : m.setSetting(project, 'machine', KEEP_KEY, value);
+    },
+  );
+  return (
+    <div class="settings-row settings-row--setting settings-keep">
+      <label class="settings-text" for="machine-keep-days">
+        <span>{w('web.machine.keep_sessions')}</span>
+        <span class="settings-sub">{w('web.machine.keep_sessions_what')}</span>
+      </label>
+      <span class="settings-days">
+        <input id="machine-keep-days" class="settings-input" type="text" inputMode="numeric" autocomplete="off" {...field} />
+        <span class="settings-unit">{w('web.machine.days')}</span>
+      </span>
     </div>
   );
 }
@@ -248,23 +328,26 @@ export function ProjectSettings({ machine, project, wide }: { machine: api.Machi
   const named = { project };
   return (
     <div class="app">
-      <Bar wide={wide} machine={machine.name} title={fill('desktop.project.title', named)} backTo={project} />
+      <Bar wide={wide} title={fill('desktop.project.title', named)} backTo={project} />
       <div class="settings settings--machine settings--project">
         {wide && <h1 class="settings-title">{fill('desktop.project.title', named)}</h1>}
         <p class="settings-sub settings-differs">{w('desktop.project.differs')}</p>
-        {shown.length === 0 && <p class="settings-sub">{fill('desktop.project.none', named)}</p>}
+        <Saving />
+        {!s && <Coming />}
+        {s && shown.length === 0 && <p class="settings-sub">{fill('desktop.project.none', named)}</p>}
         {shown.map((e) => {
           const every = at(s?.machine, e.key);
           const said = shownValue(e, every, titles);
           return <Row key={e.name} e={e} s={s?.project} project={project} scope="project" every={every === undefined ? w(said) : said} />;
         })}
         <ProjectRingFrame project={project} rules={rules} adding={adding?.startsWith('ringframe:') ? adding.slice('ringframe:'.length) : null} done={() => setAdding(null)} />
-        <GitNote project={project} on={gitNoteOn(s)} />
         <select class="settings-select settings-add" value="" onChange={(ev) => setAdding((ev.target as HTMLSelectElement).value || null)}>
           <option value="">{w('desktop.project.add')}</option>
           {addable.map((e) => <option key={e.name} value={e.name}>{label(e)}</option>)}
           {ringFrameAddable(project, rules).map(([v, words]) => <option key={v} value={v}>{words}</option>)}
         </select>
+        <SkipSection project={project} />
+        <GitNote project={project} on={gitNoteOn(s)} />
         <div class="settings-foot">
           <p class="settings-foot--wide">{fill('web.project.foot', { machine: machine.name })}</p>
           <p class="settings-foot--phone">{fill('web.project.foot_phone', { machine: machine.name })}</p>

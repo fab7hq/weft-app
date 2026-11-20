@@ -5,8 +5,9 @@
 // the machine at once.
 import { useEffect, useState } from 'preact/hooks';
 import * as m from '../machine';
-import { type JudgeEval, domainName, withDeny, withRule } from '../settings';
+import { type JudgeEval, domainName, isPractice, practicesOn, withDeny, withRule } from '../settings';
 import { fill, w } from '../words';
+import { Asking } from './Wait';
 
 const BASE = 'practices/software-development';
 type Catalog = { catalog: string; render?: { core_cap?: number }; entries: Record<string, unknown>[] };
@@ -14,8 +15,8 @@ type Rules = { domains: { domain: string; base: boolean; description?: string }[
 type Preview = { text?: string; kept?: number; left_out?: number; refused?: string };
 
 /** What a read shows until RingFrame answers: that it is asked, or why RingFrame would not say. */
-function unanswered(r: { refused?: unknown } | null): string {
-  return r?.refused ? fill('desktop.settings.refused', { why: String(r.refused) }) : w('desktop.settings.asking');
+function unanswered(r: { refused?: unknown } | null): preact.ComponentChildren {
+  return r?.refused ? <span class="ask-hint">{fill('desktop.settings.refused', { why: String(r.refused) })}</span> : <Asking words={w('desktop.settings.asking')} />;
 }
 
 export type Supported = { harness: string; title: string; version?: string | null; verified: string | null; mark: string; state: string; eval?: JudgeEval | null };
@@ -87,7 +88,7 @@ function RuleRow({ project, catalog, e, mine }: { project: string; catalog: stri
   const id = String(e.id);
   const changed = e.source !== 'shipped';
   const put = (field: string | null, value: unknown) => set(project, ['deltas', catalog, 'entries'], withRule(mine, id, field, value));
-  const host = catalog !== BASE;
+  const host = !isPractice(catalog);
   const list = (v: unknown) => (Array.isArray(v) ? v.join(', ') : '');
   const source = w(changed ? 'desktop.settings.changed' : 'desktop.settings.shipped');
   const said = host ? (changed ? source : '') : `${source} · ${String(e.tier ?? 'core')}`;
@@ -136,6 +137,32 @@ function Head({ label, act, onAct }: { label: string; act?: string; onAct?: () =
   );
 }
 
+/** One practice's rules, under its name, with + Add a rule: the first few,
+ * then how many more. The base practice's, and each one turned on. */
+function PracticeRules({ project, catalog, listed, mine }: { project: string; catalog: string; listed: Catalog | undefined; mine: unknown }) {
+  const [all, setAll] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const ruleList = listed?.entries ?? [];
+  const own = ruleList.filter((e) => String(e.id).startsWith('own.')).length;
+  const folded = !all && ruleList.length > FIRST_RULES + 1;
+  return (
+    <>
+      <Head label={fill('desktop.settings.rules', { practice: domainName(catalog.replace(/^practices\//, '')) })} act={w('desktop.settings.add_rule')} onAct={() => setAdding(!adding)} />
+      {adding && (
+        <div class="rf-row">
+          <Typed value="" placeholder={w('desktop.settings.wording')} keep={(v) => (setAdding(false), v && set(project, ['deltas', catalog, 'entries'], withRule(mine, `own.${own + 1}`, 'text', v)))} />
+        </div>
+      )}
+      {(folded ? ruleList.slice(0, FIRST_RULES) : ruleList).map((e) => <RuleRow key={String(e.id)} project={project} catalog={catalog} e={e} mine={mine} />)}
+      {folded && (
+        <button class="rf-row rf-more" type="button" onClick={() => setAll(true)}>
+          <span class="rf-name">{fill('web.settings.more_rules', { n: String(ruleList.length - FIRST_RULES) })}</span>
+        </button>
+      )}
+    </>
+  );
+}
+
 const ROUTES = ['native_plan', 'native_goal', 'native_direct'];
 const TASKS = ['implement', 'plan', 'review', 'diagnose'];
 
@@ -146,8 +173,7 @@ export function RingFrameTab({ project }: { project: string }) {
   const layer = (s?.machine?.ringframe ?? {}) as Record<string, unknown>;
   const [preview, setPreview] = useState<Preview | null>(null);
   const [shown, setShown] = useState(false);
-  const [all, setAll] = useState(false);
-  const [adding, setAdding] = useState<'rule' | 'deny' | null>(null);
+  const [adding, setAdding] = useState(false);
   const [denyOpen, setDenyOpen] = useState<number | null>(null);
   const [pick, setPick] = useState(['', 'native_plan', 'implement']);
   const hosts = (rules?.catalogs ?? []).filter((c) => !c.catalog.startsWith('practices/')).map((c) => c.catalog);
@@ -160,14 +186,12 @@ export function RingFrameTab({ project }: { project: string }) {
   }, [project, unit]);
   if (!rules?.catalogs) return <p class="settings-sub">{unanswered(rules)}</p>;
   const base = rules.catalogs.find((c) => c.catalog === BASE);
-  const entries = ((layer.deltas as Record<string, { entries?: unknown }> | undefined)?.[BASE]?.entries) as unknown;
+  const deltas = layer.deltas as Record<string, { entries?: unknown } | null> | undefined;
+  const on = practicesOn(rules.domains, deltas);
   const deny = (layer.eval as { deny?: string[] } | undefined)?.deny;
   // Nothing set: RingFrame's own list, each line changed from there.
   const listed = deny ?? rules.judges?.deny ?? [];
   const title = (h: string) => supported?.find((x) => x.harness === h)?.title ?? h;
-  const own = (base?.entries ?? []).filter((e) => String(e.id).startsWith('own.')).length;
-  const ruleList = base?.entries ?? [];
-  const folded = !all && ruleList.length > FIRST_RULES + 1;
   const kept = preview && !preview.refused
     ? fill('web.settings.preview_kept', { kept: String(preview.kept ?? 0), left_out: String(preview.left_out ?? 0) })
     : unanswered(preview);
@@ -175,12 +199,12 @@ export function RingFrameTab({ project }: { project: string }) {
     <div class="rf">
       <Head label={w('desktop.settings.practices')} />
       {rules.domains.filter((d) => !d.base).map((d) => {
-        const on = Boolean((layer.deltas as Record<string, unknown> | undefined)?.[`practices/${d.domain}`]);
+        const turned = on.includes(d.domain);
         return (
           <label key={d.domain} for={`practice-${d.domain}`} class="rf-row">
             <span class="rf-name">{domainName(d.domain)}</span>
             <span class="rf-text">{d.description ?? ''}</span>
-            <Switch id={`practice-${d.domain}`} on={on} flip={() => set(project, ['deltas', `practices/${d.domain}`], on ? null : { domain: d.domain })} />
+            <Switch id={`practice-${d.domain}`} on={turned} flip={() => set(project, ['deltas', `practices/${d.domain}`], turned ? null : { domain: d.domain })} />
           </label>
         );
       })}
@@ -191,22 +215,13 @@ export function RingFrameTab({ project }: { project: string }) {
           {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => <option key={n} value={n}>{n}</option>)}
         </select>
       </div>
-      <Head label={fill('desktop.settings.rules', { practice: domainName('software-development') })} act={w('desktop.settings.add_rule')} onAct={() => setAdding(adding === 'rule' ? null : 'rule')} />
-      {adding === 'rule' && (
+      {[BASE, ...on.map((d) => `practices/${d}`)].map((c) => (
+        <PracticeRules key={c} project={project} catalog={c} listed={rules.catalogs.find((x) => x.catalog === c)} mine={deltas?.[c]?.entries} />
+      ))}
+      <Head label={w('desktop.settings.judges')} act={w('desktop.settings.add')} onAct={() => setAdding(!adding)} />
+      {adding && (
         <div class="rf-row">
-          <Typed value="" placeholder={w('desktop.settings.wording')} keep={(v) => (setAdding(null), v && set(project, ['deltas', BASE, 'entries'], withRule(entries, `own.${own + 1}`, 'text', v)))} />
-        </div>
-      )}
-      {(folded ? ruleList.slice(0, FIRST_RULES) : ruleList).map((e) => <RuleRow key={String(e.id)} project={project} catalog={BASE} e={e} mine={entries} />)}
-      {folded && (
-        <button class="rf-row rf-more" type="button" onClick={() => setAll(true)}>
-          <span class="rf-name">{fill('web.settings.more_rules', { n: String(ruleList.length - FIRST_RULES) })}</span>
-        </button>
-      )}
-      <Head label={w('desktop.settings.judges')} act={w('desktop.settings.add')} onAct={() => setAdding(adding === 'deny' ? null : 'deny')} />
-      {adding === 'deny' && (
-        <div class="rf-row">
-          <Typed value="" placeholder={w('desktop.settings.judges')} keep={(v) => (setAdding(null), v && set(project, ['eval', 'deny'], withDeny(listed, '+', v)))} />
+          <Typed value="" placeholder={w('desktop.settings.judges')} keep={(v) => (setAdding(false), v && set(project, ['eval', 'deny'], withDeny(listed, '+', v)))} />
         </div>
       )}
       {listed.map((line, i) => (

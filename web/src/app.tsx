@@ -10,6 +10,7 @@ import { PendingBar } from './views/Asked';
 import { AskSheet } from './views/Ask';
 import { SealDialog } from './views/Seal';
 import { UndoDialog } from './views/Undo';
+import { OpeningBar, WorkingBar } from './views/Wait';
 import { sealWork } from './views/Bar';
 import { tapped } from './tapped';
 import { Details, RoundDetails, SealDetails, UnitDetails } from './views/Details';
@@ -121,7 +122,6 @@ function Asking({ name }: { name: string }) {
     <div class="app">
       <div class="appbar">
         <Mark />
-        <h1>{name}</h1>
         <span class="spacer" />
         <span class="link-pill">{w('web.link.asking')}</span>
       </div>
@@ -158,7 +158,6 @@ function Refused({ name }: { name: string }) {
       <div class="app">
         <div class="appbar">
           <Mark />
-          <h1>{name}</h1>
           <span class="spacer" />
           <span class="link-pill">{w('web.link.refused')}</span>
         </div>
@@ -181,7 +180,6 @@ function Refused({ name }: { name: string }) {
     <div class="app">
       <div class="appbar">
         <Mark />
-        <h1>{name}</h1>
         <span class="spacer" />
         <span class="link-pill">{w('web.link.refused')}</span>
       </div>
@@ -236,6 +234,8 @@ export function App() {
           {shown}
           <AskSheet />
           <PendingBar />
+          <OpeningBar />
+          <WorkingBar />
           <SealDialog />
           <UndoDialog />
         </>

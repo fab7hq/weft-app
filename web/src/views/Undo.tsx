@@ -7,17 +7,18 @@ import { useLayoutEffect, useRef, useState } from 'preact/hooks';
 import * as m from '../machine';
 import { commitCount, commitsRead, undoMessage, type Commit } from '../offers';
 import { w } from '../words';
-import { said } from './Bar';
+import { during, failed, why } from '../waits';
 
 /** The work being undone, and its commits. */
 export const undoing = signal<{ project: string; unit: string; commits: Commit[] } | null>(null);
 
-/** Read the commits Undo offers, then open its dialog. */
+/** Read the commits Undo offers, then open its dialog; why not stays said where Undo was pressed. */
 export async function undo(project: string, unit: string): Promise<void> {
   const answer = await m.request(commitsRead(project, unit));
-  if (answer?.type !== 'ok') return void (said.value = String(answer?.message ?? w('web.why.not_connected')));
+  if (answer?.type !== 'ok') return void (failed.value = answer ? why(answer) : w('web.why.not_connected'));
   const commits = (answer.commits as { commits: Commit[] }).commits;
   if (commits.some((c) => c.start)) undoing.value = { project, unit, commits };
+  else failed.value = w('wait.no_start');
 }
 
 export function UndoDialog() {
@@ -37,10 +38,10 @@ export function UndoDialog() {
     return () => removeEventListener('keydown', esc);
   }, [on?.unit]);
   if (!on || !chosen) return null;
+  // Undoing… in the bar's place until the machine answers; why not, there, after.
   const go = async () => {
-    const answer = await m.request({ type: 'act', ...undoMessage(on.project, on.unit, chosen.id) });
     close();
-    if (answer?.type === 'error') said.value = String(answer.message);
+    await during({ words: w('wait.undoing'), about: `${chosen.short} ${chosen.subject}` }, () => m.request({ type: 'act', ...undoMessage(on.project, on.unit, chosen.id) }));
   };
   return (
     <div class="pending-bar undo-bar" role="dialog" aria-label={w('dialog.undo.title')}>

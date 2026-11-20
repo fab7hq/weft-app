@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { use } from '../src/words';
-import { dayClock, why } from '../src/bar';
+import { agentTime, dayClock, dayTime, why } from '../src/bar';
 
 use(JSON.parse(readFileSync('web/public/words.json', 'utf8')));
 
@@ -73,5 +73,43 @@ describe('dayClock', () => {
   it('says a day and a time as a person reads them', () => {
     expect(dayClock(Date.UTC(2026, 10, 17, 11, 20))).toBe('17 Nov 11:20');
     expect(dayClock(Date.UTC(2026, 9, 8, 9, 5))).toBe('8 Oct 09:05');
+  });
+});
+
+describe('dayTime', () => {
+  const MIN = 60_000;
+  const DAY = 24 * 60 * MIN;
+  // 2026-10-08 12:00 UTC.
+  const NOON = 1_791_460_800_000;
+
+  it("says an agent's time with its day, as the desktop app does", () => {
+    const seven = 7 * 60 * MIN;
+    expect(dayTime(NOON + 31 * MIN, NOON + 40 * MIN, 0)).toBe('Today 12:31');
+    expect(dayTime(NOON + 31 * MIN, NOON + 40 * MIN, seven)).toBe('Today 19:31');
+    expect(dayTime(NOON - DAY, NOON, 0)).toBe('Yesterday 12:00');
+    expect(dayTime(NOON - 2 * DAY, NOON, 0)).toBe('Oct 6 12:00');
+    expect(dayTime(NOON - 9 * DAY, NOON, 0)).toBe('Sep 29 12:00');
+    expect(dayTime(NOON - 300 * DAY, NOON, 0)).toBe('Dec 12 2025 12:00');
+  });
+
+  it('counts days on the local calendar, and a time ahead of the clock as today', () => {
+    const seven = 7 * 60 * MIN;
+    // 00:00 UTC is today in UTC and yesterday at UTC-7.
+    expect(dayTime(NOON - 12 * 60 * MIN, NOON, 0)).toBe('Today 00:00');
+    expect(dayTime(NOON - 12 * 60 * MIN, NOON, -seven)).toBe('Yesterday 17:00');
+    // 23:59 UTC the day before is yesterday in UTC and today at UTC+7.
+    expect(dayTime(NOON - 12 * 60 * MIN - MIN, NOON, 0)).toBe('Yesterday 23:59');
+    expect(dayTime(NOON - 12 * 60 * MIN - MIN, NOON, seven)).toBe('Today 06:59');
+    expect(dayTime(NOON + DAY, NOON, 0)).toBe('Today 12:00');
+  });
+
+  it('carries the year across New Year', () => {
+    const newYear = Date.UTC(2027, 0, 1, 9, 0);
+    expect(dayTime(Date.UTC(2026, 11, 30, 8, 15), newYear, 0)).toBe('Dec 30 2026 08:15');
+    expect(dayTime(Date.UTC(2026, 11, 31, 8, 15), newYear, 0)).toBe('Yesterday 08:15');
+  });
+
+  it('is nothing for an agent with no time', () => {
+    expect(agentTime(0)).toBe('');
   });
 });

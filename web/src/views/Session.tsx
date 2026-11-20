@@ -8,7 +8,7 @@ import * as m from '../machine';
 import { fill, stateWord, w } from '../words';
 import { resume as again, shortId } from './Asked';
 import { said } from './Bar';
-import { AskLine, Fact, Frame, Grid, Head, moves, useRead } from './Details';
+import { AskLine, Fact, Frame, Grid, Head, Still, moves, useRead } from './Details';
 import { sealName, stateOf } from './Tree';
 
 /** A session's Details (`read session`). */
@@ -36,9 +36,10 @@ const madeIn = (n: number) => (n === 1 ? w('web.session.asks_one') : fill('web.s
 export function SessionDetails({ machine, project, session, wide = false }: { machine: Machine; project: string; session: string; wide?: boolean }) {
   const row = m.tree.value.find((p) => p.project === project)?.agents.rows.find((r) => r.session === session);
   // Read again as its row in the tree changes.
-  const d = useRead<Held>({ project, session }, 'session', [JSON.stringify(row)]);
+  const r = useRead<Held>({ project, session }, 'session', [JSON.stringify(row)]);
+  const d = r.failed ? null : r.got;
   const to = moves(machine, project);
-  if (!d) return <Frame machine={machine} project={project} label="" crumbs={[]} wide={wide} />;
+  if (!d) return <Frame machine={machine} project={project} label="" crumbs={[]} wide={wide}><Still r={r} /></Frame>;
   const live = d.state === 'running';
   // Ended when Weft on the machine stopped uncleanly, and reopened since (D13.5).
   const reopened = d.state === 'ended' && !!m.tree.value.find((p) => p.project === project)?.reopened;

@@ -21,7 +21,8 @@ test('signed in with no machine, it says how to add one', async ({ page, context
 test('signed in with one machine, it opens that machine', async ({ page, context }) => {
   await signIn(context, person('octo', [{ name: 'studio' }]));
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'studio', level: 1 })).toBeVisible();
+  await expect(page.locator('.appbar .mark')).toBeVisible();
+  await expect(page.getByRole('list', { name: 'Your machines' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: /Your machines/ })).toHaveCount(0);
 });
 
@@ -32,7 +33,8 @@ test('signed in with several, it lists them and opens the one picked', async ({ 
   const machines = page.getByRole('list', { name: 'Your machines' }).getByRole('button');
   await expect(machines).toHaveText([/studio/, /laptop/, /build-box/]);
   await machines.nth(1).click();
-  await expect(page.getByRole('heading', { name: 'laptop', level: 1 })).toBeVisible();
+  await expect(page.locator('.appbar .mark')).toBeVisible();
+  await expect(page.getByRole('list', { name: 'Your machines' })).toHaveCount(0);
   await page.goBack();
   await expect(page.getByRole('heading', { name: 'Your machines' })).toBeVisible();
   expect(new URL(page.url()).pathname).toBe('/');

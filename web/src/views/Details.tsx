@@ -3,6 +3,7 @@
 // a Seal's (M11.4, D11.4), once. Each is read from the machine; a part of the
 // record it names is a link to its own Details. On a phone a page with its
 // acts under it; on a desktop the agent's place, with Close.
+import { signal } from '@preact/signals';
 import type { ComponentChildren } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Machine } from '../api';
@@ -17,7 +18,11 @@ import { ReportSaid, evalName, sealName, stateOf } from './Tree';
 import { undo } from './Undo';
 import { Dots } from './EvalView';
 import { remedyRead, type Offer } from '../offers';
+import { failed, readOf, why, type Read } from '../waits';
+import * as J from '../jobs';
+import { Bar, Coming, Dot, FailedLine, ReadFailed } from './Wait';
 import { type EvalDetail, MARK, tint, toItem } from '../evalview';
+import { NotReadSection } from './Skip';
 
 /** The record's parts, as a work's breadcrumb names them. */
 interface Crumb {
@@ -38,29 +43,63 @@ interface Work {
   follows: string;
 }
 
-/** A Seal's Details (`read seal`), its Asks a page at a time. */
+/** A Seal's Details (`read seal`), its Asks a page at a time; whether its
+ * receipt holds is its own read. */
 interface Sealed {
   seal: string;
   n: number;
   decision: string;
   at: number | null;
   eval: { eval: string; n: number; report: m.Report | null } | null;
-  receipt: string;
-  holds: boolean | null;
-  broken: string[];
   asks: m.Ask[];
   next: string | null;
   /** How many Asks it covered, all pages. */
   total: number;
 }
 
-/** Read once, and again when `again` changes. */
-export function useRead<T>(message: Record<string, unknown>, what: string, again: unknown[] = []): T | null {
-  const [got, setGot] = useState<T | null>(null);
+/** A read as a view holds it: what it said, or why it failed; neither while
+ * it is still coming. `again` reads it again, for Try again. */
+export interface Reading<T> {
+  got: T | null;
+  failed: string | null;
+  again: () => void;
+}
+
+/** Read once, again when `again` changes, and again once connected. A read
+ * again keeps what was read until it answers; its failure stays until Try again. */
+export function useRead<T>(message: Record<string, unknown>, what: string, again: unknown[] = []): Reading<T> {
+  const [read, setRead] = useState<Read<T>>({ got: null, failed: null });
+  const [tries, setTries] = useState(0);
+  const connected = m.link.value === 'connected';
   useEffect(() => {
-    void m.request({ type: 'read', what, ...message })?.then((a) => a.type === 'ok' && setGot(a[what] as T));
-  }, [JSON.stringify(message), ...again]);
-  return got;
+    if (!connected) return;
+    let gone = false;
+    void m.request({ type: 'read', what, ...message })?.then((a) => {
+      const r = readOf<T>(a, what);
+      if (!gone && (r.got !== null || r.failed !== null)) setRead(r);
+    });
+    return () => {
+      gone = true;
+    };
+  }, [JSON.stringify(message), connected, tries, ...again]);
+  return { got: read.got, failed: read.failed, again: () => (setRead({ got: null, failed: null }), setTries((n) => n + 1)) };
+}
+
+/** A Details page before its read answers: lines breathing where it will be,
+ * or why it failed, in amber, and Try again. */
+export function Still({ r }: { r: Reading<unknown> }) {
+  if (r.failed) return <ReadFailed text={fill('wait.could_not_read', { why: r.failed })} again={r.again} />;
+  return (
+    <>
+      <Coming />
+      <Coming lines={[70, 45]} />
+    </>
+  );
+}
+
+/** Why an act did not apply, or why one failed, over a page's acts. */
+function Said() {
+  return said.value ? <p class="tree-said" role="status">{said.value}</p> : <FailedLine />;
 }
 
 /** The parts of a breadcrumb, with `›` between them; a part with a press is a link. */
@@ -133,9 +172,9 @@ export function Frame({ machine, project, label, crumbs, right, mono = false, as
         {aside && <p class="detail-prov">{aside}</p>}
         {children}
       </div>
-      {(acts || said.value) && (
+      {(acts || said.value || failed.value) && (
         <div class="detail-foot">
-          {said.value && <p class="tree-said" role="status">{said.value}</p>}
+          <Said />
           {acts && <div class="detail-acts">{acts}</div>}
         </div>
       )}
@@ -275,9 +314,22 @@ function StepRow({ n, step, to }: { n: number; step: Step; to: ReturnType<typeof
 /** An offer on sealed work. Follow up opens the Ask sheet with what the Eval
  * found already written; Undo opens its one dialog. */
 async function offer(project: string, d: Unit, o: Offer): Promise<void> {
+  if (offering.value) return;
+  offering.value = o;
+  try {
+    await offerNow(project, d, o);
+  } finally {
+    offering.value = null;
+  }
+}
+
+/** The offer read now, its button working until the machine answers. */
+const offering = signal<Offer | null>(null);
+
+async function offerNow(project: string, d: Unit, o: Offer): Promise<void> {
   if (o === 'follow_up') {
     const answer = await m.request(remedyRead(project, d.unit));
-    if (answer?.type !== 'ok') return void (said.value = String(answer?.message ?? w('web.why.not_connected')));
+    if (answer?.type !== 'ok') return void (failed.value = answer ? why(answer) : w('web.why.not_connected'));
     const r = answer.remedy as { words: string; eval: string; n: number | null };
     const from = r.n === null ? r.eval : fill('follow_up.from_eval', { n: String(r.n) });
     // First to an agent of the harness that did the work, as a follow-up from its Details goes.
@@ -290,9 +342,10 @@ async function offer(project: string, d: Unit, o: Offer): Promise<void> {
 
 /** A unit of work's Details: its workflow in order, each step opening its own Details, and the unit's acts. */
 export function UnitDetails({ machine, project, unit, wide = false }: { machine: Machine; project: string; unit: string; wide?: boolean }) {
-  const d = useRead<Unit>({ project, unit }, 'work', [JSON.stringify(m.tree.value.find((p) => p.project === project)?.work)]);
+  const r = useRead<Unit>({ project, unit }, 'work', [JSON.stringify(m.tree.value.find((p) => p.project === project)?.work)]);
+  const d = r.failed ? null : r.got;
   const to = moves(machine, project);
-  if (!d) return <Frame machine={machine} project={project} label="" crumbs={[]} wide={wide} />;
+  if (!d) return <Frame machine={machine} project={project} label="" crumbs={[]} wide={wide}><Still r={r} /></Frame>;
   const followUp = () => (asking.value = { project, follow: { unit: d.unit, title: d.title, follows: d.follows } });
   // The act its status puts forward is the primary one.
   const primary = d.status.state === 'evaluated' ? 'seal' : d.status.state === 'sealed' ? 'follow_up' : 'eval';
@@ -303,7 +356,7 @@ export function UnitDetails({ machine, project, unit, wide = false }: { machine:
     <>
       <span class="ask-eyebrow offers-eyebrow">{w('offer.after_seal')}</span>
       {d.offers!.map((o, i) => (
-        <button key={o} class={i === 0 ? 'tree-act tree-act--go' : 'tree-act'} type="button" onClick={() => void offer(project, d, o)}>{w(`offer.${o}`)}</button>
+        <button key={o} class={i === 0 ? 'tree-act tree-act--go' : 'tree-act'} type="button" aria-busy={offering.value === o || undefined} onClick={() => void offer(project, d, o)}>{w(`offer.${o}`)}</button>
       ))}
     </>
   )) : (
@@ -353,9 +406,9 @@ export function UnitDetails({ machine, project, unit, wide = false }: { machine:
         {head}
         <div class="unit-body">{flow}</div>
       </div>
-      {(acts || said.value) && (
+      {(acts || said.value || failed.value) && (
         <div class="detail-foot">
-          {said.value && <p class="tree-said" role="status">{said.value}</p>}
+          <Said />
           {acts && <div class="detail-acts">{acts}</div>}
         </div>
       )}
@@ -370,9 +423,10 @@ export function Details({ machine, project, unit, wide = false }: { machine: Mac
   // A desktop folds the Ask under its ▾ (D11.2).
   const [folded, setFolded] = useState(false);
   // Read again as the tree moves on.
-  const d = useRead<Work>({ unit }, 'detail', [JSON.stringify(m.tree.value.find((p) => p.project === project)?.work)]);
+  const r = useRead<Work>({ unit }, 'detail', [JSON.stringify(m.tree.value.find((p) => p.project === project)?.work)]);
+  const d = r.failed ? null : r.got;
   const to = moves(machine, project);
-  if (!d) return <Frame machine={machine} project={project} label="" crumbs={[]} wide={wide} />;
+  if (!d) return <Frame machine={machine} project={project} label="" crumbs={[]} wide={wide}><Still r={r} /></Frame>;
   const e = d.crumb.eval;
   const crumbs: Part[] = [{ text: d.title }];
   if (!e) crumbs.push({ text: w('web.detail.not_evaluated'), tone: 'dim' });
@@ -384,8 +438,7 @@ export function Details({ machine, project, unit, wide = false }: { machine: Mac
     } else crumbs.push({ text: w('tree.not_sealed'), tone: wide ? 'needs' : 'dim' });
   }
   const proceed = async () => {
-    const refused = await act({ act: 'proceed', unit });
-    if (refused) said.value = String(refused.message);
+    await act({ act: 'proceed', unit });
   };
   const followUp = () => (asking.value = { project, agent: d.session?.agent ?? undefined, follow: { unit, title: d.title, follows: d.follows } });
   const s = d.session;
@@ -450,10 +503,11 @@ export function Details({ machine, project, unit, wide = false }: { machine: Mac
 
 /** An Eval's Details (M11.3, D11.3): what it leaves to look at, each item opening its own detail in the Eval view; the Asks it covers; Seal. */
 export function RoundDetails({ machine, project, eval: id, wide = false }: { machine: Machine; project: string; eval: string; wide?: boolean }) {
-  const d = useRead<EvalDetail & { title?: string }>({ project, eval: id }, 'eval', [JSON.stringify(m.tree.value.find((p) => p.project === project)?.work)]);
+  const r = useRead<EvalDetail & { title?: string }>({ project, eval: id }, 'eval', [JSON.stringify(m.tree.value.find((p) => p.project === project)?.work)]);
+  const d = r.failed ? null : r.got;
   const to = moves(machine, project);
   const label = d ? evalName(d.n) : '';
-  let page: ComponentChildren = null;
+  let page: ComponentChildren = <Still r={r} />;
   let foot: ComponentChildren = null;
   if (d) {
     const where = d.judging ? <span>{w('tree.judging')}</span>
@@ -482,6 +536,7 @@ export function RoundDetails({ machine, project, eval: id, wide = false }: { mac
           </div>
         )}
         {d.asks.length > 0 && <p class="rd-covers">{d.asks.length === 1 ? fill('details.covers_one', { asks }) : fill('details.covers', { n: String(d.asks.length), asks })}</p>}
+        {d.not_read && <NotReadSection rows={d.not_read} />}
       </>
     );
     const sealWhat = d.questions === 0
@@ -509,9 +564,9 @@ export function RoundDetails({ machine, project, eval: id, wide = false }: { mac
         <button class="back" type="button" onClick={back}>{w('web.back.tree')}</button>
       </div>
       <div class="page rd rd-page" role="region" aria-label={label}>{page}</div>
-      {(foot || said.value) && (
+      {(foot || said.value || failed.value) && (
         <div class="detail-foot rd-foot-phone">
-          {said.value && <p class="tree-said" role="status">{said.value}</p>}
+          <Said />
           {foot && <div class="detail-acts rd-foot">{foot}</div>}
         </div>
       )}
@@ -519,8 +574,34 @@ export function RoundDetails({ machine, project, eval: id, wide = false }: { mac
   );
 }
 
+/** Whether a Seal's receipt still holds (`read receipt`), as RingFrame checked it. */
+interface Checked {
+  receipt: string;
+  holds: boolean | null;
+  broken: string[];
+}
+
+/** A Seal's receipt while RingFrame checks it, in its line's place: how many
+ * files are read, and a small filling bar, once the machine counts them. */
+function Checking({ project, seal, label = false }: { project: string; seal: string; label?: boolean }) {
+  const job = J.byOn(project, { seal }, ['seal_check']);
+  const step = job?.steps.find((s) => s.state === 'now') ?? null;
+  const count = step ? J.countWords(step) : null;
+  return (
+    <div class="wait-fact">
+      {label && <span class="wait-fact-label">{w('web.seal.receipt')}</span>}
+      <Dot />
+      <div class="wait-fact-body">
+        <span class="dim">{w('wait.checking_receipt')}</span>
+        {count && <span class="wait-fact-count">{count}</span>}
+        {job && <Bar share={J.filled(job)} small />}
+      </div>
+    </div>
+  );
+}
+
 /** Whether a Seal's receipt still holds (M5.8): teal when it does; when it does not, why, in amber. */
-function Holds({ d }: { d: Sealed }) {
+function Holds({ d }: { d: Checked }) {
   if (d.holds === true) return <p class="detail-line detail-line--good">{w('web.seal.holds')}</p>;
   if (d.holds === false)
     return (
@@ -534,7 +615,12 @@ function Holds({ d }: { d: Sealed }) {
 
 /** A Seal's Details (M11.4, D11.4): once, with no act; its Asks a page at a time, the next read as the last comes into view. */
 export function SealDetails({ machine, project, seal, wide = false }: { machine: Machine; project: string; seal: string; wide?: boolean }) {
-  const first = useRead<Sealed>({ project, seal }, 'seal');
+  const r = useRead<Sealed>({ project, seal }, 'seal');
+  // RingFrame checks the receipt against the work as it is now, which takes a while: the facts never wait for it.
+  const c = useRead<Checked>({ project, seal }, 'receipt');
+  const checked = c.failed ? null : c.got;
+  const unchecked = c.failed ? <ReadFailed text={fill('wait.could_not_check_receipt', { why: c.failed })} again={c.again} /> : null;
+  const first = r.failed ? null : r.got;
   const [more, setMore] = useState<{ asks: m.Ask[]; next: string | null } | null>(null);
   const end = useRef<HTMLDivElement>(null);
   const asks = [...(first?.asks ?? []), ...(more?.asks ?? [])];
@@ -556,7 +642,7 @@ export function SealDetails({ machine, project, seal, wide = false }: { machine:
   }, [next]);
   const to = moves(machine, project);
   const d = first;
-  if (!d) return <Frame machine={machine} project={project} label="" crumbs={[]} wide={wide} />;
+  if (!d) return <Frame machine={machine} project={project} label="" crumbs={[]} wide={wide}><Still r={r} /></Frame>;
   const n = d.total ?? asks.length;
   const accepted = d.decision === 'accepted';
   return (
@@ -586,9 +672,10 @@ export function SealDetails({ machine, project, seal, wide = false }: { machine:
                   <ReportSaid report={d.eval.report} />
                 </>
               )] as [string, ComponentChildren]] : []),
-              [w('web.seal.receipt'), <span class="mono">{d.receipt}</span>],
+              ...(unchecked ? [] : [[w('web.seal.receipt'), checked ? <span class="mono">{checked.receipt}</span> : <Checking project={project} seal={seal} />] as [string, ComponentChildren]]),
             ]} />
-            <Holds d={d} />
+            {unchecked}
+            {checked && <Holds d={checked} />}
           </div>
           <Head label={w('web.seal.asks')} n={n} inline />
         </>
@@ -604,7 +691,9 @@ export function SealDetails({ machine, project, seal, wide = false }: { machine:
             <ReportSaid report={d.eval.report} />
           </Fact>
         )}
-        <Fact label={w('web.seal.receipt')}><span class="mono">{d.receipt}</span></Fact>
+        {checked && <Fact label={w('web.seal.receipt')}><span class="mono">{checked.receipt}</span></Fact>}
+        {!checked && !unchecked && <div class="fact-wait"><Checking project={project} seal={seal} label /></div>}
+        {unchecked && <div class="fact-wait">{unchecked}</div>}
       </div>
       <Head label={w('web.seal.asks')} n={n} />
       </>
@@ -614,7 +703,7 @@ export function SealDetails({ machine, project, seal, wide = false }: { machine:
         {next && <div ref={end} class="tree-more-rows" aria-hidden="true" />}
       </div>
       <div class="detail-note">
-        {!wide && <Holds d={d} />}
+        {!wide && checked && <Holds d={checked} />}
         <p class="detail-line dim">{w('web.seal.final')}</p>
       </div>
     </Frame>

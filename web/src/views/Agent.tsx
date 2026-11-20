@@ -12,6 +12,7 @@ import { Screen } from './Screen';
 import { HeaderPills } from './Status';
 import { MessageRow, b64, notLive, refusal } from './Message';
 import { fill, w } from '../words';
+import { failed } from '../waits';
 import { Conversation, ViewSwitch, view } from './Conversation';
 
 /**
@@ -38,7 +39,7 @@ export function Agent({ machine, agent, embedded = false, current = true, onPick
   // Why nothing went, as the desktop app says it (M10.2); the next press clears it.
   const [mine, setSaid] = useState<string | null>(null);
   // An act's why, on a phone, where no tree bar is drawn to say it.
-  const said = mine ?? (embedded ? null : actSaid.value);
+  const said = mine ?? (embedded ? null : actSaid.value ?? failed.value);
   // A key, from the key bar, the answer strip or the screen: its refusal is said here.
   /** Send keys; the promise settles once the machine has answered. */
   const key = (bytes: number[]) => {
@@ -48,6 +49,8 @@ export function Agent({ machine, agent, embedded = false, current = true, onPick
   };
   const showHistory = async () => {
     const answer = await m.request({ type: 'read', agent, what: 'history' });
+    // Why it could not be read is said where a key's why is.
+    if (answer?.type === 'error' && answer.lost !== true) return setSaid(fill('wait.could_not_read', { why: String(answer.message ?? answer.code) }));
     if (answer?.type !== 'ok') return;
     setTranscript(typeof answer.transcript === 'string' && answer.transcript ? answer.transcript : null);
     setHistory(String(answer.text ?? ''));

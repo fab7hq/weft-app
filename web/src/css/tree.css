@@ -87,6 +87,9 @@
 .agent-at { flex: none; font: 400 11px var(--font-mono); color: var(--fab7-faint); white-space: nowrap; }
 .tree-row--earlier { height: 36px; padding-left: 32px; }
 .tree-row--earlier .tree-name { font-size: 12px; color: var(--fab7-accent); }
+/* Under the shown earlier sessions: Show 50 more, and how many are shown of all. */
+.tree-row--show-more { height: 44px; padding-left: 48px; }
+.tree-row--show-more .tree-name { color: var(--fab7-accent); }
 
 .tree-row--past { padding-left: 48px; }
 .tree-row--work { height: 36px; padding-left: 32px; }
@@ -99,7 +102,6 @@
 .work-status.needs { color: var(--fab7-amber-text); }
 .blue, .work-status.blue { color: var(--fab7-accent); }
 .faint, .work-status.faint { color: var(--fab7-faint); }
-.tree-more-rows { height: 1px; flex: none; border: 0; }
 .tree-selected { font-size: 12px; color: var(--fab7-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* The search (M11.8, D11.8): a pill above the tree, blue once it holds text. */
 .tree-search { flex: none; display: flex; align-items: center; gap: 8px; height: 38px; box-sizing: border-box; padding: 0 16px; border-bottom: 1px solid var(--fab7-line); background: var(--fab7-panel); }
@@ -113,7 +115,9 @@
 .tree-side .tree-section { height: 22px; }
 .tree-side .tree-section-name { font-size: 10px; }
 .tree-side .agent-dot { width: 10px; }
-.tree-side .tree-row--earlier { height: 30px; }
+.tree-side .tree-row--earlier { height: 36px; }
+.tree-side .tree-row--show-more { height: 32px; }
+.tree-side .tree-row--show-more .tree-name { font-size: 12px; }
 .tree-side .work-title { font-size: 13px; }
 /* A project reopened after Weft on the machine ended uncleanly (M13.5). */
 .reopened { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin: 0; padding: 12px 16px 12px 32px; background: var(--fab7-surface); border-bottom: 1px solid var(--fab7-line); }

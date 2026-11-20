@@ -1,8 +1,18 @@
 // A machine's switches, as its settings say them.
 import { describe, expect, it } from 'vitest';
-import { KEYS, gitNoteOn, machineSwitch, type Settings } from '../src/settings';
+import { KEEP_DAYS, KEEP_KEY, KEYS, gitNoteOn, keepDays, keepValue, machineName, machineSwitch, type Settings } from '../src/settings';
 
 const said = (machine: Record<string, unknown>): Settings => ({ machine, project: null, effective: {} });
+
+describe('the machine\'s name', () => {
+  it('is what its settings say, else what the account lists', () => {
+    const named = (name: unknown): Settings => ({ machine: {}, project: null, effective: { name } });
+    expect(machineName(named('Ada’s MacBook Pro'), 'studio')).toBe('Ada’s MacBook Pro');
+    expect(machineName(named(''), 'studio')).toBe('studio');
+    expect(machineName(named(7), 'studio')).toBe('studio');
+    expect(machineName(undefined, 'studio')).toBe('studio');
+  });
+});
 
 describe('a machine switch', () => {
   it('is Turbo and Start at login off, and Notifications on, until set', () => {
@@ -103,7 +113,7 @@ describe("Eval's judges", () => {
   });
 });
 
-import { domainName, withDeny, withRule } from '../src/settings';
+import { domainName, isPractice, practicesOn, withDeny, withRule } from '../src/settings';
 
 describe('RingFrame, written as RingFrame reads it', () => {
   it('sets a rule\'s field in the list that holds it, and takes an emptied rule out', () => {
@@ -124,6 +134,24 @@ describe('RingFrame, written as RingFrame reads it', () => {
   it('names a practice in words', () => {
     expect(domainName('autonomous-trading')).toBe('Autonomous trading');
   });
+
+  it('lists the practices turned on beside the base one, in RingFrame\'s order', () => {
+    const domains = [
+      { domain: 'software-development', base: true },
+      { domain: 'autonomous-trading', base: false },
+      { domain: 'machine-learning', base: false },
+    ];
+    expect(practicesOn(domains, undefined)).toEqual([]);
+    expect(practicesOn(domains, { 'practices/software-development': { entries: [] } })).toEqual([]);
+    expect(practicesOn(domains, { 'practices/machine-learning': { domain: 'machine-learning' }, 'practices/autonomous-trading': { domain: 'autonomous-trading' } })).toEqual(['autonomous-trading', 'machine-learning']);
+    // Turned off, a practice's delta is null: its section goes.
+    expect(practicesOn(domains, { 'practices/autonomous-trading': null, 'practices/machine-learning': { domain: 'machine-learning' } })).toEqual(['machine-learning']);
+  });
+
+  it('tells a practice\'s catalog from a harness\'s', () => {
+    expect(isPractice('practices/machine-learning')).toBe(true);
+    expect(isPractice('claude-code')).toBe(false);
+  });
 });
 
 describe('a project\'s Git note', () => {
@@ -133,5 +161,25 @@ describe('a project\'s Git note', () => {
     expect(gitNoteOn(project(null))).toBe(false);
     expect(gitNoteOn(project({ export: { git_note: true } }))).toBe(true);
     expect(gitNoteOn(project({ export: { git_note: false } }))).toBe(false);
+  });
+});
+
+describe('how long ended sessions stay listed', () => {
+  const keeping = (keep_days: unknown): Settings => ({ machine: {}, project: null, effective: { keep_days } });
+
+  it('is the number the machine says applies, else its default', () => {
+    expect(keepDays(keeping(30))).toBe(30);
+    expect(keepDays(keeping(0))).toBe(0);
+    expect(KEEP_DAYS).toBe(7);
+    for (const s of [undefined, keeping(undefined), keeping('30'), keeping(-1), keeping(2.5)]) expect(keepDays(s)).toBe(KEEP_DAYS);
+    expect(KEEP_KEY).toEqual(['sessions', 'keep_days']);
+  });
+
+  it('sets a whole number of days, the default again when emptied, and nothing else', () => {
+    expect(keepValue('14')).toBe(14);
+    expect(keepValue(' 0 ')).toBe(0);
+    expect(keepValue('')).toBeNull();
+    expect(keepValue('   ')).toBeNull();
+    for (const bad of ['-1', '2.5', 'seven', '7d', '1e3', '99999999999999999999']) expect(keepValue(bad)).toBeUndefined();
   });
 });

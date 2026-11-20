@@ -14,6 +14,8 @@ import { fill, w } from '../words';
 import { acting } from './Asked';
 import { sealRound } from './Bar';
 import { useRead } from './Details';
+import { readOf } from '../waits';
+import { Coming, ReadFailed } from './Wait';
 import { Reading, Running, StopEval } from './Running';
 import { evalName } from './Tree';
 
@@ -127,17 +129,33 @@ function LinesOf({ v, item, wide, backTo }: { v: Payload; item: Item; wide: bool
 
 export function EvalView({ machine, project, eval: id, at, wide = false }: { machine: Machine; project: string; eval: string; at?: string; wide?: boolean }) {
   const [v, setV] = useState<Payload | null>(null);
+  // Why it could not be read: said where it would be, until Try again.
+  const [failed, setFailed] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
+  const connected = m.link.value === 'connected';
   useEffect(() => {
-    void m.request({ type: 'read', what: 'eval_view', project, eval: id })?.then((a) => a.type === 'ok' && setV(a.eval_view as Payload));
-  }, [id, tick]);
+    if (!connected) return;
+    let gone = false;
+    void m.request({ type: 'read', what: 'eval_view', project, eval: id })?.then((a) => {
+      const r = readOf<Payload>(a, 'eval_view');
+      if (gone) return;
+      if (r.got) (setV(r.got), setFailed(null));
+      else if (r.failed) setFailed(r.failed);
+    });
+    return () => {
+      gone = true;
+    };
+  }, [id, tick, connected]);
   // While the Eval runs, read it again as the reads come back.
   useEffect(() => {
-    if (!v || v.closed) return;
+    if (!v || v.closed || failed) return;
     const t = setTimeout(() => setTick((n) => n + 1), 2000);
     return () => clearTimeout(t);
   }, [v]);
-  const d = useRead<EvalDetail>({ project, eval: id }, 'eval', [v?.closed]);
+  const again = () => (setFailed(null), setTick((n) => n + 1));
+  // Until it is read, lines breathe where it will be; a read that failed says why.
+  const still = failed ? <ReadFailed text={fill('wait.could_not_read', { why: failed })} again={again} /> : !v && <Coming />;
+  const d = useRead<EvalDetail>({ project, eval: id }, 'eval', [v?.closed]).got;
   const page = pageOf(at);
   const running = !!v && !v.closed && !!v.progress;
   const to = (where: string, push: boolean) => (push ? go : swap)({ name: 'eval', machine: machine.id, project, eval: id, at: where });
@@ -161,15 +179,16 @@ export function EvalView({ machine, project, eval: id, at, wide = false }: { mac
     let right: ComponentChildren = null;
     if (v && page.name === 'lines' && item) right = <LinesOf v={v} item={item} wide backTo={() => to(toItem(item.key), false)} />;
     else if (v && item) right = <Detail key={item.key} item={item} lines={() => to(toLines(item.key), false)} />;
-    else if (v?.progress && running) right = <Running machine={machine} eval={id} progress={v.progress} wide />;
+    else if (v?.progress && running) right = <Running machine={machine} project={project} eval={id} progress={v.progress} wide />;
     return (
       <div class="detail-pane ev ev--wide" role="region" aria-label={w('act.eval_view')}>
         <div class="ev-body">
           <div class="ev-side">
             <div class="ev-crumb">{crumb}</div>
-            {v && <List v={v} on={key} chevrons={false} open={(k) => to(toItem(k), false)} />}
+            {v && !failed && <List v={v} on={key} chevrons={false} open={(k) => to(toItem(k), false)} />}
+            {still}
           </div>
-          <div class="ev-pane">{right}</div>
+          <div class="ev-pane">{failed ? null : right}</div>
         </div>
         <div class="detail-acts ev-foot">
           <button class="ev-close" type="button" onClick={leaveView}>{w('act.close')}</button>
@@ -182,8 +201,8 @@ export function EvalView({ machine, project, eval: id, at, wide = false }: { mac
 
   // A phone: the list, then each item on its own page, then its lines.
   let top: ComponentChildren = crumb;
-  let body: ComponentChildren = null;
-  const item = v && page.name !== 'list' ? v.items.find((i) => i.key === page.key) ?? null : null;
+  let body: ComponentChildren = still;
+  const item = !failed && v && page.name !== 'list' ? v.items.find((i) => i.key === page.key) ?? null : null;
   if (v && item && page.name === 'item') {
     const { k, n } = place(v.items, item);
     top = (
@@ -197,7 +216,7 @@ export function EvalView({ machine, project, eval: id, at, wide = false }: { mac
   } else if (v && item && page.name === 'lines') {
     top = <button class="back ev-back ev-back--long" type="button" onClick={back}>{`‹ ${item.text}`}</button>;
     body = <LinesOf v={v} item={item} wide={false} />;
-  } else if (v) {
+  } else if (v && !failed) {
     const open = (k: string) => {
       opened.value = { ...opened.value, [id]: k };
       to(toItem(k), true);
@@ -205,7 +224,7 @@ export function EvalView({ machine, project, eval: id, at, wide = false }: { mac
     const small = running && !v.waiting;
     body = (
       <>
-        {running && v.progress && <Running machine={machine} eval={id} progress={v.progress} wide={false} small={small} />}
+        {running && v.progress && <Running machine={machine} project={project} eval={id} progress={v.progress} wide={false} small={small} />}
         <div class={running && v.waiting ? 'ev-under' : undefined}>
           <List v={v} on={running ? null : opened.value[id] ?? null} chevrons={!running} open={open} />
         </div>

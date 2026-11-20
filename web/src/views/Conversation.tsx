@@ -9,6 +9,8 @@ import { clock } from '../bar';
 import { Markdown } from './Markdown';
 import { Held, type Item, type Laid, type Place, type Row, type Step, gone, placeOf, rows, scrollFor, spans } from '../conversation';
 import { fill, w } from '../words';
+import { readOf } from '../waits';
+import { Coming, ReadFailed } from './Wait';
 
 type View = 'terminal' | 'conversation';
 
@@ -125,6 +127,11 @@ export function Conversation({ agent, wide }: { agent: string; wide: boolean }) 
   const held = useMemo(() => new Held(), [agent]);
   const [items, setItems] = useState<Item[]>([]);
   const [readable, setReadable] = useState<boolean | null>(null);
+  // Why the first page, or an older one, could not be read; Try again reads it again.
+  const [failed, setFailed] = useState<{ why: string; older: boolean } | null>(null);
+  const [tries, setTries] = useState(0);
+  // An older page is being read: lines breathe above the chat.
+  const [paging, setPaging] = useState(false);
   const before = useRef<string | null>(null);
   const reading = useRef(false);
   const box = useRef<HTMLDivElement>(null);
@@ -145,8 +152,12 @@ export function Conversation({ agent, wide }: { agent: string; wide: boolean }) 
     const newest = async () => {
       const answer = await m.request({ type: 'read', what: 'conversation', agent });
       if (gone) return;
-      const page = answer?.type === 'ok' ? (answer.conversation as Record<string, unknown>) : null;
-      if (!page || page.readable !== true) {
+      // A read that failed is not a conversation that cannot be shown: it says why.
+      const r = readOf<Record<string, unknown>>(answer, 'conversation');
+      if (r.failed) return setFailed({ why: r.failed, older: false });
+      if (!r.got) return;
+      const page = r.got;
+      if (page.readable !== true) {
         setReadable(false);
         m.unfollow(agent);
         return;
@@ -157,6 +168,7 @@ export function Conversation({ agent, wide }: { agent: string; wide: boolean }) 
       atEnd.current = wanted.current === null;
       setItems(held.all());
       setReadable(true);
+      setFailed(null);
       if (typeof page.after === 'string') m.follow(agent, page.after);
     };
     const stop = m.hear((msg) => {
@@ -172,14 +184,19 @@ export function Conversation({ agent, wide }: { agent: string; wide: boolean }) 
       stop();
       m.unfollow(agent);
     };
-  }, [agent, connected]);
+  }, [agent, connected, tries]);
 
-  const older = async () => {
-    if (reading.current || !before.current) return;
+  // A page that failed is read again only on Try again (`retry`).
+  const older = async (retry = false) => {
+    if (reading.current || !before.current || (failed && !retry)) return;
     reading.current = true;
+    setPaging(true);
     const answer = await m.request({ type: 'read', what: 'conversation', agent, before: before.current });
     reading.current = false;
-    const page = answer?.type === 'ok' ? (answer.conversation as Record<string, unknown>) : null;
+    setPaging(false);
+    const r = readOf<Record<string, unknown>>(answer, 'conversation');
+    if (r.failed) return setFailed({ why: r.failed, older: true });
+    const page = r.got;
     if (!page || page.readable !== true) return;
     from.current = box.current ? box.current.scrollHeight - box.current.scrollTop : null;
     held.before((page.items as Item[]) ?? []);
@@ -228,6 +245,23 @@ export function Conversation({ agent, wide }: { agent: string; wide: boolean }) 
     measure();
   }, [items, readable, a?.turn]);
 
+  const again = () => {
+    const was = failed;
+    setFailed(null);
+    if (was?.older) void older(true);
+    else setTries((n) => n + 1);
+  };
+  const failure = failed && <ReadFailed text={fill('wait.could_not_read', { why: failed.why })} again={again} />;
+  // The first page still coming, or failed: said where the chat will be.
+  if (readable === null) {
+    return (
+      <div class={wide ? 'convo convo--wide' : 'convo'}>
+        <div class="convo-scroll">
+          <div class="convo-column">{failure || <Coming />}</div>
+        </div>
+      </div>
+    );
+  }
   if (readable === false) {
     return (
       <div class={wide ? 'convo convo--wide' : 'convo'}>
@@ -242,6 +276,8 @@ export function Conversation({ agent, wide }: { agent: string; wide: boolean }) 
     <div class={wide ? 'convo convo--wide' : 'convo'}>
       <div class="convo-scroll" ref={box} onScroll={measure}>
         <div class="convo-column">
+          {paging && <Coming lines={[60, 40]} />}
+          {failed?.older && failure}
           {all.map((row) =>
             row.kind === 'steps' ? <Steps key={row.id} id={row.id} steps={row.steps} wide={wide} /> : <Message key={row.id} row={row} harness={harness} waiting={Boolean(waiting) && row.id === lastAgent} />,
           )}

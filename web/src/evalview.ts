@@ -4,6 +4,7 @@
 // which item is chosen and where it stands among the others.
 import type { Ask, Report, Why } from './machine';
 import type { Progress } from './progress';
+import type { NotRead } from './skip';
 
 export type Kind = 'before' | 'look' | 'unsettled' | 'settled';
 
@@ -130,4 +131,6 @@ export interface EvalDetail {
   asks: Ask[];
   sealed: { seal: string; n: number } | null;
   seal: Why | null;
+  /** What its readers counted and did not read, by kind and folder. */
+  not_read?: NotRead[];
 }

@@ -12,7 +12,7 @@ import * as A from '../answering';
 import { DISPOSITIONS, questionsRead, reasonsFor, sealMessage, type Disposition } from '../seal';
 import { fill, w } from '../words';
 import { act } from './Asked';
-import { said } from './Bar';
+import { Dot } from './Wait';
 
 /** The Seal being decided: the work or the Eval it seals, and what the dialog says of it. */
 export const sealing = signal<{
@@ -42,14 +42,16 @@ const tone = (t: A.Tone) => {
 /** A word as a button says it: its first letter capital. */
 const capital = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-/** The questions as far as they are known: being read, none, or being answered. */
-type Questions = 'reading' | null | A.Answering;
+/** The questions as far as they are known: being read, none, being answered, or why they could not be read. */
+type Questions = 'reading' | null | A.Answering | { failed: string };
 
 export function SealDialog() {
   const on = sealing.value;
   const [disposition, setDisposition] = useState<Disposition>('accepted');
   const [reason, setReason] = useState<string | null>(null);
   const [questions, setQuestions] = useState<Questions>('reading');
+  // Try again reads the questions again.
+  const [tries, setTries] = useState(0);
   // The own-words field, and since when the question shown is shown.
   const [words, setWords] = useState('');
   const shownAt = useRef(0);
@@ -81,6 +83,8 @@ export function SealDialog() {
     const read = m.request(questionsRead(on.project, on.eval ?? on.unit ?? '')) ?? Promise.resolve(null);
     void read.then((answer) => {
       if (gone || sealing.value !== on) return;
+      // A read that failed says why, and is never taken for no questions.
+      if (answer?.type === 'error' && answer.lost !== true) return setQuestions({ failed: fill('wait.could_not_read', { why: String(answer.message ?? answer.code) }) });
       const read = answer?.type === 'ok' ? (answer.questions as { questions?: A.Question[] } | undefined)?.questions : undefined;
       if (read?.length) show(A.start(read));
       else setQuestions(null);
@@ -88,16 +92,17 @@ export function SealDialog() {
     return () => {
       gone = true;
     };
-  }, [on]);
+  }, [on, tries]);
   if (!on) return null;
   const { project, unit, eval: eval_ } = on;
-  const answers = questions && questions !== 'reading' ? A.sealAnswers(questions) : null;
+  const answers = questions && questions !== 'reading' && !('failed' in questions) ? A.sealAnswers(questions) : null;
   const seal = async () => {
     // The Seal goes with every answer, or not at all.
     if (questions === 'reading' || (questions && !answers)) return;
     close();
-    const refused = await act(sealMessage({ project, ...(unit ? { unit } : {}), ...(eval_ ? { eval: eval_ } : {}) }, disposition, reason, answers), null);
-    if (refused) said.value = String(refused.message);
+    // Sealing… in the bar's place, and on its work's row, until the machine answers; why not, there, after.
+    const shows = { words: w('wait.sealing'), about: `${on.title} · ${w(`seal.d.${disposition}`)}`, unit, row: 'wait.row_sealing' };
+    await act(sealMessage({ project, ...(unit ? { unit } : {}), ...(eval_ ? { eval: eval_ } : {}) }, disposition, reason, answers), null, undefined, shows);
   };
   const pick = (d: Disposition) => {
     setDisposition(d);
@@ -112,10 +117,27 @@ export function SealDialog() {
           <span class="pending-what">{w('dialog.seal.title')}</span>
           <span class="pending-into">{work}</span>
         </div>
-        <p class="pending-why" aria-busy="true">{w('seal.q.reading')}</p>
+        <p class="pending-why wait-inline" aria-busy="true"><Dot />{w('seal.q.reading')}</p>
         <div class="pending-acts">
           <span class="spacer" />
           <button type="button" class="tree-act" onClick={close}>{w('act.cancel')}</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (questions && 'failed' in questions) {
+    return (
+      <div class="pending-bar seal-bar" role="dialog" aria-label={w('dialog.seal.title')}>
+        <div class="pending-head">
+          <span class="pending-what">{w('dialog.seal.title')}</span>
+          <span class="pending-into">{work}</span>
+        </div>
+        <p class="pending-why ask-hint" role="alert">{questions.failed}</p>
+        <div class="pending-acts">
+          <span class="spacer" />
+          <button type="button" class="tree-act" onClick={close}>{w('act.cancel')}</button>
+          <button type="button" class="tree-act tree-act--go" onClick={() => (setQuestions('reading'), setTries((n) => n + 1))}>{w('wait.try_again')}</button>
         </div>
       </div>
     );

@@ -125,13 +125,30 @@ test('M6.5 D6.5: an item\'s lines, numbered, the quoted ones brighter, and back 
 });
 
 test('M6.7 D6.7 M17.6 D17.6: while it runs, a ring of reads, its steps, and the list as it fills in', async ({ page, context }) => {
-  const { view } = await opened(page, context, [RUNNING, STILL]);
+  const { machine, view } = await opened(page, context, [RUNNING, STILL]);
   // Before the first read: the question from an earlier Seal, and the rest to come.
   await expect(view.locator('.ev-arc')).toHaveCount(3);
   await expect(view.locator('.ev-arc.ev-breathe')).toHaveCount(1);
   await expect(view.getByText('1st read')).toBeVisible();
   await expect(view.getByText('The rest appear here when the first read is in.')).toBeVisible();
-  await expect(view.locator('.ev-step')).toHaveText(['✓ What you asked', 'Reading the change, all of it at once', 'Reading again where unsure, if needed', 'Questions for your Seal, if needed']);
+  const steps = view.locator('.wait-step');
+  await expect(steps.locator('.wait-step-words')).toHaveText(['What you asked', 'Reading the change, all of it at once', 'Reading again where unsure, if needed', 'Questions for your Seal, if needed']);
+  expect(await steps.evaluateAll((all) => all.map((s) => s.getAttribute('data-state')))).toEqual(['done', 'now', 'next', 'next']);
+  // Its readers' job: each step's time, and the reads counted on the one under way.
+  machine.send({
+    type: 'progress', project: 'weft',
+    job: { id: 'job_r', kind: 'readers', on: { work: 'ask_3', eval: 'evl_3' }, age_ms: 277_000, steps: [
+      { key: 'step.a', state: 'done', ms: 6_000 }, { key: 'step.b', state: 'now', ms: 271_000, done: 3, total: 7, unit: 'reads' },
+      { key: 'step.c', state: 'next' }, { key: 'step.d', state: 'next' },
+    ] },
+  });
+  await expect(steps.nth(1).locator('.wait-step-count')).toHaveText('3 of 7 read');
+  await expect(steps.nth(0).locator('.wait-step-time')).toHaveText('0:06');
+  await expect(steps.nth(1).locator('.wait-step-time')).toHaveText(/^4:3\d$/);
+  await expect(steps.nth(2).locator('.wait-step-time')).toHaveCount(0);
+  // Its reader, and how long it has read.
+  machine.send({ type: 'agents', agents: [...machine.agents, { agent: 'p9', project: 'weft', harness: 'claude', title: '', turn: 'working', running: true, since: Date.now() - 252_000, judge: 'evl_3' }] });
+  await expect(view.locator('.ev-watch')).toHaveText(/^claude is reading · 4:1\d · Watch ›$/);
   await expect(page.getByRole('button', { name: 'Stop Eval' })).toBeVisible();
   // The first read in: the list fills in, two are read again.
   await expect(view.getByText('2nd read')).toBeVisible({ timeout: 5000 });

@@ -47,6 +47,29 @@ main:has(> .ask-panel--docked) > :not(.ask-panel) { flex: 1; min-height: 0; heig
 .pending-head .pending-what { flex: 1; min-width: 0; }
 .pending-into, .pending-why { font-size: 13px; color: var(--fab7-muted); }
 .pending-why { margin: 0; }
+/* An Eval's Read by: its label, the harness to pick, and why it starts there; the note goes under them when the row is too narrow. */
+.pending-read { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: 13px; }
+.pending-read-label { color: var(--fab7-muted); }
+.pending-read-pick { max-width: 100%; font-weight: 600; }
+.pending-read-note { min-width: 0; color: var(--fab7-faint); overflow-wrap: anywhere; }
+/* On a phone, Read by is one box: the label, who reads, why, and ▾. */
+@media (max-width: 767px) {
+  .pending-read { flex-wrap: nowrap; min-height: 44px; padding: 0 12px; font-size: 14px; background: var(--fab7-surface); border: 1px solid var(--fab7-line); border-radius: var(--weft-radius-control); }
+  .pending-read::after { content: '▾'; flex: none; margin-left: auto; color: var(--fab7-muted); }
+  .pending-read .pending-read-pick { flex: none; max-width: 50%; padding: 0; border: 0; background: none; appearance: none; -webkit-appearance: none; font-size: 14px; font-weight: 600; }
+  .pending-read-note { flex: 1; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}
+/* An Eval's Reads: what it reads and since when; what is counted, not read, under it. */
+.pending-reads { display: flex; gap: 10px; font-size: 13px; line-height: 1.45; }
+.pending-reads-label { flex: none; color: var(--fab7-muted); }
+.pending-reads-what { min-width: 0; overflow-wrap: anywhere; }
+.pending-reads-since { color: var(--fab7-muted); }
+.pending-reads-skipped { display: block; font-size: 12px; color: var(--fab7-faint); }
+.pending-reads-before { color: var(--fab7-faint); }
+/* A large change: amber, where most of it is, and what makes the next one smaller. */
+.pending-large { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; background: var(--fab7-amber-bg); border: 1px solid var(--fab7-amber); border-radius: var(--weft-radius-control); font-size: 13px; line-height: 1.45; }
+.pending-large-title { font-weight: 600; color: var(--fab7-amber-text); }
+.pending-large-line { color: var(--fab7-muted); overflow-wrap: anywhere; }
 .pending-text { margin: 0; padding: 10px; border: 1px solid var(--fab7-line); background: var(--fab7-void); font: 400 12px/18px var(--font-mono); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 30vh; overflow: auto; border-radius: var(--weft-radius-control); }
 .pending-acts { display: flex; gap: 10px; align-items: center; }
 .pending-acts .spacer { display: none; }
@@ -71,6 +94,9 @@ main:has(> .ask-panel--docked) > :not(.ask-panel) { flex: 1; min-height: 0; heig
   .pending-acts .tree-act { flex: none; padding: 9px 18px; }
   .pending-acts:has(> .pending-warn) { flex-wrap: nowrap; }
   .pending-warn { flex-basis: auto; }
+  .pending-reads-label { width: 64px; }
+  .pending-reads-skipped { display: inline; margin-left: 10px; }
+  .pending-reads-skipped::before { content: "· "; }
 }
 
 /* The draft (17.1): ROUTE and PLAN, then the route's rules and the practices, each a line. */

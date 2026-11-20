@@ -119,7 +119,7 @@ const ASKS: Record<Leave, [ask: string, what: string, cost: Cost]> = {
 /** The confirmation for one way of leaving; Proceed leaves. */
 function Leaving({ how, login, onClose }: { how: Leave; login: string; onClose: () => void }) {
   const [ask, what, cost] = ASKS[how];
-  return <Confirm question={w(ask)} what={fill(what, { login })} cost={cost} onProceed={() => void leave(how)} onClose={onClose} />;
+  return <Confirm question={w(ask)} what={fill(what, { login })} cost={cost} onProceed={() => leave(how)} onClose={onClose} />;
 }
 
 /** Leave: sign out here or everywhere, forget this device, delete the account. */
@@ -202,7 +202,6 @@ export function MenuButton({ login }: { login: string }) {
 
 /** Settings (M9.1, D9.2): the phone's whole page; on a desktop what the menu does not hold. */
 export function Settings({ login, wide }: { login: string; wide: boolean }) {
-  const machine = m.current.value;
   const [name, setName, keep] = useName();
   const [asking, setAsking] = useState<Leave | null>(null);
   const leaving = (how: Leave, word: string, cost = '') => (
@@ -213,7 +212,6 @@ export function Settings({ login, wide }: { login: string; wide: boolean }) {
       {wide ? (
         <div class="appbar">
           <Mark />
-          {machine && <span class="settings-machine">{machine.name}</span>}
           <span class="spacer" />
           <button class="back" type="button" onClick={back}>{`‹ ${w('web.settings.back')}`}</button>
         </div>

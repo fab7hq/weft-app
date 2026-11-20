@@ -175,7 +175,6 @@ export function Wide({ login, machine, agent, starting = null, view }: { login: 
         {/* The list hides only beside an agent; with none open it is the page (D15.7). */}
         {agent !== null && <ListToggle />}
         <Mark />
-        <h1>{machine.name}</h1>
         <span class="spacer" />
         <HeaderPills machine={machine} />
         <MenuButton login={login} />

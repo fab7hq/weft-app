@@ -5,12 +5,14 @@ import { effect, signal } from '@preact/signals';
 import type { Machine } from '../api';
 import * as m from '../machine';
 import { here } from '../nav';
-import { clock, isSetup, sentence as sentenceOn } from '../bar';
+import { agentTime, isSetup, sentence as sentenceOn } from '../bar';
 import { asking } from './Ask';
-import { act, acting } from './Asked';
+import { act, acting, reading } from './Asked';
 import { chosen, stateOf, unready, type Chosen } from './Tree';
 import { fill, w } from '../words';
 import { sealing } from './Seal';
+import { failed } from '../waits';
+import { FailedLine } from './Wait';
 
 /** The pane is active: it has the keys, and a wheel or a finger scrolls its history. */
 export const paneActive = signal(false);
@@ -88,11 +90,15 @@ export async function sealOn(): Promise<void> {
 /** What Weft read of the harness's setup, said in the act's dialog; null for any other why. */
 const warning = (why: m.Why | null) => (isSetup(why) ? sentence(why) : null);
 
-/** Eval this unit of work, unless the machine said why not; what Weft reads of the harness's setup only warns, in its dialog. */
+/** Eval this unit of work, unless the machine said why not; what Weft reads of the harness's setup only warns, in its dialog.
+ * The project's settings are read again with it: its Read by starts where they route Evals. */
 export async function evalWork(project: string, unit: string, why: m.Why | null): Promise<void> {
   if (why && !isSetup(why)) return void (said.value = sentence(why));
-  const refused = await act({ act: 'eval', project, unit }, warning(why));
-  if (refused) said.value = String(refused.message);
+  void m.askSettings(project);
+  const fallback = m.tree.value.find((p) => p.project === project)?.work.units.find((u) => u.unit === unit)?.harness ?? '';
+  const staged = (pending: string) => (reading.value = { pending, project, unit, fallback, warning: warning(why), first: null, pick: null });
+  // Its refusal stays said where it was pressed, until the person acts again.
+  await act({ act: 'eval', project, unit }, warning(why), staged);
 }
 
 /** Seal this unit of work, in its one dialog, unless the machine said why not; a setup why warns in the dialog. */
@@ -108,11 +114,11 @@ export async function sealRound(project: string, eval_: string, why: m.Why | nul
   sealing.value = { project, eval: eval_, ...of, warning: warning(why) };
 }
 
-/** The selection as the desktop's bar names it: `claude · 11:29`, `health endpoint`. */
+/** The selection as the desktop's bar names it: `claude · Today 11:29`, `health endpoint`. */
 function named(s: Chosen): string {
   switch (s.kind) {
     case 'agent':
-      return `${s.row.harness} · ${s.row.state === 'running' ? clock(s.row.at) : s.row.state === 'ended' ? `${w('state.ended')} ${clock(s.row.at)}` : stateOf(s.row)}`;
+      return `${s.row.harness} · ${s.row.state === 'running' ? agentTime(s.row.at) : s.row.state === 'ended' ? `${w('state.ended')} ${agentTime(s.row.at)}` : stateOf(s.row)}`;
     case 'work':
       return s.row.title;
   }
@@ -133,7 +139,7 @@ export function TreeBar({ machine, wide }: { machine: Machine; wide: boolean }) 
   const put = (act: 'eval' | 'seal') => (next === act ? ` tree-act--put-${act}` : '');
   return (
     <div class={wide ? 'tree-bar tree-bar--wide' : 'tree-bar'}>
-      {said.value ? <p class="tree-said" role="status">{said.value}</p> : told && <p class="tree-said" role="status">{told}</p>}
+      {said.value ? <p class="tree-said" role="status">{said.value}</p> : failed.value ? <FailedLine /> : told && <p class="tree-said" role="status">{told}</p>}
       <div class="tree-acts" onPointerDown={(e) => inPane && e.preventDefault()}>
         <button class="tree-act" type="button" onClick={askOn}>{w('act.ask')}</button>
         <button class={`tree-act${put('eval')}`} type="button" aria-busy={acting.value === 'eval' || undefined} onClick={() => void evalOn()}>{w('act.eval')}</button>

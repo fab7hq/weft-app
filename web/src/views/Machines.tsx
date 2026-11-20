@@ -3,19 +3,17 @@
 // confirmation over the page. Weft on the machine is not touched: it joins again from ☰ › Remote… there.
 import { useRef, useState } from 'preact/hooks';
 import * as api from '../api';
-import * as machine from '../machine';
 import { Confirm } from './Confirm';
 import { go } from '../nav';
 import { fill, w } from '../words';
 import { Mark } from './Tree';
 
 /** The bar over Your machines and Add a machine: on a phone the page's name;
- *  on a desktop the mark and the machine last open (the first, if none). */
+ *  on a desktop the mark alone. */
 export function MachinesBar({ wide }: { wide: boolean }) {
-  const name = machine.current.value?.name ?? machine.mine.value[0]?.name;
   return (
     <div class="appbar">
-      {wide ? <><Mark />{name && <h1>{name}</h1>}</> : <h1>{w('web.machines.title')}</h1>}
+      {wide ? <Mark /> : <h1>{w('web.machines.title')}</h1>}
       <span class="spacer" />
       <button class="back" type="button" onClick={() => go({ name: 'settings' })}>{w('web.settings.title')}</button>
     </div>
@@ -27,9 +25,10 @@ export function Machines({ list, wide, onRemoved }: { list: api.Machine[]; wide:
   const [shown, setShown] = useState<string | null>(null);
   const [sure, setSure] = useState<api.Machine | null>(null);
   const from = useRef<number | null>(null);
+  // The dialog stays, Proceed working, until it is removed; a failure is said in it.
   const remove = async (m: api.Machine) => {
-    setSure(null);
     await api.removeMachine(m.id);
+    setSure(null);
     onRemoved(m.id);
   };
   return (
@@ -73,7 +72,7 @@ export function Machines({ list, wide, onRemoved }: { list: api.Machine[]; wide:
           question={fill('web.machines.remove_sure', { machine: sure.name })}
           what={fill('web.machines.remove_what', { machine: sure.name })}
           cost="warn"
-          onProceed={() => void remove(sure)}
+          onProceed={() => remove(sure)}
           onClose={() => setSure(null)}
         />
       )}

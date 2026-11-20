@@ -22,6 +22,33 @@ export function machineSwitch(s: Settings | undefined, which: 'turbo' | 'login' 
   }
 }
 
+/** What the machine is called: the name its settings say, set or the system's own, else what the
+ * account lists it as. */
+export function machineName(s: Settings | undefined, listed: string): string {
+  const said = s?.effective?.name;
+  return typeof said === 'string' && said.trim() ? said : listed;
+}
+
+/** How many days the machine keeps an ended session listed when nothing sets it. */
+export const KEEP_DAYS = 7;
+
+/** Where the days an ended session stays listed are kept in the machine's settings. */
+export const KEEP_KEY = ['sessions', 'keep_days'];
+
+/** How many days an ended session stays listed: the number the machine says applies. */
+export function keepDays(s: Settings | undefined): number {
+  const days = s?.effective?.keep_days;
+  return typeof days === 'number' && Number.isInteger(days) && days >= 0 ? days : KEEP_DAYS;
+}
+
+/** What a typed number of days sets: the number, `null` when emptied (the
+ * default again), or nothing for what is not a whole number of days. */
+export function keepValue(text: string): number | null | undefined {
+  const t = text.trim();
+  if (t === '') return null;
+  return /^\d+$/.test(t) && Number.isSafeInteger(Number(t)) ? Number(t) : undefined;
+}
+
 /** Where each switch is kept in the machine's settings. */
 export const KEYS: Record<'turbo' | 'login' | 'notify', string[]> = {
   turbo: ['turbo'],
@@ -165,6 +192,15 @@ export function domainName(id: string): string {
   const words = id.replace(/-/g, ' ');
   return words.charAt(0).toUpperCase() + words.slice(1);
 }
+
+/** The practices turned on beside the base one, in the order RingFrame lists
+ * them: each whose catalog the layer's deltas set to something. */
+export function practicesOn(domains: { domain: string; base: boolean }[], deltas: Record<string, unknown> | undefined): string[] {
+  return domains.filter((d) => !d.base && Boolean(deltas?.[`practices/${d.domain}`])).map((d) => d.domain);
+}
+
+/** Whether a catalog is a practice's, whose rules carry a tier, tasks and concerns, rather than a harness's. */
+export const isPractice = (catalog: string) => catalog.startsWith('practices/');
 
 /** Whether this project records each Seal as a Git note: its own setting, never every project's. */
 export function gitNoteOn(s: Settings | undefined): boolean {

@@ -3,18 +3,21 @@
 // machine's words. Amber only for an agent that waits for you. A tap selects
 // a row, and the bar's acts follow the selection; › opens its Details. The
 // earlier sessions travel as a count and unfold in the tree a page at a time,
-// read as it scrolls; the earlier sealed units open Done in its place. One search at the top (M11.8, D11.8) narrows
+// the next page on "Show 50 more"; the earlier sealed units open Done in its place. One search at the top (M11.8, D11.8) narrows
 // every project to what matches.
 import { signal } from '@preact/signals';
-import { useEffect, useRef } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 import type { Machine } from '../api';
-import { clock, stamp, weekday } from '../bar';
+import { agentTime, clock } from '../bar';
+import { count, moreOf, pastAbout } from '../earlier';
 import * as m from '../machine';
 import { go, here } from '../nav';
 import { agentAbout, fill, reportTone, reportWord, statusTone, statusWord, turnWord, w } from '../words';
 import { TreeBar, askOn, evalOn, sealOn } from './Bar';
 import { DoneList, doneOf } from './Done';
 import { HeaderPills, Strips } from './Status';
+import { failed, rowWord, why } from '../waits';
+import { Asking, Coming } from './Wait';
 
 /** What the bar's acts are on: a row of the tree, by what it is. */
 export type Selected =
@@ -30,11 +33,10 @@ interface Earlier {
   title: string | null;
   asks: number;
   at: number;
-  group: 'today' | 'yesterday' | 'week' | 'earlier';
 }
 
 /** What `read sessions` has answered per project: its rows so far, the `after` of the next, how many there are, and the search and earlier count it was read at. */
-const past = signal<Record<string, { rows: Earlier[]; next: string | null; total: number; q: string; count: number }>>({});
+const past = signal<Record<string, { rows: Earlier[]; next: string | null; total: number; q: string; count: number; failed?: string }>>({});
 
 /** The earlier sessions unfolded, by project, for this visit. */
 const pastOpen = signal<Record<string, boolean>>({});
@@ -66,15 +68,19 @@ async function readPast(project: string, q: string, count: number, after: string
   if (after) paging.delete(project);
   const had = past.value[project];
   if (asking[project] !== q || (after && had?.q !== q)) return;
-  const page = answer?.type === 'ok' ? (answer.sessions as { total: number; rows: Earlier[]; next: string | null }) : { total: 0, rows: [], next: null };
+  // Not sent, or lost with the connection: still to come, read again when asked again.
+  if (!answer || answer.lost === true) return;
+  // A read that failed says why, and is never taken for no sessions.
+  if (answer.type !== 'ok') {
+    past.value = { ...past.value, [project]: { q, count, rows: had?.q === q ? had.rows : [], next: had?.q === q ? had.next : null, total: had?.q === q ? had.total : 0, failed: why(answer) } };
+    return;
+  }
+  const page = answer.sessions as { total: number; rows: Earlier[]; next: string | null };
   past.value = { ...past.value, [project]: { q, count, rows: after && had ? [...had.rows, ...page.rows] : page.rows, next: page.next, total: page.total } };
 }
 
 /** What a project's earlier sessions were read for `q`, else nothing yet. */
 const pastOf = (project: string, q: string) => (past.value[project]?.q === q ? past.value[project] : null);
-
-/** When an earlier session ended, as its group says it: a time today and yesterday, a weekday this week, else its day. */
-const when = (e: Earlier) => (e.group === 'week' ? weekday(e.at) : e.group === 'earlier' ? stamp(e.at).slice(0, 10) : clock(e.at));
 
 /** An earlier session as AGENTS lists a session. */
 const asRow = (e: Earlier): m.Session => ({ session: e.session, harness: e.harness, state: 'ended', turn: null, title: e.title, at: e.at, asks: e.asks, agent: null, ask: null });
@@ -226,7 +232,7 @@ const bare = (p: m.Project) => p.agents.rows.length === 0 && p.work.units.length
 /** What a session's row says after its harness: its turn, ended, or when it was last active. */
 export function stateOf(s: m.Session): string {
   if (s.state === 'ended') return w('state.ended');
-  if (s.state === 'quiet') return fill('state.last_active', { time: clock(s.at) });
+  if (s.state === 'quiet') return fill('state.last_active', { time: agentTime(s.at) });
   return s.turn ? turnWord(s.turn) : w('state.running');
 }
 
@@ -311,13 +317,17 @@ function Searched({ machine, onAgent, wide }: { machine: Machine; onAgent: (agen
     }
   }, [q, wanted.map((p) => `${p.project}/${p.agents.earlier}`).join()]);
   const kept = q ? projects.flatMap((p) => narrowed(p, q) ?? []) : [];
-  // Nothing matches only once every earlier read has answered.
-  const none = q && kept.length === 0 && projects.every((p) => p.agents.earlier === 0 || pastOf(p.project, q));
+  // Nothing matches only once every earlier read has answered, and none failed.
+  const failedRead = q ? projects.map((p) => pastOf(p.project, q)?.failed).find(Boolean) : undefined;
+  const searching = q && projects.some((p) => p.agents.earlier > 0 && !pastOf(p.project, q));
+  const none = q && !failedRead && kept.length === 0 && projects.every((p) => p.agents.earlier === 0 || pastOf(p.project, q));
   return (
     <>
       <Search />
       <div class="tree" role="tree" aria-label="Work">
         {q ? kept.map(({ p, n, past }) => <ProjectRows key={p.project} p={p} moves={moves} hit={{ n, past }} />) : projects.map((p) => <ProjectRows key={p.project} p={p} moves={moves} />)}
+        {searching && <p class="tree-next"><Asking words={w('wait.checking')} /></p>}
+        {failedRead && <p class="tree-next ask-hint" role="alert">{fill('wait.could_not_read', { why: failedRead })}</p>}
         {none && <p class="tree-next">{fill('tree.search_none', { q })}</p>}
       </div>
     </>
@@ -327,14 +337,21 @@ function Searched({ machine, onAgent, wide }: { machine: Machine; onAgent: (agen
 /** A project Weft on the machine reopened after it ended uncleanly (M13.5):
  * when, that its agents ended, and Dismiss, which closes it there. */
 function Reopened({ p, machine }: { p: m.Project; machine: Machine }) {
-  const dismiss = (e: Event) => {
+  // Its why not stays said in the tree's bar until the person acts again.
+  const [busy, setBusy] = useState(false);
+  const dismiss = async (e: Event) => {
     e.stopPropagation();
-    void m.request({ type: 'act', act: 'dismiss', project: p.project });
+    if (busy) return;
+    setBusy(true);
+    const answer = await m.request({ type: 'act', act: 'dismiss', project: p.project });
+    setBusy(false);
+    if (!answer) failed.value = w('web.why.not_connected');
+    else if (answer.type === 'error') failed.value = why(answer);
   };
   return (
     <div class="reopened" role="note">
       <p class="reopened-notice">{fill('web.reopened.notice', { machine: machine.name, time: clock(p.reopened ?? 0) })}</p>
-      <button class="start-button reopened-dismiss" type="button" onClick={dismiss}>{w('web.reopened.dismiss')}</button>
+      <button class="start-button reopened-dismiss" type="button" aria-busy={busy || undefined} onClick={(e) => void dismiss(e)}>{w('web.reopened.dismiss')}</button>
     </div>
   );
 }
@@ -390,33 +407,32 @@ function ProjectRows({ p, moves, hit }: { p: m.Project; moves: Moves; hit?: { n:
   );
 }
 
-const earlierSaid = (n: number) => (n === 1 ? w('tree.earlier_one') : fill('tree.earlier', { n: String(n) }));
-
-/** `n earlier sessions`, a fold: unfolded, the sessions follow it newest first, a page at a time as it scrolls. A search unfolds it with those that match. */
+/** `▸ Earlier sessions` and how many, a fold: unfolded, the sessions follow it newest first, a page at a
+ * time, and `Show 50 more` reads the next. A search unfolds it with those that match, among all of them. */
 function EarlierRows({ p, moves, found }: { p: m.Project; moves: Moves; found?: Earlier[] }) {
   const open = moves.searching || (pastOpen.value[p.project] ?? false);
   const had = pastOf(p.project, moves.searching ? query.value : '');
   const rows = found ?? had?.rows ?? [];
-  const next = had?.next ?? null;
-  const end = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const el = end.current;
-    if (!open || !el || !next) return;
-    const seen = new IntersectionObserver((e) => e.some((x) => x.isIntersecting) && void readPast(p.project, had!.q, had!.count, next));
-    seen.observe(el);
-    return () => seen.disconnect();
-  }, [open, next]);
-  const said = earlierSaid(p.agents.earlier);
+  const total = moves.searching ? (had?.total ?? 0) : p.agents.earlier;
+  const more = open && had?.next ? moreOf(rows.length, had.total) : null;
+  const title = w('tree.earlier_title');
+  const turn = () => !moves.searching && (pastOpen.value = { ...pastOpen.value, [p.project]: !open });
   return (
     <>
-      {/* Unfolded, the sessions take the row's place: a long list has no fold above it. */}
-      {!open && (
-        <div class="tree-row tree-row--earlier" role="treeitem" aria-label={said} aria-expanded={false} onClick={() => (pastOpen.value = { ...pastOpen.value, [p.project]: true })}>
-          <span class="tree-name">{`${said} ›`}</span>
+      <div class="tree-row tree-row--earlier" role="treeitem" aria-label={title} aria-expanded={open} onClick={turn}>
+        <span class="tree-name">{`${open ? '▾' : '▸'} ${title}`}</span>
+        <span class="tree-aside">{count(total)}</span>
+      </div>
+      {open && rows.map((e) => <AgentRow key={e.session} p={p} s={asRow(e)} moves={moves} later={pastAbout(e)} />)}
+      {/* Unfolded and not read yet: lines breathe where its sessions will be; failed, why. */}
+      {open && !moves.searching && !had?.failed && !had && <div class="tree-row tree-row--earlier"><Coming lines={[60]} /></div>}
+      {open && !moves.searching && had?.failed && <p class="tree-next ask-hint" role="alert">{fill('wait.could_not_read', { why: had.failed })}</p>}
+      {more && (
+        <div class="tree-row tree-row--show-more" role="treeitem" aria-label={more.more} onClick={() => void readPast(p.project, had!.q, had!.count, had!.next)}>
+          <span class="tree-name">{more.more}</span>
+          <span class="tree-aside">{more.shown}</span>
         </div>
       )}
-      {open && rows.map((e) => <AgentRow key={e.session} p={p} s={asRow(e)} moves={moves} later={when(e)} />)}
-      {open && next && <div ref={end} class="tree-more-rows" aria-hidden="true" />}
     </>
   );
 }
@@ -425,7 +441,7 @@ const isSelected = (s: Selected) => JSON.stringify(selected.value) === JSON.stri
 
 /** One session (card 11.12): its status shape and name, the latest Ask's title or its first prompt, else its
  * harness; then its harness, state and time. */
-/** `later`: an earlier session, its time as its group says it; a tap opens its Details. */
+/** `later`: an earlier session, what its second line says; a tap opens its Details. */
 function AgentRow({ p, s, moves, later }: { p: m.Project; s: m.Session; moves: Moves; later?: string }) {
   const { machine, wide, onAgent } = moves;
   const me: Selected = { kind: 'agent', project: p.project, session: rowKey(s) };
@@ -437,7 +453,7 @@ function AgentRow({ p, s, moves, later }: { p: m.Project; s: m.Session; moves: M
   // A tap selects it. On a desktop its agent opens beside the tree, or, with
   // none to open, its session; › (a phone) or a double click opens the session.
   const tap = () => {
-    if (later) return session();
+    if (later !== undefined) return session();
     selected.value = me;
     if (!wide) return;
     if (s.agent) onAgent(s.agent);
@@ -452,7 +468,7 @@ function AgentRow({ p, s, moves, later }: { p: m.Project; s: m.Session; moves: M
     </span>
   );
   return (
-    <div class={later ? 'tree-row tree-row--agent tree-row--past' : 'tree-row tree-row--agent'} role="treeitem" aria-label={name} aria-selected={on} onClick={tap} onDblClick={session}>
+    <div class={later !== undefined ? 'tree-row tree-row--agent tree-row--past' : 'tree-row tree-row--agent'} role="treeitem" aria-label={name} aria-selected={on} onClick={tap} onDblClick={session}>
       {shape}
       <span class="agent-text">
         <span class="agent-line">
@@ -462,7 +478,7 @@ function AgentRow({ p, s, moves, later }: { p: m.Project; s: m.Session; moves: M
           </span>
           {running && p.turbo && <span class="agent-turbo">⚡</span>}
         </span>
-        <span class="agent-about">{agentAbout(s, later ?? clock(s.at))}</span>
+        <span class="agent-about">{later ?? agentAbout(s, agentTime(s.at))}</span>
       </span>
       {!wide && <button class="tree-more" type="button" aria-label={`Details of ${name}`} onClick={(e) => (e.stopPropagation(), session())}>›</button>}
     </div>
@@ -505,6 +521,7 @@ function WorkRowView({ p, row, moves }: { p: m.Project; row: m.WorkRow; moves: M
     go({ name: 'work', machine: machine.id, project: p.project, unit: row.unit });
   };
   const tap = () => (wide ? details() : (selected.value = me));
+  const working = rowWord(row.unit, p.project);
   return (
     <div class="tree-row tree-row--work" role="treeitem" aria-label={row.title} aria-selected={isSelected(me)} onClick={tap} onDblClick={details}>
       <span class="work-lines">
@@ -514,7 +531,8 @@ function WorkRowView({ p, row, moves }: { p: m.Project; row: m.WorkRow; moves: M
             <span class="agent-sep">·</span>
             <span class="work-harness">{row.harness}</span>
           </span>
-          <span class={`work-status ${statusTone(row.status)}`}>{statusWord(row.status)}</span>
+          {/* While this device works on it, or its Eval opens, the row says so. */}
+          {working ? <span class="work-status working">{working}</span> : <span class={`work-status ${statusTone(row.status)}`}>{statusWord(row.status)}</span>}
         </span>
         {row.open > 0 && row.status.state !== 'sealed' && (
           <span class="work-since">{row.open === 1 ? w('work.since_seal_one') : fill('work.since_seal', { n: String(row.open) })}</span>
@@ -546,7 +564,6 @@ export function TreePage({ machine }: { machine: Machine }) {
     <div class="app">
       <div class="appbar">
         <Mark />
-        <h1>{machine.name}</h1>
         <span class="spacer" />
         <HeaderPills machine={machine} />
         <button class="menu" type="button" aria-label={w('menu')} onClick={() => go({ name: 'settings' })}>☰</button>

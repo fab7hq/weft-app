@@ -150,7 +150,7 @@ export function OpeningBar() {
   // On a phone an agent's own view keeps its message row: you can keep working.
   if (view?.name === 'agent' && !matchMedia('(min-width: 768px)').matches) return null;
   if (!o && !there) return null;
-  const about = o ? fill('wait.opening_eval_about', { title: o.title, asks: asksOf(o.asks), harness: o.harness }) : workName(there!.title, there!.asks);
+  const about = o ? fill('wait.opening_eval_about', { title: o.title, asks: asksOf(o.asks), harness: m.harnesses.value.find((h) => h.project === o.project && h.harness === o.harness)?.title ?? o.harness }) : workName(there!.title, there!.asks);
   const since = o?.since ?? job?.since ?? seen.current?.at ?? Date.now();
   return (
     <div class="pending-bar opening-bar" role="dialog" aria-label={w('wait.opening_eval')}>

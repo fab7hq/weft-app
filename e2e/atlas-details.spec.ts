@@ -64,7 +64,7 @@ test('a unit of work opens as its workflow: its Asks, its Eval and its Seal, eac
   await expect(view.locator('.unit-aside')).toHaveText('2 Asks · codex · since 10:31');
   await expect(view.locator('.step-kind')).toHaveText(['Ask', 'Follow up', 'Eval 3', 'Seal']);
   await expect(view.locator('.step-text')).toHaveText(['health endpoint', 'build number', 'nothing found', 'not sealed yet']);
-  await expect(view.locator('.step-aside')).toHaveText(['codex · sent 10:31', 'codex · sent 10:40', 'judged 10:58 · Nothing to look at · 2 settled']);
+  await expect(view.locator('.step-aside')).toHaveText(['codex · sent 10:31', 'codex · sent 10:40', 'read 10:58 · Nothing to look at · 2 settled']);
   // Judged, Seal is its act put forward.
   await expect(act(page, 'Seal')).toHaveClass(/tree-act--go/);
   // Seal is its own dialog (17.4): nothing is sent until its Seal.

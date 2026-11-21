@@ -8,7 +8,7 @@ async function opened(page: Page, context: BrowserContext) {
   const machine = await FakeMachine.start();
   Object.assign(machine, atlas());
   machine.onAct = (m) => [
-    { type: 'pending', id: 'pnd_1', agent: m.agent, what: 'Ready to ask codex', why: 'Weft will type /rf:ask into codex.', text: String(m.text) },
+    { type: 'pending', id: 'pnd_1', agent: m.agent, what: 'Ready to ask codex', why: 'This is the exact prompt codex will receive.', text: String(m.text) },
     { type: 'ok', req: m.req, pending: 'pnd_1' },
   ];
   await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));

@@ -83,7 +83,7 @@ test('17.3 17.27 17.25: the Eval dialog says what it reads, and a large change i
   await expect(note).toContainText('mark data in .gitattributes as generated');
   await dialog.getByRole('button', { name: 'Eval anyway', exact: true }).click();
   const bar = page.getByRole('dialog', { name: 'Opening the Eval…' });
-  await expect(bar).toContainText('health endpoint · 2 Asks · read by codex');
+  await expect(bar).toContainText('health endpoint · 2 Asks · read by Codex');
   await expect.poll(() => req).not.toBeNull();
   machine.send({
     type: 'progress', project: 'weft', req,
@@ -93,11 +93,12 @@ test('17.3 17.27 17.25: the Eval dialog says what it reads, and a large change i
         { key: 'step.reading_change', state: 'now', ms: 18_000, done: 38, total: 103, unit: 'files', args: { new: '9' } },
         { key: 'step.dividing', state: 'next' },
         { key: 'step.preparing_readers', state: 'next' },
-        { key: 'step.starting_readers', state: 'next', args: { harness: 'codex' } },
+        { key: 'step.starting_readers', state: 'next', args: { harness: 'Codex' } },
+        { key: 'step.waiting_ready', state: 'next', args: { agent: 'Codex' } },
       ],
     },
   });
-  await expect(bar.locator('.wait-step-words')).toHaveText(['Reading the change', 'Dividing it among the readers', 'Preparing what each reader is asked', 'Starting codex to read it']);
+  await expect(bar.locator('.wait-step-words')).toHaveText(['Reading the change', 'Dividing it among the readers', 'Preparing what each reader is asked', 'Starting Codex to read it', 'Waiting for Codex to be ready']);
   await expect(bar.locator('.wait-step-count')).toHaveText('38 of 103 files · 9 of them new');
   await expect(bar.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '37');
   // The readers' step is done: the next is under way, the bar fills on.
@@ -109,7 +110,8 @@ test('17.3 17.27 17.25: the Eval dialog says what it reads, and a large change i
         { key: 'step.reading_change', state: 'done', ms: 19_000 },
         { key: 'step.dividing', state: 'done', ms: 1_000 },
         { key: 'step.preparing_readers', state: 'now', ms: 1_000 },
-        { key: 'step.starting_readers', state: 'next', args: { harness: 'codex' } },
+        { key: 'step.starting_readers', state: 'next', args: { harness: 'Codex' } },
+        { key: 'step.waiting_ready', state: 'next', args: { agent: 'Codex' } },
       ],
     },
   });

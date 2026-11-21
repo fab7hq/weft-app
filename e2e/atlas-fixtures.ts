@@ -90,7 +90,7 @@ export const UNIT_DETAILS: Record<string, UnitDetail> = {
     steps: [
       { step: 'ask', unit: 'ask_3', title: 'health endpoint', follow_up: false, aside: 'codex · sent 10:31' },
       { step: 'ask', unit: 'ask_5', title: 'build number', follow_up: true, aside: 'codex · sent 10:40' },
-      { step: 'eval', eval: 'evl_3', n: 3, report: reportOf('nothing'), aside: 'judged 10:58 · Nothing to look at · 2 settled' },
+      { step: 'eval', eval: 'evl_3', n: 3, report: reportOf('nothing'), aside: 'read 10:58 · Nothing to look at · 2 settled' },
       { step: 'not_sealed' },
     ],
     follows: 'evl_3', eval: null, seal: null,
@@ -100,7 +100,7 @@ export const UNIT_DETAILS: Record<string, UnitDetail> = {
     steps: [
       { step: 'ask', unit: 'ask_4', title: 'readme fix', follow_up: false, aside: 'claude · sent 08:52' },
       { step: 'ask', unit: 'ask_6', title: 'docs links', follow_up: true, aside: 'claude · sent 09:02' },
-      { step: 'eval', eval: 'evl_2', n: 2, report: reportOf('nothing'), aside: 'judged 09:31 · Nothing to look at · 1 settled' },
+      { step: 'eval', eval: 'evl_2', n: 2, report: reportOf('nothing'), aside: 'read 09:31 · Nothing to look at · 1 settled' },
       { step: 'seal', seal: 'rcp_7f3a2c', n: 4, decision: 'accepted', aside: '09:40 · by you' },
     ],
     follows: 'evl_2', eval: closed('readme fix'), seal: closed('readme fix'),

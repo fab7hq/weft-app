@@ -434,8 +434,8 @@ const staged = (agent: string, what: string, why: string, go: { word: string; wa
 ];
 
 /** health endpoint's Details, as 17.4–17.17 draw it: two Asks, Eval 2, and its Seal or none. */
-const ALIGNED = { step: 'eval', eval: 'evl_2', n: 2, report: reportOf('nothing'), aside: 'judged 11:20 · Nothing to look at · 5 settled' } as const;
-const DRIFTED = { step: 'eval', eval: 'evl_2', n: 2, report: reportOf('found'), aside: 'judged 11:20 · 1 thing to look at · 4 settled' } as const;
+const ALIGNED = { step: 'eval', eval: 'evl_2', n: 2, report: reportOf('nothing'), aside: 'read 11:20 · Nothing to look at · 5 settled' } as const;
+const DRIFTED = { step: 'eval', eval: 'evl_2', n: 2, report: reportOf('found'), aside: 'read 11:20 · 1 thing to look at · 4 settled' } as const;
 const health = (status: WorkRow['status'], judged: Step, sealed: Step | null, offers?: ('follow_up' | 'undo')[]): UnitDetail => ({
   unit: 'ask_3', title: 'health endpoint', harness: 'codex', status, aside: '2 Asks · codex · since 10:52',
   steps: [
@@ -677,20 +677,9 @@ const SCREENS: Screen[] = [
     await button(at, 'Follow up').click();
     await sheet(at).getByRole('textbox').fill('Read the build number from the environment, not a literal');
   } },
-  { ids: ['M4.5', 'D4.5'], run: async (at) => {
-    at.machine.onAct = staging(CLAUDE, 'Ready to ask claude', 'Weft will type  /rf:ask  into claude.\nThe agent will ask you which approach to take, in its own pane.', BUILD);
-    await askOpen(at);
-    await sheet(at).getByRole('textbox').fill(BUILD);
-    await sendTo(at, 'claude');
-    await sheet(at).getByRole('button', { name: 'Ask', exact: true }).click();
-    await expect(at.page.getByRole('dialog', { name: 'Ready to ask claude' })).toBeVisible();
-  } },
   ...([
     ['M4.6', 'D4.6', CODEX, 'Ready to send', 'This is the exact wording. Weft will not change it.', 'Implement /health: read BUILD_NUMBER from the environment at startup; fall back to "unknown". Add a test …'],
     ['M4.7', '', CODEX, 'Ready to send', 'This is the exact wording. Weft will not change it.\ncodex asked you about this and never got an answer, so it is still waiting. Sending it records your yes first.', 'Implement /health: read BUILD_NUMBER …'],
-    ['M4.8', 'D4.8', CODEX, 'Eval this work?', "Weft will type  /rf:eval debate evl_2  into codex.\nWeft has gathered the change. The agent will run RingFrame's\njudging tasks on it; none of the judges did the work.", '/rf:eval debate evl_2 coverage contract'],
-    ['M4.9', 'D4.9', CODEX, 'Seal this work?', 'Weft will type  /rf:seal evl_2  into codex.\nThe agent will ask what you decided, and write a receipt.', '/rf:seal evl_2'],
-    ['M4.10', '', CLAUDE, 'Eval this work?', "Weft will type  /rf:eval debate evl_2  into claude.\nWeft has gathered the change. The agent will run RingFrame's\njudging tasks on it; none of the judges did the work.\nclaude did not do this work. Both acts read the record.", '/rf:eval debate evl_2 coverage contract'],
   ] as const).map(([m, d, agent, what, why, text]): Screen => ({
     ids: [m, d].filter(Boolean),
     run: async (at) => {
@@ -825,7 +814,7 @@ const SCREENS: Screen[] = [
       else await at.page.locator('.settings').getByRole('button', { name: /studio/ }).first().click();
       await at.page.getByRole('tab', { name: tab }).click();
       if (tab === 'Harnesses') await expect(at.page.getByText('Route rules · Claude Code')).toBeVisible();
-      if (tab === 'Workflow') await at.page.getByRole('button', { name: /Each judge/ }).click();
+      if (tab === 'Workflow') await at.page.getByRole('button', { name: /Each reader/ }).click();
     },
   })),
   { ids: ['M9.12', 'D9.12'], run: async (at) => {
@@ -1274,7 +1263,8 @@ const SCREENS: Screen[] = [
         { key: 'step.reading_change', state: 'now', ms: 18_000, done: 38, total: 103, unit: 'files', args: { new: '9' } },
         { key: 'step.dividing', state: 'next' },
         { key: 'step.preparing_readers', state: 'next' },
-        { key: 'step.starting_readers', state: 'next', args: { harness: 'claude' } },
+        { key: 'step.starting_readers', state: 'next', args: { harness: 'Claude Code' } },
+        { key: 'step.waiting_ready', state: 'next', args: { agent: 'Claude Code' } },
       ],
     } });
     await expect(at.page.getByRole('dialog', { name: 'Opening the Eval…' }).locator('.wait-step-count')).toHaveText('38 of 103 files · 9 of them new');

@@ -9,7 +9,7 @@ async function opened(page: Page, context: BrowserContext, sample = atlas()) {
   const machine = await FakeMachine.start();
   Object.assign(machine, sample);
   machine.onAct = (m) => [
-    { type: 'pending', id: 'pnd_1', agent: '3f9a1c07b2de-1', what: 'Eval this work?', why: 'Weft will type /rf:eval into codex.', text: '/rf:eval debate evl_2' },
+    { type: 'pending', id: 'pnd_1', agent: '3f9a1c07b2de-1', what: 'Eval this work?', why: 'This is the exact prompt codex will receive.', text: 'Implement /health.' },
     { type: 'ok', req: m.req, pending: 'pnd_1' },
   ];
   await signIn(context, person('octo', [{ name: 'studio', address: machine.address }]));
@@ -42,7 +42,7 @@ test('M10.1 D10.1: a unit of work that cannot be judged says why, and nothing is
   const machine = await opened(page, context, sample);
   await work(page, 'fix login').click();
   await button(page, 'Eval').click();
-  await expect(page.getByRole('status')).toHaveText('fix login is not judged yet: Eval goes on with it.');
+  await expect(page.getByRole('status')).toHaveText('fix login is not read yet: Eval goes on with it.');
   expect(machine.of('act')).toHaveLength(0);
   await machine.close();
 });

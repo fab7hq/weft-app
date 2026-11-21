@@ -232,7 +232,7 @@ button.rf-name { cursor: pointer; }
   .settings-role-controls .settings-pick .settings-select { width: 100%; }
   .settings-judges { flex-direction: row-reverse; justify-content: flex-end; gap: 6px; }
   .settings-judges .settings-sub { color: var(--fab7-accent); }
-  .settings-role { padding-left: 16px; }
+  .settings--machine .settings-row.settings-role { padding-left: 16px; }
   .settings-role-what { display: block; }
   .settings-role-model { display: none; }
   .settings-hard { flex-direction: row; flex-wrap: wrap; align-items: center; }

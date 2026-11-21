@@ -236,7 +236,7 @@ test('M9.10 D9.10: each practice turned on has its own rules under Software deve
   }
   await page.getByRole('tab', { name: 'RingFrame' }).click();
   const heads = page.locator('.rf-head .fab7-group');
-  await expect(heads).toHaveText(['Practices', 'Software development · rules', 'Autonomous trading · rules', 'Machine learning · rules', /^Eval judges/]);
+  await expect(heads).toHaveText(['Practices', 'Software development · rules', 'Autonomous trading · rules', 'Machine learning · rules', /^Eval readers/]);
   await expect(page.locator('.rf-rule .rf-name > span:first-child')).toContainText(['KISS', 'No Lookahead', 'Indicator Code', 'Simplest Model']);
   // A practice's rule is changed in its own catalog.
   await page.locator('[id="rule-practices/autonomous-trading-trading.no_lookahead"]').click({ force: true });
@@ -246,7 +246,7 @@ test('M9.10 D9.10: each practice turned on has its own rules under Software deve
   delete deltas['practices/autonomous-trading'];
   await page.locator('[id="practice-autonomous-trading"]').click({ force: true });
   await expect.poll(() => machine.of('set').at(-1)).toEqual(expect.objectContaining({ key: ['ringframe', 'deltas', 'practices/autonomous-trading'], value: null }));
-  await expect(heads).toHaveText(['Practices', 'Software development · rules', 'Machine learning · rules', /^Eval judges/]);
+  await expect(heads).toHaveText(['Practices', 'Software development · rules', 'Machine learning · rules', /^Eval readers/]);
   await machine.close();
 });
 

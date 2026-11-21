@@ -2,13 +2,8 @@
 import type { Project, Why } from './machine';
 import { fill, w } from './words';
 
-/**
- * The machine's why, as the bar says it: its wrapped lines joined into
- * sentences, and without the line that says what will be typed where, which
- * the bar's header and its box already show.
- */
+/** The machine's why, as the bar says it: its wrapped lines joined into sentences. */
 export function why(text: string): string[] {
-  const typing = w('bar.will_type').split('{')[0].trim();
   const said: string[] = [];
   let open = false;
   for (const line of text.split('\n').map((l) => l.replace(/\s+/g, ' ').trim()).filter(Boolean)) {
@@ -16,7 +11,7 @@ export function why(text: string): string[] {
     else said.push(line);
     open = !/[.?!:]$/.test(line);
   }
-  return said.filter((s) => !s.startsWith(typing));
+  return said;
 }
 
 /** A time of day, as the desktop app says one: HH:MM of the record's UTC day. */

@@ -305,13 +305,7 @@ export function Conversation({ agent, wide }: { agent: string; wide: boolean }) 
               <Steps key={row.id} id={row.id} steps={row.steps} wide={wide} />
             ) : <Message key={row.id} row={row} agent={agent} harness={harness} waiting={Boolean(waiting) && row.id === lastAgent} />,
           )}
-          {waiting && (
-            // While the agent waits, its questions are answered in Terminal (M12.4).
-            <p class="convo-waiting">
-              <span>{fill('web.waiting.for_you', { harness })}</span>
-              <button type="button" class="convo-answer" onClick={() => choose('terminal')}>{w('web.waiting.answer')}</button>
-            </p>
-          )}
+          {waiting && <p class="convo-waiting">{w('web.waiting.for_you')}</p>}
         </div>
       </div>
       {away && (

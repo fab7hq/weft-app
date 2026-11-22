@@ -71,14 +71,11 @@ test('M12.2 D12.2: the steps between two messages fold into one line and open in
   await machine.close();
 });
 
-test('M12.4: while the agent waits, one amber line, and answer in Terminal switches the view; no answer strip in Conversation', async ({ page, context }) => {
+test('while the agent waits, one amber line says so, with no answer strip and no way to Terminal of its own', async ({ page, context }) => {
   const machine = await opened(page, context);
   await tab(page, 'Conversation').click();
-  await expect(page.getByText('claude is waiting for you —')).toBeVisible();
-  await expect(page.getByRole('toolbar', { name: 'Answer' })).toHaveCount(0);
-  await page.getByRole('button', { name: 'answer in Terminal ›' }).click();
-  await expect(tab(page, 'Terminal')).toHaveAttribute('aria-selected', 'true');
-  await expect(page.getByLabel("The agent's screen")).toBeVisible();
+  await expect(page.getByText('Waiting for you', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: /answer in Terminal/ })).toHaveCount(0);
   await expect(page.getByRole('toolbar', { name: 'Answer' })).toHaveCount(0);
   await machine.close();
 });
@@ -192,7 +189,7 @@ test('M3.7: an agent that has ended keeps the switch, and its Conversation reads
   await tab(page, 'Conversation').click();
   await expect(page.getByText('Refresh the token before it expires, not after')).toBeVisible();
   // No waiting line for an agent that no longer runs.
-  await expect(page.getByText('claude is waiting for you —')).toHaveCount(0);
+  await expect(page.getByText('Waiting for you', { exact: true })).toHaveCount(0);
   await machine.close();
 });
 

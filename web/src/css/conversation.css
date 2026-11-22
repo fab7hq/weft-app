@@ -20,6 +20,7 @@
 
 /* The chat. A phone: on the canvas, its own scroll bar at the right (M3.14). */
 .convo { position: relative; flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
+.convo-waiting { margin: 0; align-self: stretch; padding: 8px 14px; background: var(--fab7-amber-bg); border: 1px solid var(--fab7-amber); font-size: 12px; line-height: 18px; color: var(--fab7-amber-text); border-radius: var(--weft-radius-control); }
 .convo-scroll { flex: 1 1 0; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 8px 14px 8px 4px; scrollbar-width: none; }
 .convo-scroll::-webkit-scrollbar { display: none; }
 .convo-column { min-height: 100%; display: flex; flex-direction: column; gap: 16px; }
@@ -53,8 +54,6 @@
 .convo-running { padding: 0 6px; border: 1px solid var(--fab7-line); font-size: 11px; line-height: 16px; color: var(--fab7-muted); border-radius: var(--weft-radius-control); }
 
 /* While the agent waits: one amber line, its way to Terminal (M12.4). */
-.convo-waiting { margin: 0; align-self: stretch; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 14px; background: var(--fab7-amber-bg); border: 1px solid var(--fab7-amber); font-size: 12px; line-height: 18px; color: var(--fab7-amber-text); border-radius: var(--weft-radius-control); }
-.convo-answer { padding: 0; border: 0; background: none; color: inherit; font: 600 12px/18px var(--font-sans); cursor: pointer; white-space: nowrap; }
 /* A harness whose transcript cannot be read: one line. */
 .convo-unreadable { margin: 0; padding: 12px 4px; font-size: 14px; line-height: 21px; color: var(--fab7-muted); }
 

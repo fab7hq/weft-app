@@ -373,20 +373,14 @@ describe('chips', () => {
     expect(rows(items)).toEqual([{ kind: 'agent', id: '0', text: 'see `out/report.md`', at: 1, refs: [ref('out/report.md')] }]);
   });
 
-  it('under a group of steps are every file they wrote, each once, in the order first written', () => {
-    const step = (id: string, refs?: Ref[]): Item => ({ id, kind: 'step', at: 1, tool: 'Write', arg: id, failed: false, ...(refs ? { refs } : {}) });
+  it('only an agent’s message carries chips', () => {
     const items: Item[] = [
-      step('1', [ref('out/revenue.png', 112, 'image')]),
-      step('2', [ref('out/report.md', 4200)]),
-      step('3'),
-      step('4', [ref('out/report.md', 4600), ref('out/report.html', 61, 'html')]),
-      { id: '5', kind: 'agent', at: 1, text: 'done' },
-      step('6'),
+      { id: '0', kind: 'person', at: 1, text: 'read `notes.md`', refs: [ref('notes.md')] },
+      { id: '1', kind: 'step', at: 1, tool: 'Write', arg: 'out/report.md', failed: false, refs: [ref('out/report.md')] },
     ];
     const r = rows(items);
-    expect(r[0].kind === 'steps' && r[0].refs).toEqual([ref('out/revenue.png', 112, 'image'), ref('out/report.md', 4600), ref('out/report.html', 61, 'html')]);
-    expect(r[1]).toEqual({ kind: 'agent', id: '5', text: 'done', at: 1 });
-    expect(r[2].kind === 'steps' && r[2].refs).toBeUndefined();
+    expect(r[0]).toEqual({ kind: 'person', id: '0', text: 'read `notes.md`', at: 1 });
+    expect(r[1]).toEqual({ kind: 'steps', id: '1', steps: [{ tool: 'Write', arg: 'out/report.md', state: 'done' }] });
   });
 
   it('keep a file’s first place and its newest size', () => {

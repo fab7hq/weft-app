@@ -24,9 +24,10 @@ export type Step = { tool: string; arg: string; state: 'done' | 'failed' | 'runn
 
 /** What is drawn: a message, or the steps between two messages. */
 export type Row =
-  | { kind: 'person' | 'agent'; id: string; text: string; at: number | null; refs?: Ref[] }
-  /** `refs`: every file the steps wrote, each once. */
-  | { kind: 'steps'; id: string; steps: Step[]; refs?: Ref[] };
+  | { kind: 'person'; id: string; text: string; at: number | null }
+  /** `refs`: the files the message names that are on the machine. */
+  | { kind: 'agent'; id: string; text: string; at: number | null; refs?: Ref[] }
+  | { kind: 'steps'; id: string; steps: Step[] };
 
 /**
  * The items held, by id, in the file's order: a page read earlier goes
@@ -89,7 +90,8 @@ export function rows(items: Item[]): Row[] {
   const out: Row[] = [];
   for (const i of items) {
     if (i.kind === 'person' || i.kind === 'agent') {
-      if (i.text) out.push({ kind: i.kind, id: i.id, text: i.text, at: i.at, ...(i.refs?.length ? { refs: union([i.refs]) } : {}) });
+      if (i.text && i.kind === 'person') out.push({ kind: 'person', id: i.id, text: i.text, at: i.at });
+      else if (i.text) out.push({ kind: 'agent', id: i.id, text: i.text, at: i.at, ...(i.refs?.length ? { refs: union([i.refs]) } : {}) });
       continue;
     }
     if (i.kind !== 'step') continue;
@@ -101,7 +103,6 @@ export function rows(items: Item[]): Row[] {
       out.push(group);
     }
     group.steps.push(step);
-    if (i.refs?.length) group.refs = union([group.refs, i.refs]);
   }
   return out;
 }

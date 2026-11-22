@@ -2,7 +2,6 @@
 
 /* Chips: under a message, or under the steps that wrote them; they wrap, and a long name ends in an ellipsis. */
 .convo-files { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; min-width: 0; }
-.convo-files--steps { margin-top: -8px; }
 .convo-file { display: flex; align-items: center; gap: 7px; max-width: 100%; min-width: 0; height: 32px; padding: 0 10px; background: var(--fab7-surface); border: 1px solid var(--fab7-line); border-radius: var(--weft-radius-control); color: var(--fab7-text); font: 400 12px var(--font-mono); white-space: nowrap; cursor: pointer; }
 .convo-file:hover { border-color: var(--fab7-line-hover); }
 .convo-file-glyph { flex: none; color: var(--fab7-muted); }

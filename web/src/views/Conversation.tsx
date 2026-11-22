@@ -3,7 +3,6 @@
 // replies, read from the harness's own transcript while shown and kept
 // nowhere. The choice is this device's, the last one made.
 import { signal } from '@preact/signals';
-import { Fragment } from 'preact';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import * as m from '../machine';
 import { clock } from '../bar';
@@ -63,14 +62,14 @@ function Said({ text }: { text: string }) {
   );
 }
 
-/** The files a message named, or its steps wrote: one chip each, wrapping; a chip opens its file. */
-function Files({ agent, refs, steps = false }: { agent: string; refs: Ref[]; steps?: boolean }) {
+/** The files an agent's message named: one chip each, wrapping; a chip opens its file. */
+function Files({ agent, refs }: { agent: string; refs: Ref[] }) {
   const open = (ref: Ref) => {
     const machine = m.current.value;
     if (machine) go({ name: 'file', machine: machine.id, agent, ref });
   };
   return (
-    <div class={steps ? 'convo-files convo-files--steps' : 'convo-files'}>
+    <div class="convo-files">
       {refs.map((r) => (
         <button key={r.path} type="button" class="convo-file" title={r.path} onClick={() => open(r)}>
           <span class="convo-file-glyph" aria-hidden="true">{GLYPH[r.kind] ?? GLYPH.other}</span>
@@ -120,7 +119,6 @@ function Message({ row, agent, harness, waiting }: { row: Extract<Row, { kind: '
           {at && <span class="convo-time">{at}</span>}
         </div>
         <div class="convo-text"><Said text={row.text} /></div>
-        {row.refs && <Files agent={agent} refs={row.refs} />}
       </div>
     );
   }
@@ -304,10 +302,7 @@ export function Conversation({ agent, wide }: { agent: string; wide: boolean }) 
           {failed?.older && failure}
           {all.map((row) =>
             row.kind === 'steps' ? (
-              <Fragment key={row.id}>
-                <Steps id={row.id} steps={row.steps} wide={wide} />
-                {row.refs && <Files agent={agent} refs={row.refs} steps />}
-              </Fragment>
+              <Steps key={row.id} id={row.id} steps={row.steps} wide={wide} />
             ) : <Message key={row.id} row={row} agent={agent} harness={harness} waiting={Boolean(waiting) && row.id === lastAgent} />,
           )}
           {waiting && (

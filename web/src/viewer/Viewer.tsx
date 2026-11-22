@@ -150,17 +150,14 @@ export function Viewer({ file, named, who, layout, host, gone = false, failed = 
   }, [loaded, Render, mounted]);
 
   useEffect(() => {
-    if (Render === null) setStatus('cant');
-  }, [Render]);
-
-  useEffect(() => {
     const key = (e: KeyboardEvent) => e.key === 'Escape' && host.close();
     addEventListener('keydown', key);
     return () => removeEventListener('keydown', key);
   }, [host]);
 
   const isGone = gone || status === 'gone';
-  const cant = !isGone && status === 'cant';
+  // A kind with no renderer can't be shown, whenever its link comes.
+  const cant = !isGone && (status === 'cant' || Render === null);
   const shown: Ref = file ?? named;
   const name = nameOf(named.path);
 

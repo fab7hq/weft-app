@@ -1,6 +1,7 @@
 // Where the person is. One address, `/`, always (web-app.md §4): the views
 // are the app's own state, and the back gesture moves through them.
 import { signal } from '@preact/signals';
+import type { Ref } from './viewer/kinds';
 
 export type View =
   | { name: 'signin' }
@@ -23,11 +24,19 @@ export type View =
   /** A machine's own settings, on one of its tabs. */
   | { name: 'machine'; machine: string; tab?: 'general' | 'workflow' | 'ringframe' | 'harnesses' }
   /** A project's own settings: what differs from every project's. */
-  | { name: 'project'; machine: string; project: string };
+  | { name: 'project'; machine: string; project: string }
+  /** A file an agent pointed at, over the view it was opened from. */
+  | { name: 'file'; machine: string; agent: string; ref: Ref };
 
 export const stack = signal<View[]>([]);
 
 export const here = () => stack.value[stack.value.length - 1];
+
+/** The view shown under the sheets on top: a file is opened over the view it came from. */
+export function under(): View | undefined {
+  for (let i = stack.value.length - 1; i >= 0; i--) if (stack.value[i].name !== 'file') return stack.value[i];
+  return undefined;
+}
 
 /** Start over at this view, with nothing to go back to. */
 export function reset(view: View): void {

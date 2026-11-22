@@ -18,7 +18,7 @@ describe('markdown', () => {
     expect(list.items).toHaveLength(2);
     expect(JSON.stringify(list.items[1])).toContain('"italic":true');
     expect(b[3]).toMatchObject({ kind: 'list', start: 1 });
-    expect(b[4]).toEqual({ kind: 'code', text: 'fn main() {}' });
+    expect(b[4]).toEqual({ kind: 'code', text: 'fn main() {}', lang: 'rust' });
     const table = b[7] as Extract<(typeof b)[number], { kind: 'table' }>;
     expect(table.head.map(plain)).toEqual(['file', 'change']);
     expect(table.rows[0].map(plain)).toEqual(['a.rs', 'new']);

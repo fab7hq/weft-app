@@ -1,6 +1,6 @@
 import { signal } from '@preact/signals';
 import * as api from './api';
-import { go, here, reset } from './nav';
+import { go, here, reset, under } from './nav';
 import { fill, w } from './words';
 import * as machine from './machine';
 import * as store from './store';
@@ -23,6 +23,7 @@ import { MachineSettings, ProjectSettings } from './views/MachineSettings';
 import { Settings } from './views/Settings';
 import { Wide } from './views/Wide';
 import { SignIn } from './views/SignIn';
+import { FileSheet } from './views/FileSheet';
 
 /** What the app knows about who is here and their machines. */
 type Account =
@@ -196,7 +197,9 @@ export function App() {
   const a = account.value;
   if (a.state === 'loading') return <div class="app loading" aria-busy="true"><Mark /></div>;
   if (a.state === 'offline') return <NoConnection />;
-  const view = here();
+  // A file opens over the view it came from, which stays as it was under it.
+  const top = here();
+  const view = under();
   if (a.state === 'signed_out' || !view || view.name === 'signin') return <SignIn />;
   switch (view.name) {
     case 'add':
@@ -238,6 +241,7 @@ export function App() {
           <WorkingBar />
           <SealDialog />
           <UndoDialog />
+          {top?.name === 'file' && top.machine === m.id && <FileSheet key={`${top.agent} ${top.ref.path}`} agent={top.agent} fileRef={top.ref} />}
         </>
       );
     }

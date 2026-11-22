@@ -6,9 +6,9 @@ import type { Report, Session, Status } from './machine';
 let table: Record<string, string> = {};
 
 /** Fetch the words before the first screen. */
-export async function load(): Promise<void> {
+export async function load(from = '/words.json'): Promise<void> {
   try {
-    const r = await fetch('/words.json', { cache: 'no-cache' });
+    const r = await fetch(from, { cache: 'no-cache' });
     if (r.ok) table = await r.json();
   } catch {
     // No network: the app opens to No connection, which says nothing shared.

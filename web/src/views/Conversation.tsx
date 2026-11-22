@@ -3,6 +3,7 @@
 // replies, read from the harness's own transcript while shown and kept
 // nowhere. The choice is this device's, the last one made.
 import { signal } from '@preact/signals';
+import { Fragment } from 'preact';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import * as m from '../machine';
 import { clock } from '../bar';
@@ -10,6 +11,8 @@ import { Markdown } from './Markdown';
 import { Held, type Item, type Laid, type Place, type Row, type Step, gone, placeOf, rows, scrollFor, spans } from '../conversation';
 import { fill, w } from '../words';
 import { readOf } from '../waits';
+import { go } from '../nav';
+import { GLYPH, nameOf, sizeWord, type Ref } from '../viewer/kinds';
 import { Coming, ReadFailed } from './Wait';
 
 type View = 'terminal' | 'conversation';
@@ -60,6 +63,25 @@ function Said({ text }: { text: string }) {
   );
 }
 
+/** The files a message named, or its steps wrote: one chip each, wrapping; a chip opens its file. */
+function Files({ agent, refs, steps = false }: { agent: string; refs: Ref[]; steps?: boolean }) {
+  const open = (ref: Ref) => {
+    const machine = m.current.value;
+    if (machine) go({ name: 'file', machine: machine.id, agent, ref });
+  };
+  return (
+    <div class={steps ? 'convo-files convo-files--steps' : 'convo-files'}>
+      {refs.map((r) => (
+        <button key={r.path} type="button" class="convo-file" title={r.path} onClick={() => open(r)}>
+          <span class="convo-file-glyph" aria-hidden="true">{GLYPH[r.kind] ?? GLYPH.other}</span>
+          <span class="convo-file-name">{nameOf(r.path)}</span>
+          <span class="convo-file-size">{sizeWord(r.size)}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 const MARK: Record<Step['state'], string> = { done: '✓', failed: '✗', running: '' };
 
 /** The steps between two messages: one line, opened in place to one line each. */
@@ -88,7 +110,7 @@ function Steps({ id, steps, wide }: { id: string; steps: Step[]; wide: boolean }
   );
 }
 
-function Message({ row, harness, waiting }: { row: Extract<Row, { kind: 'person' | 'agent' }>; harness: string; waiting: boolean }) {
+function Message({ row, agent, harness, waiting }: { row: Extract<Row, { kind: 'person' | 'agent' }>; agent: string; harness: string; waiting: boolean }) {
   const at = row.at === null ? null : clock(row.at);
   if (row.kind === 'person') {
     return (
@@ -98,6 +120,7 @@ function Message({ row, harness, waiting }: { row: Extract<Row, { kind: 'person'
           {at && <span class="convo-time">{at}</span>}
         </div>
         <div class="convo-text"><Said text={row.text} /></div>
+        {row.refs && <Files agent={agent} refs={row.refs} />}
       </div>
     );
   }
@@ -109,6 +132,7 @@ function Message({ row, harness, waiting }: { row: Extract<Row, { kind: 'person'
         {at && <span class="convo-time">{at}</span>}
       </div>
       <div class="convo-text convo-md"><Markdown text={row.text} /></div>
+      {row.refs && <Files agent={agent} refs={row.refs} />}
     </div>
   );
 }
@@ -279,7 +303,12 @@ export function Conversation({ agent, wide }: { agent: string; wide: boolean }) 
           {paging && <Coming lines={[60, 40]} />}
           {failed?.older && failure}
           {all.map((row) =>
-            row.kind === 'steps' ? <Steps key={row.id} id={row.id} steps={row.steps} wide={wide} /> : <Message key={row.id} row={row} harness={harness} waiting={Boolean(waiting) && row.id === lastAgent} />,
+            row.kind === 'steps' ? (
+              <Fragment key={row.id}>
+                <Steps id={row.id} steps={row.steps} wide={wide} />
+                {row.refs && <Files agent={agent} refs={row.refs} steps />}
+              </Fragment>
+            ) : <Message key={row.id} row={row} agent={agent} harness={harness} waiting={Boolean(waiting) && row.id === lastAgent} />,
           )}
           {waiting && (
             // While the agent waits, its questions are answered in Terminal (M12.4).

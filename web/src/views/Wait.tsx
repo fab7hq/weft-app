@@ -13,6 +13,7 @@ import type { StepLine } from '../jobs';
 import { acted, elapsed, ended, failed, isLong, mine, openingJob, refused, saving, working } from '../waits';
 import { fill, w } from '../words';
 import { workName } from './Seal';
+export { Coming, ReadFailed } from './Read';
 
 // A press on a control is the person acting: a failure said before has been read.
 addEventListener('pointerdown', (e) => {
@@ -171,25 +172,6 @@ export async function openView(machine: string, project: string, unit: string): 
   const steps = ((answer.work as { steps?: { step: string; eval?: string }[] } | undefined)?.steps ?? []).filter((s) => s.step === 'eval');
   const last = steps.at(-1)?.eval;
   if (last) go({ name: 'eval', machine, project, eval: last });
-}
-
-/** Breathing lines where content will be, never "none yet". */
-export function Coming({ lines = [85, 95, 60] }: { lines?: number[] }) {
-  return (
-    <div class="wait-coming" aria-busy="true">
-      {lines.map((at, i) => <span key={i} class="wait-line" style={{ width: `${at}%` }} />)}
-    </div>
-  );
-}
-
-/** A read that failed: why, in amber, where its content would be, and Try again. */
-export function ReadFailed({ text, again }: { text: string; again: () => void }) {
-  return (
-    <div class="wait-failed" role="alert">
-      <span class="wait-failed-text">{text}</span>
-      <button class="tree-act wait-again" type="button" onClick={again}>{w('wait.try_again')}</button>
-    </div>
-  );
 }
 
 /** A settings page's one line: Saving… while a setting goes, else what the machine would not take, else empty. */

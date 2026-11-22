@@ -2,6 +2,7 @@
 // what Conversation draws (web-app.md §4, M12.x, D12.x): the person's
 // messages, the agent's replies, and the tool steps between two of them as
 // one group. Kept in memory while it is shown, and nowhere else.
+import { type Ref, union } from './viewer/kinds';
 
 /** One item, as the machine sends it. */
 export interface Item {
@@ -15,14 +16,17 @@ export interface Item {
   failed?: boolean;
   part?: number;
   parts?: number;
+  /** The files a message named, or the file a step wrote. */
+  refs?: Ref[];
 }
 
 export type Step = { tool: string; arg: string; state: 'done' | 'failed' | 'running' };
 
 /** What is drawn: a message, or the steps between two messages. */
 export type Row =
-  | { kind: 'person' | 'agent'; id: string; text: string; at: number | null }
-  | { kind: 'steps'; id: string; steps: Step[] };
+  | { kind: 'person' | 'agent'; id: string; text: string; at: number | null; refs?: Ref[] }
+  /** `refs`: every file the steps wrote, each once. */
+  | { kind: 'steps'; id: string; steps: Step[]; refs?: Ref[] };
 
 /**
  * The items held, by id, in the file's order: a page read earlier goes
@@ -85,15 +89,19 @@ export function rows(items: Item[]): Row[] {
   const out: Row[] = [];
   for (const i of items) {
     if (i.kind === 'person' || i.kind === 'agent') {
-      if (i.text) out.push({ kind: i.kind, id: i.id, text: i.text, at: i.at });
+      if (i.text) out.push({ kind: i.kind, id: i.id, text: i.text, at: i.at, ...(i.refs?.length ? { refs: union([i.refs]) } : {}) });
       continue;
     }
     if (i.kind !== 'step') continue;
     const failed = i.failed ?? (i.call ? outcome.get(i.call) : undefined);
     const step: Step = { tool: i.tool ?? '', arg: i.arg ?? '', state: failed === undefined ? 'running' : failed ? 'failed' : 'done' };
-    const last = out.at(-1);
-    if (last?.kind === 'steps') last.steps.push(step);
-    else out.push({ kind: 'steps', id: i.id, steps: [step] });
+    let group = out.at(-1);
+    if (group?.kind !== 'steps') {
+      group = { kind: 'steps', id: i.id, steps: [] };
+      out.push(group);
+    }
+    group.steps.push(step);
+    if (i.refs?.length) group.refs = union([group.refs, i.refs]);
   }
   return out;
 }

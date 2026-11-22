@@ -223,6 +223,9 @@ function wsUrl(address: string): string {
   return `${address.replace(/^https:/, 'wss:').replace(/^http:/, 'ws:').replace(/\/$/, '')}/ws`;
 }
 
+/** The address the open connection reached: what a link the machine gives is relative to. */
+export const reachedAt = (): string | null => reached;
+
 /** Reach this machine, and keep reaching it. */
 export function open(m: api.Machine): void {
   if (machine?.id === m.id && socket) return;

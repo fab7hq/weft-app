@@ -12,6 +12,8 @@ export interface Span {
   code?: boolean;
   strike?: boolean;
   link?: string;
+  /** TeX, drawn as math where a viewer reads it. */
+  math?: boolean;
 }
 
 export type Block =
@@ -19,7 +21,8 @@ export type Block =
   | { kind: 'paragraph'; spans: Span[] }
   /** `start` is an ordered list's first number; null for bullets. */
   | { kind: 'list'; start: number | null; items: Block[][] }
-  | { kind: 'code'; text: string }
+  | { kind: 'code'; text: string; lang?: string }
+  | { kind: 'math'; tex: string }
   | { kind: 'quote'; blocks: Block[] }
   | { kind: 'rule' }
   | { kind: 'table'; head: Span[][]; rows: Span[][][] };
@@ -34,9 +37,9 @@ function safe(href: string): string | undefined {
   return /^(https?|mailto):/i.test(href) ? href : undefined;
 }
 
-/** A message's text as blocks. */
-export function blocks(text: string): Block[] {
-  return read(marked.lexer(text, { gfm: true }));
+/** A message's text as blocks; `lex` reads it as another reader would (one that knows math). */
+export function blocks(text: string, lex: (text: string) => Token[] = (t) => marked.lexer(t, { gfm: true })): Block[] {
+  return read(lex(text));
 }
 
 function read(tokens: Token[]): Block[] {
@@ -60,8 +63,13 @@ function read(tokens: Token[]): Block[] {
         out.push({ kind: 'list', start: l.ordered ? Number(l.start || 1) : null, items: l.items.map((i) => read(i.tokens)) });
         break;
       }
-      case 'code':
-        out.push({ kind: 'code', text: (t as Tokens.Code).text });
+      case 'code': {
+        const lang = (t as Tokens.Code).lang?.trim().split(/\s+/)[0];
+        out.push({ kind: 'code', text: (t as Tokens.Code).text, ...(lang ? { lang } : {}) });
+        break;
+      }
+      case 'math_block':
+        out.push({ kind: 'math', tex: String((t as Tokens.Generic).text) });
         break;
       case 'blockquote':
         out.push({ kind: 'quote', blocks: read((t as Tokens.Blockquote).tokens) });
@@ -118,6 +126,9 @@ function spans(tokens: Token[] | undefined, style: Omit<Span, 'text'> = {}): Spa
         break;
       case 'br':
         push('\n', style);
+        break;
+      case 'math_inline':
+        out.push({ ...style, text: String((t as Tokens.Generic).text), math: true });
         break;
       case 'text': {
         const x = t as Tokens.Text;

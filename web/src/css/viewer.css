@@ -1,0 +1,133 @@
+/* viewer: the files an agent named or wrote, as chips in the Conversation, and the sheet that opens one, drawn to the cards. */
+
+/* Chips: under a message, or under the steps that wrote them; they wrap, and a long name ends in an ellipsis. */
+.convo-files { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; min-width: 0; }
+.convo-files--steps { margin-top: -8px; }
+.convo-file { display: flex; align-items: center; gap: 7px; max-width: 100%; min-width: 0; height: 32px; padding: 0 10px; background: var(--fab7-surface); border: 1px solid var(--fab7-line); border-radius: var(--weft-radius-control); color: var(--fab7-text); font: 400 12px var(--font-mono); white-space: nowrap; cursor: pointer; }
+.convo-file:hover { border-color: var(--fab7-line-hover); }
+.convo-file-glyph { flex: none; color: var(--fab7-muted); }
+.convo-file-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.convo-file-size { flex: none; color: var(--fab7-faint); font-size: 11px; }
+.convo--wide .convo-file { height: 28px; }
+
+/* The viewer: a sheet over everything on a phone, the whole window on the desktop. */
+.viewer { position: fixed; inset: 0; z-index: 10; display: flex; flex-direction: column; background: var(--fab7-canvas); color: var(--fab7-text); font-size: 14px; padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px); }
+.viewer-head { flex: none; display: flex; align-items: center; gap: 8px; height: 56px; padding: 0 14px; border-bottom: 1px solid var(--fab7-line); }
+.viewer-name { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 auto; }
+.viewer-name b { font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.viewer-name span { font: 400 11px var(--font-mono); color: var(--fab7-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.viewer-name + .spacer { display: none; }
+.viewer--desktop .viewer-head { height: 52px; padding: 0 16px; gap: 10px; }
+.viewer-title { flex: none; max-width: 40%; font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.viewer-meta { min-width: 0; font: 400 12px var(--font-mono); color: var(--fab7-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.viewer-body { position: relative; flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; background: var(--fab7-void); overflow: hidden; }
+.viewer-body > * { flex: 1 1 0; min-height: 0; }
+.viewer-middle { align-items: center; justify-content: center; padding: 0 24px; }
+.viewer-middle > * { flex: none; }
+.viewer-said { margin: 0; font-size: 15px; text-align: center; overflow-wrap: anywhere; }
+.viewer-switch { flex: none; display: flex; border: 1px solid var(--fab7-line); border-radius: var(--weft-radius-control); overflow: hidden; }
+.viewer-seg { padding: 8px 10px; border: 0; background: none; color: var(--fab7-muted); font: 400 12px var(--font-sans); cursor: pointer; }
+.viewer--desktop .viewer-seg { padding: 4px 12px; }
+.viewer-seg--on { background: var(--fab7-selected); color: var(--fab7-accent); font-weight: 600; box-shadow: inset -1px 0 0 var(--fab7-accent); }
+.viewer-seg--on:last-child { box-shadow: inset 1px 0 0 var(--fab7-accent); }
+.viewer-btn { flex: none; display: flex; align-items: center; justify-content: center; height: 38px; padding: 0 14px; border: 1px solid var(--fab7-line); border-radius: var(--weft-radius-control); background: var(--fab7-surface); color: var(--fab7-text); font: 600 14px var(--font-sans); white-space: nowrap; cursor: pointer; }
+.viewer--desktop .viewer-btn { height: 30px; font-size: 13px; }
+.viewer-btn:hover { border-color: var(--fab7-line-hover); }
+
+/* Loading: a bar and how far it has come, then Preparing…, over where the file will be. */
+.viewer-cover { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 0 40px; background: var(--fab7-void); }
+.viewer-wait { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; max-width: 360px; }
+.viewer-track { position: relative; display: block; width: 100%; height: 6px; overflow: hidden; border-radius: var(--weft-radius-control); background: var(--fab7-line); }
+.viewer-track i { position: absolute; top: 0; bottom: 0; left: 0; border-radius: var(--weft-radius-control); background: var(--fab7-accent); transition: width .2s ease-out; }
+.viewer-track--moving i { width: 30%; animation: wait-slide 1.8s ease-in-out infinite; }
+.viewer-wait-words { min-height: 18px; font: 400 13px var(--font-mono); color: var(--fab7-muted); }
+
+/* Markdown: drawn as a message is, larger, in a column at most 740 px wide. */
+.viewer-scroll { overflow: auto; overscroll-behavior: contain; }
+.viewer-doc { max-width: 740px; margin: 0 auto; padding: 18px 16px; gap: 12px; font-size: 15px; line-height: 22px; }
+.viewer-doc.convo-md .md-h1 { font-size: 22px; line-height: 28px; }
+.viewer-doc.convo-md .md-h2 { font-size: 16px; line-height: 22px; margin-top: 6px; }
+.viewer-doc.convo-md .md-h3 { font-size: 15px; line-height: 22px; margin-top: 6px; }
+.viewer-doc.convo-md .md-table th, .viewer-doc.convo-md .md-table td { padding: 5px 8px; }
+.viewer-doc.convo-md .md-table th { background: var(--fab7-panel); }
+
+/* Text: line numbers at the left; on a phone long lines wrap, on the desktop they scroll sideways, the number staying. */
+.viewer-text { overflow: auto; overscroll-behavior: contain; padding: 10px 0; font: 400 12px/var(--line, 19px) var(--font-mono); }
+.viewer-text--desktop { padding: 14px 0; font-size: 13px; }
+.viewer-text-lines { position: relative; }
+.viewer-line { display: flex; min-height: var(--line, 19px); padding-right: 10px; white-space: pre-wrap; overflow-wrap: anywhere; tab-size: 4; }
+.viewer-text--desktop .viewer-line { height: var(--line); padding-right: 16px; white-space: pre; overflow-wrap: normal; }
+.viewer-line--probe { position: absolute; top: 0; left: 0; right: 0; visibility: hidden; }
+.viewer-line--probe .viewer-line-text span { white-space: pre; }
+.viewer-line-n { position: sticky; left: 0; flex: none; box-sizing: border-box; width: max(34px, calc(var(--digits, 2ch) + 14px)); padding-right: 10px; background: var(--fab7-void); color: var(--fab7-faint); text-align: right; user-select: none; }
+.viewer-text--desktop .viewer-line-n { width: max(56px, calc(var(--digits, 2ch) + 24px)); padding-right: 16px; }
+.viewer-line-text { flex: 1 1 0; min-width: 0; color: var(--fab7-text); }
+.viewer-text--desktop .viewer-line-text { flex: none; }
+
+/* Images: whole, centred, scrolled when larger than the view. */
+.viewer-image { display: flex; align-items: center; justify-content: center; padding: 16px; }
+.viewer-image img { max-width: 100%; height: auto; }
+
+/* Tables: the header stays in sight, the row numbers at the left; scrolls both ways. */
+.viewer-table-box { display: flex; flex-direction: column; }
+.viewer-table-scroll { flex: 1 1 0; min-height: 0; overflow: auto; overscroll-behavior: contain; }
+.viewer-table { table-layout: fixed; width: 0; border-collapse: separate; border-spacing: 0; font-size: 13px; }
+.viewer-table th, .viewer-table td { height: 32px; padding: 0 10px; border-right: 1px solid var(--fab7-line); border-bottom: 1px solid var(--fab7-line); text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-sizing: border-box; }
+.viewer-table thead th { position: sticky; top: 0; z-index: 1; background: var(--fab7-panel); font-weight: 600; }
+.viewer-table td.viewer-num { font-family: var(--font-mono); text-align: right; }
+.viewer-col-n { width: max(34px, calc(var(--digits, 2ch) + 16px)); }
+.viewer-table .viewer-row-n { position: sticky; left: 0; padding: 0 8px 0 4px; background: var(--fab7-panel); color: var(--fab7-faint); font: 400 11px var(--font-mono); text-align: right; }
+.viewer-table thead .viewer-row-n { z-index: 2; }
+.viewer-table tr.viewer-gap td { border: 0; padding: 0; }
+.viewer-sheets { flex: none; display: flex; align-items: stretch; height: 36px; border-top: 1px solid var(--fab7-line); background: var(--fab7-panel); font-size: 12px; overflow-x: auto; scrollbar-width: none; }
+.viewer-sheet { flex: none; display: flex; align-items: center; padding: 0 14px; border: 0; border-right: 1px solid var(--fab7-line); background: none; color: var(--fab7-muted); font: 400 12px var(--font-sans); white-space: nowrap; cursor: pointer; }
+.viewer-sheet--on { background: var(--fab7-selected); color: var(--fab7-accent); font-weight: 600; box-shadow: inset 0 2px 0 var(--fab7-accent); }
+.viewer-size { flex: none; display: flex; align-items: center; padding: 0 14px; font: 400 11px var(--font-mono); color: var(--fab7-faint); white-space: nowrap; }
+
+/* HTML: the file's own page, on white as a browser draws it. */
+.viewer-page { display: flex; padding: 10px; }
+.viewer--desktop .viewer-page { padding: 16px; }
+.viewer-frame { flex: 1; width: 100%; border: 0; border-radius: var(--weft-radius-control); background: #ffffff; }
+
+/* PDF: pages one under another; the page in sight counted at the bottom right. */
+.viewer-pdf-box { position: relative; display: flex; flex-direction: column; }
+.viewer-pdf { flex: 1 1 0; min-height: 0; overflow: auto; overscroll-behavior: contain; display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 14px 18px; }
+.viewer-pdf-page { flex: none; background: #ffffff; overflow: hidden; }
+.viewer-pdf-page canvas { display: block; }
+.viewer-count { position: absolute; right: 16px; bottom: 14px; padding: 5px 10px; background: var(--fab7-surface); border: 1px solid var(--fab7-line); border-radius: var(--weft-radius-control); color: var(--fab7-muted); font: 400 12px var(--font-mono); pointer-events: none; }
+
+/* Video and sound: the system's player, as large as fits, on black. */
+.viewer-media { display: flex; align-items: center; justify-content: center; background: #000; }
+.viewer-media video { display: block; width: 100%; height: 100%; object-fit: contain; }
+.viewer-media--audio { background: var(--fab7-void); padding: 0 16px; }
+.viewer-media audio { width: 100%; max-width: 560px; }
+
+/* Word: its pages on the well, one under another; on a phone the text fits the view. */
+.viewer-docx { padding: 12px; }
+.viewer--desktop .viewer-docx { padding: 20px 0; }
+.viewer-docx .docx-wrapper { background: transparent; padding: 0; gap: 16px; }
+.viewer-docx .docx-wrapper > section.docx { margin-bottom: 0; box-shadow: none; color: #1d2433; font-family: Calibri, Carlito, Helvetica, Arial, sans-serif; }
+.viewer--phone .viewer-docx .docx-wrapper > section.docx { padding: 26px 22px !important; min-height: 100%; }
+
+/* Notebooks: cells under each other, code on a surface, outputs under it. */
+.viewer-nb { display: flex; flex-direction: column; gap: 12px; padding: 14px 12px; }
+.viewer-nb--desktop { max-width: 780px; margin: 0 auto; gap: 14px; padding: 22px 0; }
+.viewer-nb-cell { display: flex; flex-direction: column; gap: 4px; content-visibility: auto; contain-intrinsic-size: auto 120px; }
+.viewer-nb--desktop .viewer-nb-cell { flex-direction: row; gap: 12px; }
+.viewer-nb-n { flex: none; font: 400 11px var(--font-mono); color: var(--fab7-faint); }
+.viewer-nb-n:empty { display: none; }
+.viewer-nb--desktop .viewer-nb-n { display: block; width: 52px; padding-top: 9px; text-align: right; }
+.viewer-nb-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.viewer-nb-md { gap: 8px; font-size: 14px; line-height: 20px; }
+.viewer-nb-code { padding: 8px 10px; overflow-x: auto; background: var(--fab7-surface); border: 1px solid var(--fab7-line); border-radius: var(--weft-radius-control); font: 400 11.5px/17px var(--font-mono); white-space: pre; }
+.viewer-nb--desktop .viewer-nb-code { padding: 8px 12px; font-size: 12.5px; line-height: 19px; }
+.viewer-nb-out { padding: 5px 10px; overflow-x: auto; font: 400 11.5px/17px var(--font-mono); white-space: pre; color: var(--fab7-muted); }
+.viewer-nb--desktop .viewer-nb-out { padding: 6px 12px; font-size: 12.5px; line-height: 19px; }
+.viewer-nb-out--error { color: var(--fab7-amber-text); }
+.viewer-nb-image { display: block; align-self: flex-start; max-width: 100%; height: auto; background: #ffffff; border-radius: var(--weft-radius-control); }
+.viewer-nb-frame { display: block; width: 100%; border: 0; border-radius: var(--weft-radius-control); background: #ffffff; }
+
+/* Math and diagrams in markdown. */
+.viewer-math--block { display: block; overflow-x: auto; overflow-y: hidden; text-align: center; }
+.viewer-diagram { display: flex; justify-content: center; overflow-x: auto; }
+.viewer-diagram svg { max-width: 100%; height: auto; }

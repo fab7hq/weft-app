@@ -13,3 +13,4 @@ gallery/
 !worker/test/fixtures/test-assertion-key.pem
 .DS_Store
 .playwright-mcp/
+web/dist-viewer/

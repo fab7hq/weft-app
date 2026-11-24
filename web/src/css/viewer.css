@@ -4,6 +4,7 @@
 .convo-files { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; min-width: 0; }
 .convo-file { display: flex; align-items: center; gap: 7px; max-width: 100%; min-width: 0; height: 32px; padding: 0 10px; background: var(--fab7-surface); border: 1px solid var(--fab7-line); border-radius: var(--weft-radius-control); color: var(--fab7-text); font: 400 12px var(--font-mono); white-space: nowrap; cursor: pointer; }
 .convo-file:hover { border-color: var(--fab7-line-hover); }
+.convo-file--more { border-style: dashed; border-color: var(--fab7-line-hover); background: transparent; color: var(--fab7-muted); }
 .convo-file-glyph { flex: none; color: var(--fab7-muted); }
 .convo-file-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .convo-file-size { flex: none; color: var(--fab7-faint); font-size: 11px; }

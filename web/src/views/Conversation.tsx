@@ -62,21 +62,32 @@ function Said({ text }: { text: string }) {
   );
 }
 
-/** The files an agent's message named: one chip each, wrapping; a chip opens its file. */
+/** How many of a message's chips show before the rest are offered. */
+export const SHOWN = 4;
+
+/** The files an agent's message named: one chip each, wrapping; a chip opens its file. Past the first few, one chip shows the rest, and folds them again. */
 function Files({ agent, refs }: { agent: string; refs: Ref[] }) {
+  const [all, setAll] = useState(false);
   const open = (ref: Ref) => {
     const machine = m.current.value;
     if (machine) go({ name: 'file', machine: machine.id, agent, ref });
   };
+  const many = refs.length > SHOWN;
+  const shown = many && !all ? refs.slice(0, SHOWN) : refs;
   return (
     <div class="convo-files">
-      {refs.map((r) => (
+      {shown.map((r) => (
         <button key={r.path} type="button" class="convo-file" title={r.path} onClick={() => open(r)}>
           <span class="convo-file-glyph" aria-hidden="true">{GLYPH[r.kind] ?? GLYPH.other}</span>
           <span class="convo-file-name">{nameOf(r.path)}</span>
           <span class="convo-file-size">{sizeWord(r.size)}</span>
         </button>
       ))}
+      {many && (
+        <button type="button" class="convo-file convo-file--more" aria-expanded={all} onClick={() => setAll(!all)}>
+          {all ? w('file.less') : fill('file.more', { n: String(refs.length - SHOWN) })}
+        </button>
+      )}
     </div>
   );
 }

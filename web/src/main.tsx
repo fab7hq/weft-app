@@ -19,20 +19,6 @@ import './css/viewer.css';
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(() => {});
 }
-// A page loaded before a deploy asks for code the deploy replaced, a file's
-// renderer among it: the page is loaded again, once, and takes the new build.
-// Within seconds of that, the failure stands and the file says it can't be shown.
-addEventListener('vite:preloadError', (e) => {
-  try {
-    const at = Number(sessionStorage.getItem('weft-reloaded') ?? 0);
-    if (Date.now() - at < 10_000) return;
-    sessionStorage.setItem('weft-reloaded', String(Date.now()));
-  } catch {
-    return;
-  }
-  e.preventDefault();
-  location.reload();
-});
 // The app fits what is visible above the on-screen keyboard, so the key bar
 // and the message row sit on top of it (web-app.md §6). Safari keeps the page
 // its full height under the keyboard and scrolls what is visible down to the

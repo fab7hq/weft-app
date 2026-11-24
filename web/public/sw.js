@@ -36,10 +36,11 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   // The shell's files: kept as they are fetched, served from the cache when the network fails.
+  // A file the server no longer has comes back as the app's page: never kept as that file.
   event.respondWith(
     fetch(event.request)
       .then((r) => {
-        if (r.ok) {
+        if (r.ok && !(r.headers.get('content-type') ?? '').startsWith('text/html')) {
           const copy = r.clone();
           caches.open(SHELL).then((c) => c.put(event.request, copy));
         }

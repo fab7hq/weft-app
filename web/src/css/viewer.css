@@ -16,8 +16,9 @@
 .viewer-name b { font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .viewer-name span { font: 400 11px var(--font-mono); color: var(--fab7-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .viewer-name + .spacer { display: none; }
-.viewer--desktop .viewer-head { height: 52px; padding: 0 16px; gap: 10px; }
-.viewer-title { flex: none; max-width: 40%; font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.viewer--desktop .viewer-head { height: 44px; padding: 0 12px 0 16px; gap: 10px; }
+.viewer-glyph { flex: none; color: var(--fab7-muted); }
+.viewer-title { flex: none; max-width: 40%; font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .viewer-meta { min-width: 0; font: 400 12px var(--font-mono); color: var(--fab7-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .viewer-body { position: relative; flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; background: var(--fab7-void); overflow: hidden; }
 .viewer-body > * { flex: 1 1 0; min-height: 0; }
@@ -30,7 +31,8 @@
 .viewer-seg--on { background: var(--fab7-selected); color: var(--fab7-accent); font-weight: 600; box-shadow: inset -1px 0 0 var(--fab7-accent); }
 .viewer-seg--on:last-child { box-shadow: inset 1px 0 0 var(--fab7-accent); }
 .viewer-btn { flex: none; display: flex; align-items: center; justify-content: center; height: 38px; padding: 0 14px; border: 1px solid var(--fab7-line); border-radius: var(--weft-radius-control); background: var(--fab7-surface); color: var(--fab7-text); font: 600 14px var(--font-sans); white-space: nowrap; cursor: pointer; }
-.viewer--desktop .viewer-btn { height: 30px; font-size: 13px; }
+.viewer--desktop .viewer-btn { height: 28px; padding: 0 12px; font-size: 13px; }
+.viewer--desktop .viewer-x { width: 28px; padding: 0; font-weight: 400; }
 .viewer-btn:hover { border-color: var(--fab7-line-hover); }
 
 /* Loading: a bar and how far it has come, then Preparing…, over where the file will be. */

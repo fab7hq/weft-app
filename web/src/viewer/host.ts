@@ -1,5 +1,5 @@
 // What the viewer's buttons do, wherever it runs. In the web app Close goes
-// back to the conversation and there is no Reveal; in the desktop's window
+// back to the conversation and there is no Reveal; in the desktop's pane
 // both are said to the desktop over the WebView's IPC.
 
 export interface Host {

@@ -1,5 +1,5 @@
-// The desktop's viewer window: the same viewer, filling the window in the
-// desktop's layout, its buttons said to the desktop.
+// The desktop's viewer, in an agent's pane beside its conversation: the same
+// viewer in the desktop's layout, its buttons said to the desktop.
 import { render } from 'preact';
 import { load } from '../words';
 import { desktopHost } from './host';

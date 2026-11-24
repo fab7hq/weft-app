@@ -10,7 +10,7 @@ import { fill, w } from '../words';
 import { ReadFailed } from '../views/Read';
 import { RENDERER, SWITCHES, readsBytes, renderer, type Layout, type Mode, type Renderer, type Served } from './factory';
 import type { Host } from './host';
-import { about, folderOf, loadedWords, nameOf, type Ref } from './kinds';
+import { GLYPH, about, folderOf, loadedWords, nameOf, type Ref } from './kinds';
 import { load, type Progress } from './source';
 
 export interface ViewerProps {
@@ -197,6 +197,7 @@ export function Viewer({ file, named, who, layout, host, gone = false, failed = 
       <div class="viewer-head">
         {desktop ? (
           <>
+            <span class="viewer-glyph" aria-hidden="true">{GLYPH[kind]}</span>
             <b class="viewer-title">{name}</b>
             <span class="viewer-meta">{meta}</span>
           </>
@@ -209,7 +210,11 @@ export function Viewer({ file, named, who, layout, host, gone = false, failed = 
         <span class="spacer" />
         {switches}
         {host.reveal && !isGone && <button type="button" class="viewer-btn" onClick={host.reveal}>{w('file.reveal')}</button>}
-        <button type="button" class="viewer-btn" onClick={host.close}>{w('file.close')}</button>
+        {desktop ? (
+          <button type="button" class="viewer-btn viewer-x" aria-label={w('file.close')} title={w('file.close')} onClick={host.close}>✕</button>
+        ) : (
+          <button type="button" class="viewer-btn" onClick={host.close}>{w('file.close')}</button>
+        )}
       </div>
       {body}
     </div>

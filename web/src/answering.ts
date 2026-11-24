@@ -11,6 +11,17 @@ export interface Before {
   seal: string;
   /** `2026-11-10`, as the record writes it. */
   date: string;
+  /** What was answered then, for a decision asked again. */
+  answer?: string | null;
+  /** Asked again because a file it is about has changed since: those files. */
+  stale?: boolean;
+  changed?: string[];
+}
+
+/** A rule of the project a question's behaviour goes against, as RingFrame cites it: `./AGENTS.md@<commit>`, and its words. */
+export interface QuestionRule {
+  source: string;
+  quote?: string;
 }
 
 /** A question an Eval left for its Seal, as RingFrame stored it. */
@@ -24,6 +35,8 @@ export interface Question {
   asked_before?: Before | null;
   /** About a behaviour that goes against an earlier decision. */
   against?: Before | null;
+  /** The rules of the project it goes against. */
+  rules?: QuestionRule[] | null;
 }
 
 /** One answer given: what, the person's words for `words`, and how long the question was shown before it. */
@@ -75,11 +88,42 @@ export function day(date: string): string {
   return Number.isInteger(month) && month >= 1 && month <= 12 && d && Number.isInteger(n) ? `${n} ${MONTHS[month - 1]}` : date;
 }
 
-/** The quiet line above a question asked before: `Asked before · not sure on 10 Nov`, or `… not wanted on 3 Nov`. Null for this Eval's own. */
+/** The quiet line above a question asked before: `Asked before · not sure on 10 Nov`, or `… not wanted on 3 Nov`;
+ * `Asked before · wanted on 3 Nov` for a decision asked again because its file changed;
+ * `Against a rule of this project` for one against a rule. Null for this Eval's own. */
 export function beforeLine(q: Question): string | null {
-  if (q.asked_before) return fill('seal.q.before_not_sure', { date: day(q.asked_before.date) });
+  const b = q.asked_before;
+  if (b?.stale) {
+    const key = b.answer === 'wanted' ? 'seal.q.before_wanted' : b.answer === 'not_wanted' ? 'seal.q.before_not_wanted' : 'seal.q.before_answered';
+    return fill(key, { date: day(b.date) });
+  }
+  if (b) return fill('seal.q.before_not_sure', { date: day(b.date) });
   if (q.against) return fill('seal.q.before_not_wanted', { date: day(q.against.date) });
+  if (q.rules?.length) return w('seal.q.against_rule');
   return null;
+}
+
+/** Why a decision is asked again: `src/session.rs has changed since, so it’s asked again.`, the files apart to set them in mono. Null for any other question. */
+export function changedLine(q: Question): [string, string, string] | null {
+  const b = q.asked_before;
+  if (!b?.stale || !b.changed?.length) return null;
+  const files = b.changed.join(', ');
+  const said = w(b.changed.length === 1 ? 'seal.q.changed_since' : 'seal.q.changed_since_n');
+  const at = said.indexOf('{files}');
+  return at < 0 ? [said, '', ''] : [said.slice(0, at), files, said.slice(at + '{files}'.length)];
+}
+
+/** A rule's file as the person reads it: `./AGENTS.md@3f2a9c1` is `AGENTS.md`, `api/docs/rules.md@abc` stays `api/docs/rules.md`. */
+export function ruleFile(source: string): string {
+  const at = source.lastIndexOf('@');
+  const path = at < 0 ? source : source.slice(0, at);
+  return path.startsWith('./') ? path.slice(2) : path;
+}
+
+/** The rule a question goes against: its file and its words in quotes. Null for one against none. */
+export function ruleOf(q: Question): { label: string; quote: string } | null {
+  const r = q.rules?.[0];
+  return r ? { label: ruleFile(r.source), quote: r.quote ? `“${r.quote}”` : '' } : null;
 }
 
 /** An answer in the words a person reads; the person's own in quotes. */

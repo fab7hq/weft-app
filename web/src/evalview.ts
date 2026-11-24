@@ -37,7 +37,24 @@ export interface Item {
   /** The changes whose lines show it. */
   windows: string[];
   reads: Read[];
+  /** The rule of the project it goes against, or that settled it before and has changed since. */
+  rule?: Rule | null;
 }
+
+/** A rule an item names: where it is written (`AGENTS.md`, `docs/security.md, as it was on 10 Nov`), and its words. */
+export interface Rule {
+  label: string;
+  quote: string;
+}
+
+/** The rule an item names, as its block shows it: its label, then its words in quotes; none when it names none. */
+export function ruleOf(item: Item): { label: string; quote: string } | null {
+  const r = item.rule;
+  return r && (r.label || r.quote) ? { label: r.label, quote: quoted(r.quote) } : null;
+}
+
+/** Words set in quotes. */
+export const quoted = (s: string) => `“${s}”`;
 
 export interface Line {
   n: number | null;

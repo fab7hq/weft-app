@@ -5,6 +5,7 @@
 import type { Settings } from './settings';
 import { withPending } from './reads';
 import type { Finding, Fix } from './skip';
+import type { Decisions } from './decisions';
 import { w } from './words';
 import { computed, signal } from '@preact/signals';
 import * as api from './api';
@@ -536,6 +537,12 @@ export async function setSetting(project: string, scope: 'machine' | 'project', 
  * would not do, it says. */
 export async function checkSkip(project: string): Promise<string | null> {
   return skipAnswered(project, await request({ type: 'skip_check', project }));
+}
+
+/** The person's decisions in a project, as its settings list them; null when the machine would not say. */
+export async function readDecisions(project: string): Promise<Decisions | null> {
+  const r = await request({ type: 'decisions', project });
+  return r?.type === 'ok' && r.decisions && typeof r.decisions === 'object' ? (r.decisions as Decisions) : null;
 }
 
 /** A finding's line written into its file, and the project checked again. */

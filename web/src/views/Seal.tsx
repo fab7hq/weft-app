@@ -12,6 +12,7 @@ import * as A from '../answering';
 import { DISPOSITIONS, questionsRead, reasonsFor, sealMessage, type Disposition } from '../seal';
 import { fill, w } from '../words';
 import { act } from './Asked';
+import { RuleBlock } from './Rule';
 import { Dot } from './Wait';
 
 /** The Seal being decided: the work or the Eval it seals, and what the dialog says of it. */
@@ -34,7 +35,7 @@ const TONES: Record<A.Tone, [string, string, string]> = {
   red: ['--fab7-danger', '--fab7-danger', '--fab7-danger-bg'],
   grey: ['--fab7-muted', '--fab7-muted', '--fab7-surface'],
 };
-const tone = (t: A.Tone) => {
+export const tone = (t: A.Tone) => {
   const [c, t2, b] = TONES[t];
   return `--c: var(${c}); --t: var(${t2}); --b: var(${b})`;
 };
@@ -249,11 +250,17 @@ function Asking({ a, q, words, setWords, show, setQuestions, shownAt }: {
   const back = A.back(a);
   const before = A.beforeLine(q);
   const label = A.label(q);
+  const rule = A.ruleOf(q);
+  const changed = A.changedLine(q);
   return (
     <>
       {before && <p class="seal-before">{before}</p>}
       <p class="seal-behaviour">{q.behaviour}</p>
-      {q.why && <p class="seal-why">{q.why}</p>}
+      {rule ? (
+        <div class="seal-rule"><RuleBlock label={rule.label} quote={rule.quote} /></div>
+      ) : changed ? (
+        <p class="seal-why">{changed[0]}<span class="seal-file">{changed[1]}</span>{changed[2]}</p>
+      ) : q.why && <p class="seal-why">{q.why}</p>}
       <p class="seal-label" id="seal-label">{label}</p>
       <div class="seal-answers" role="radiogroup" aria-labelledby="seal-label">
         {A.answersOf(q).map((x) => x === 'words'

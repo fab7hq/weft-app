@@ -2,7 +2,7 @@
 // shape and colour per kind, on its mark and dots only; the item chosen; where
 // an item stands among the others; and a running Eval's ring of reads.
 import { describe, expect, it } from 'vitest';
-import { COLOUR, MARK, aside, chosen, pageOf, place, sections, toItem, toLines, windowsOf, type Item, type Kind, type Payload } from '../src/evalview';
+import { COLOUR, MARK, aside, chosen, pageOf, place, ruleOf, sections, toItem, toLines, windowsOf, type Item, type Kind, type Payload } from '../src/evalview';
 import { evalLines } from '../src/jobs';
 import { arcs } from '../src/progress';
 
@@ -63,6 +63,30 @@ describe('the Eval view', () => {
     const v = { lines: { w_sess: { path: 'src/auth/session.ts', lines: [{ n: 10, text: ' export', lit: false }] } } } as unknown as Payload;
     expect(windowsOf(v, ITEMS[1]).map((l) => l.path)).toEqual(['src/auth/session.ts']);
     expect(windowsOf(v, ITEMS[4])).toEqual([]);
+  });
+});
+
+describe('an item that names a rule', () => {
+  it('shows the rule’s file and its words in quotes, after why', () => {
+    const against = item('w|w_log', 'look', {
+      text: 'Against a rule · the typed email is logged',
+      head: 'Against a rule of this project',
+      rule: { label: 'AGENTS.md', quote: 'Never write a person’s email or password to a log.' },
+    });
+    expect(ruleOf(against)).toEqual({ label: 'AGENTS.md', quote: '“Never write a person’s email or password to a log.”' });
+  });
+
+  it('shows a settled one’s rule as it was then', () => {
+    const ruled = item('ruled|evl_1|src/retention.rs', 'settled', {
+      rule: { label: 'docs/security.md, as it was on 10 Nov', quote: 'Keep failed sign-ins for 90 days.' },
+    });
+    expect(ruleOf(ruled)).toEqual({ label: 'docs/security.md, as it was on 10 Nov', quote: '“Keep failed sign-ins for 90 days.”' });
+    expect(sections([ruled]).settled.map((i) => i.key)).toEqual(['ruled|evl_1|src/retention.rs']);
+  });
+
+  it('shows no rule block for an item that names none, as before', () => {
+    expect(ruleOf(item('w|w_sess', 'look'))).toBeNull();
+    expect(ruleOf(item('w|w_sess', 'look', { rule: null }))).toBeNull();
   });
 });
 

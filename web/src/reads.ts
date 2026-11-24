@@ -1,6 +1,7 @@
 // What an Eval will read, as its dialog says it: the commits and files since
 // its first Ask or its last Seal, what is counted and not read, and, for a
 // large change, where most of it is and what makes the next one smaller.
+import { named } from './readby';
 import { anyLeft, type Finding } from './skip';
 import { fill, w } from './words';
 
@@ -21,6 +22,15 @@ export interface Reads {
   findings?: Finding[];
   /** What `files` was when the dialog was made, once a line taken moved it. */
   files_before?: number;
+  /** The later work this work's own change ends at; null when it reads to now. */
+  until?: Until | null;
+}
+
+/** A later work begun on top of this one's commits: its first Ask, its title and when it was made (RFC 3339). */
+export interface Until {
+  ask: string;
+  title: string;
+  time: string;
 }
 
 /** The pendings held, with this one in place of any held under its id: an
@@ -52,18 +62,43 @@ export function whenWords(when: string, now: number = Date.now(), offset: number
 
 const num = (n: number) => n.toLocaleString('en-US');
 
+/** When a later work began, said after the range's start: its time alone on the same day, else as a sentence says it. */
+function beganWords(time: string, from: string, now: number = Date.now(), offset: number = -new Date(now).getTimezoneOffset() * 60_000): string {
+  const at = Date.parse(time);
+  const start = Date.parse(from);
+  if (Number.isNaN(at)) return time;
+  if (!Number.isNaN(start) && Math.floor((at + offset) / DAY) === Math.floor((start + offset) / DAY)) {
+    const local = new Date(at + offset);
+    return `${String(local.getUTCHours()).padStart(2, '0')}:${String(local.getUTCMinutes()).padStart(2, '0')}`;
+  }
+  return whenWords(time, now, offset);
+}
+
 /** The Reads row: `3 commits · 14 files`, `since its first Ask, today 09:12`,
  * and what is counted, not read, if any: `2 counted, not read: 1 generated, 1 binary`.
- * Once a line taken moved the count, `before` is what it was, struck out before it. */
-export function readsRow(r: Reads, now?: number, offset?: number): { what: string; commits: string; files: string; before: string | null; since: string; skipped: string | null } {
+ * Once a line taken moved the count, `before` is what it was, struck out before it.
+ * When a later work began on top of its commits, the range ends there: `since`
+ * is `from its first Ask, today 09:12, until`, then that work's title, then `began, 10:40`. */
+export function readsRow(r: Reads, now?: number, offset?: number): { what: string; commits: string; files: string; before: string | null; since: string; until: { title: string; began: string } | null; skipped: string | null } {
   const commits = r.commits === 1 ? w('reads.one_commit') : fill('reads.commits', { n: num(r.commits) });
   const files = r.files === 1 ? w('reads.one_file') : fill('reads.files', { n: num(r.files) });
   const before = r.files_before !== undefined && r.files_before !== r.files ? num(r.files_before) : null;
-  const since = fill(r.since === 'seal' ? 'reads.since_seal' : 'reads.since_ask', { when: whenWords(r.when, now, offset) });
+  const when = whenWords(r.when, now, offset);
+  const since = r.until
+    ? fill(r.since === 'seal' ? 'reads.from_seal' : 'reads.from_ask', { when })
+    : fill(r.since === 'seal' ? 'reads.since_seal' : 'reads.since_ask', { when });
+  const until = r.until ? { title: r.until.title, began: fill('reads.began', { when: beganWords(r.until.time, r.when, now, offset) }) } : null;
   const kinds = Object.entries(r.skipped ?? {}).filter(([, n]) => n > 0);
   const total = kinds.reduce((sum, [, n]) => sum + n, 0);
   const skipped = total > 0 ? fill('reads.skipped', { n: num(total), kinds: kinds.map(([k, n]) => fill(`reads.${k}`, { n: num(n) })).join(', ') }) : null;
-  return { what: `${commits} · ${files}`, commits, files, before, since, skipped };
+  return { what: `${commits} · ${files}`, commits, files, before, since, until, skipped };
+}
+
+/** The dialog's sentence on who reads: of a work with later work after it, it reads the work's own change. */
+export function judgesLine(sentence: string, r: Reads | undefined | null): string {
+  if (!r?.until) return sentence;
+  const harness = named(sentence, w('dialog.eval.judges'));
+  return harness === null ? sentence : fill('dialog.eval.judges_own', { harness });
 }
 
 /** A large change's note: its title, where most of it is (the folder apart, to set it in mono), and what to do.

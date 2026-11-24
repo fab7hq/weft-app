@@ -217,6 +217,8 @@ main:has(> .ask-panel--docked) > :not(.ask-panel) { flex: 1; min-height: 0; heig
 .seal-col > .seal-before, .seal-progress + .seal-behaviour { margin-top: 32px; }
 .seal-behaviour { margin: 8px 0 0; font-size: 20px; line-height: 1.45; font-weight: 600; overflow-wrap: anywhere; }
 .seal-why { margin: 8px 0 0; color: var(--fab7-muted); overflow-wrap: anywhere; }
+.seal-file { font: 13px var(--font-mono); color: var(--fab7-text); }
+.seal-rule { margin-top: 12px; }
 .seal-label { margin: 28px 0 0; font-weight: 600; }
 .seal-answers { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
 .seal-answer { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 18px; box-sizing: border-box; border: 1px solid var(--fab7-line); border-radius: var(--weft-radius-control); background: var(--fab7-surface); color: var(--fab7-text); font: 400 14px var(--font-sans); text-align: left; cursor: pointer; }

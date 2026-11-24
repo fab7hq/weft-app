@@ -11,7 +11,7 @@ import { clock, why, yesOf } from '../bar';
 import { destinations, keyOf, SendTo, type Dest } from './SendTo';
 import { evalAct, named, noteKey, readerOf, readerTitle, readers, type ReadNote } from '../readby';
 import { judgesIn } from '../settings';
-import { largeNote, readsRow, type Reads } from '../reads';
+import { judgesLine, largeNote, readsRow, type Reads } from '../reads';
 import { fill, w } from '../words';
 import { during, failed, openAnswered, openSent, startOpening, working, type Working } from '../waits';
 import { Asking, openView } from './Wait';
@@ -222,7 +222,9 @@ function SendBar() {
   const raw = showing.why.split('\n').map((l) => l.trim()).filter(Boolean);
   const work = !showing.text && raw.length > 1 && !/[.?!:]$/.test(raw[0]) ? raw[0] : null;
   const said = why(work ? raw.slice(1).join('\n') : showing.why);
-  const lines = showing.text ? said : [said.join(' ')];
+  // Of a work with later work after it, the reader reads the work's own change.
+  const told = said.map((s) => judgesLine(s, showing.reads));
+  const lines = showing.text ? told : [told.join(' ')];
   // An Eval's Read by, worked out from the first dialog the machine staged.
   const read = reading.value?.pending === id ? reading.value : null;
   const first = read && (read.first ?? readerOf(judgesIn(m.settings.value[read.project]?.effective), said.map((s) => named(s, w('dialog.eval.judges'))).find(Boolean) ?? null, m.harnesses.value.filter((h) => h.project === read.project), read.fallback));
@@ -292,6 +294,7 @@ function ReadsRow({ reads }: { reads: Reads }) {
       <span class="pending-reads-label">{w('reads.label')}</span>
       <span class="pending-reads-what">
         <span class="mono">{r.commits}{' · '}{r.before && <><s class="pending-reads-before">{r.before}</s>{' '}</>}{r.files}</span>{' '}<span class="pending-reads-since">{r.since}</span>
+        {r.until && <>{' '}{r.until.title}{' '}<span class="pending-reads-since">{r.until.began}</span></>}
         {r.skipped && <span class="pending-reads-skipped">{r.skipped}</span>}
       </span>
     </div>

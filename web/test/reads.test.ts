@@ -2,7 +2,7 @@
 // last Seal, what is counted and not read, and a large change's note.
 import { readFileSync } from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { largeNote, readsRow, whenWords, type Reads } from '../src/reads';
+import { judgesLine, largeNote, readsRow, whenWords, type Reads } from '../src/reads';
 import { use } from '../src/words';
 
 const words: Record<string, string> = JSON.parse(readFileSync('web/public/words.json', 'utf8'));
@@ -37,6 +37,36 @@ describe('the Reads row', () => {
 
   it('says thousands as a person reads them', () => {
     expect(readsRow(LARGE, NOW, 0).what).toBe('52 commits · 13,852 files');
+  });
+});
+
+describe('a work with later work after it', () => {
+  /** 17.31: fix login reads until health endpoint began on top of it. */
+  const OWN: Reads = { since: 'ask', when: '2026-11-19T09:12:00Z', commits: 2, files: 6, until: { ask: 'a-2', title: 'health endpoint', time: '2026-11-19T10:40:00Z' } };
+
+  it('reads from its first Ask until that work began, its time alone on the same day', () => {
+    expect(readsRow(OWN, NOW, 0)).toMatchObject({
+      what: '2 commits · 6 files',
+      since: 'from its first Ask, today 09:12, until',
+      until: { title: 'health endpoint', began: 'began, 10:40' },
+    });
+  });
+
+  it('reads from its last Seal, and names another day as a sentence says it', () => {
+    const r = readsRow({ ...OWN, since: 'seal', when: '2026-11-08T10:00:00Z' }, NOW, 0);
+    expect(r.since).toBe('from its last Seal, Nov 8, until');
+    expect(r.until?.began).toBe('began, today 10:40');
+  });
+
+  it('reads to now when no work began after it, as before', () => {
+    expect(readsRow({ ...OWN, until: null }, NOW, 0)).toMatchObject({ since: 'since its first Ask, today 09:12', until: null });
+  });
+
+  it('says its reader reads the work’s own change', () => {
+    const judges = 'claude reads the whole change against what you asked, and reads again only where it is unsure.';
+    expect(judgesLine(judges, OWN)).toBe('claude reads this work’s own change against what you asked, and reads again only where it is unsure.');
+    expect(judgesLine(judges, { ...OWN, until: null })).toBe(judges);
+    expect(judgesLine('Nothing is typed into the agent\'s pane.', OWN)).toBe('Nothing is typed into the agent\'s pane.');
   });
 });
 

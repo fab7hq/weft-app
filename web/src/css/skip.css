@@ -97,3 +97,24 @@
   .nr-where { flex: 1; font-size: inherit; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; }
   .nr-path { font-size: 12.5px; }
 }
+
+/* A project's settings: YOUR DECISIONS, how many at its right; a row per decision. A phone first. */
+.dec-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 20px 16px 8px; border-bottom: 1px solid var(--fab7-line); font: 600 11px var(--font-mono); letter-spacing: 0.08em; color: var(--fab7-faint); }
+.dec-count { font: 400 13px var(--font-sans); letter-spacing: 0; color: var(--fab7-muted); }
+.dec-row { display: grid; grid-template-columns: 8px minmax(0, 1fr); column-gap: 10px; align-items: start; padding: 10px 16px; border-bottom: 1px solid var(--fab7-line); font-size: 15px; line-height: 1.45; }
+.dec-dot { display: block; margin-top: 7px; }
+.dec-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; overflow-wrap: anywhere; }
+.dec-sub { font-size: 12.5px; color: var(--fab7-muted); }
+.dec-answer { color: var(--c); }
+.dec-file { font: 11.5px var(--font-mono); overflow-wrap: anywhere; }
+/* Under the text on a phone, at the right on a desktop. */
+.dec-changed { grid-column: 2; justify-self: start; display: flex; align-items: center; height: 22px; margin-top: 3px; padding: 0 8px; border: 1px solid var(--fab7-amber); border-radius: var(--weft-radius-control); font-size: 12px; color: var(--fab7-amber-text); white-space: nowrap; }
+
+@media (min-width: 768px) {
+  .dec-head { padding: 26px 0 8px; }
+  .dec-row { grid-template-columns: 8px minmax(0, 1fr) auto; column-gap: 12px; padding: 11px 0; font-size: 14px; }
+  .dec-dot { margin-top: 6px; }
+  .dec-sub { font-size: 12px; }
+  .dec-file { font-size: 12px; }
+  .dec-changed { grid-column: 3; grid-row: 1; margin: 0; }
+}

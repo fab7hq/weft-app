@@ -14,6 +14,7 @@ import { fill, w } from '../words';
 import { HarnessesTab, ProjectRingFrame, RingFrameTab, ringFrameAddable, useProjectRules, useSupported } from './RingFrameSettings';
 import { Mark } from './Tree';
 import { Coming, Saving } from './Wait';
+import { DecisionsSection } from './Decisions';
 import { SkipSection } from './Skip';
 
 type Which = 'turbo' | 'login' | 'notify';
@@ -352,6 +353,7 @@ export function ProjectSettings({ machine, project, wide }: { machine: api.Machi
           {addable.map((e) => <option key={e.name} value={e.name}>{label(e)}</option>)}
           {ringFrameAddable(project, rules).map(([v, words]) => <option key={v} value={v}>{words}</option>)}
         </select>
+        <DecisionsSection project={project} />
         <SkipSection project={project} />
         <GitNote project={project} on={gitNoteOn(s)} />
         <div class="settings-foot">

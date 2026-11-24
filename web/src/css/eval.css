@@ -102,3 +102,8 @@
 .ev-close { padding: 0; border: 0; background: none; color: var(--fab7-muted); font: 14px var(--font-sans); cursor: pointer; }
 .detail-acts.ev-foot .tree-act { flex: none; height: 40px; padding: 0 24px; border-radius: var(--weft-radius-control); }
 .detail-acts.ev-foot .ev-stop { padding: 0 20px; }
+
+/* A rule of the project: where it is written, then its words. */
+.rule-block { display: flex; flex-direction: column; gap: 2px; padding: 2px 0 2px 14px; border-left: 2px solid var(--fab7-line); }
+.rule-block-label { font: 12px/1.5 var(--font-mono); color: var(--fab7-faint); overflow-wrap: anywhere; }
+.rule-block-quote { color: var(--fab7-muted); overflow-wrap: anywhere; }

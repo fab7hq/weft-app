@@ -7,7 +7,8 @@ import { signal } from '@preact/signals';
 import type { ComponentChildren } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import type { Machine } from '../api';
-import { type EvalDetail, type Item, MARK, type Payload, aside, chosen, pageOf, place, sections, tint, toItem, toLines, windowsOf } from '../evalview';
+import { type EvalDetail, type Item, MARK, type Payload, aside, chosen, pageOf, place, ruleOf, sections, tint, toItem, toLines, windowsOf } from '../evalview';
+import { RuleBlock } from './Rule';
 import * as m from '../machine';
 import { back, go, leave, swap } from '../nav';
 import { fill, w } from '../words';
@@ -71,11 +72,13 @@ function List({ v, on, chevrons, open }: { v: Payload; on: string | null; chevro
 /** An item: what it is, the sentence, why, how sure, what the agent said, what would settle it, and where to read more. */
 function Detail({ item, lines }: { item: Item; lines: () => void }) {
   const [reads, setReads] = useState(false);
+  const rule = ruleOf(item);
   return (
     <div class="ev-detail" style={tint(item.kind)}>
       <div class="ev-head">{`${MARK[item.kind]} ${item.head}`}</div>
       <div class="ev-big">{item.big}</div>
       {item.why.map((p, i) => <p key={i} class="ev-why">{p}</p>)}
+      {rule && <RuleBlock label={rule.label} quote={rule.quote} />}
       {item.again ? (
         <p class="faint ev-sure">{w('eval_view.reading_again')}</p>
       ) : (item.dots.length > 0 || item.sure) && (

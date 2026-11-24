@@ -46,6 +46,32 @@ describe('the Seal\'s questions', () => {
     expect(A.beforeLine(q('q2', 'did_you_want', { against: { ...before, date: '2026-11-03' } }))).toBe('Asked before · not wanted on 3 Nov');
     expect(A.beforeLine(q('q3', 'still_want'))).toBeNull();
     expect(A.day('not a date')).toBe('not a date');
+    expect(A.changedLine(q('q1', 'did_you_want', { asked_before: before }))).toBeNull();
+    expect(A.ruleOf(q('q1', 'did_you_want', { asked_before: before }))).toBeNull();
+  });
+
+  it('asks a decision again when its file changed, saying what was answered and which file', () => {
+    const stale = { decision: 'sel_1/d2', seal: 'sel_1', date: '2026-11-03', answer: 'wanted', stale: true, changed: ['src/session.rs'] };
+    const again = q('q4', 'did_you_want', { asked_before: stale });
+    expect(A.beforeLine(again)).toBe('Asked before · wanted on 3 Nov');
+    expect(A.changedLine(again)).toEqual(['', 'src/session.rs', ' has changed since, so it’s asked again.']);
+    expect(A.beforeLine(q('q4', 'did_you_want', { asked_before: { ...stale, answer: 'not_wanted' } }))).toBe('Asked before · not wanted on 3 Nov');
+    const two = q('q5', 'still_want', { asked_before: { ...stale, answer: 'later', changed: ['a.rs', 'b.rs'] } });
+    expect(A.beforeLine(two)).toBe('Asked before · answered on 3 Nov');
+    expect(A.changedLine(two)?.join('')).toBe('a.rs, b.rs have changed since, so it’s asked again.');
+    expect(A.changedLine(q('q6', 'did_you_want', { asked_before: { ...stale, changed: [] } }))).toBeNull();
+  });
+
+  it('names the rule a question goes against, by its file', () => {
+    const asked = q('q3', 'did_you_want', { rules: [{ source: './AGENTS.md@3f2a9c1', quote: 'Never write a person’s email or password to a log.' }] });
+    expect(A.beforeLine(asked)).toBe('Against a rule of this project');
+    expect(A.ruleOf(asked)).toEqual({ label: 'AGENTS.md', quote: '“Never write a person’s email or password to a log.”' });
+    expect(A.label(asked)).toBe('Did you want this?');
+    expect(A.ruleFile('api/docs/rules.md@abc')).toBe('api/docs/rules.md');
+    expect(A.ruleFile('./AGENTS.md')).toBe('AGENTS.md');
+    // Asked before, it says so above, not the rule.
+    expect(A.beforeLine({ ...asked, against: { decision: 'd', seal: 's', date: '2026-11-03' } })).toBe('Asked before · not wanted on 3 Nov');
+    expect(A.beforeLine({ ...asked, rules: [] })).toBeNull();
   });
 
   it('gives every answer its words and one colour, and no answer is red', () => {

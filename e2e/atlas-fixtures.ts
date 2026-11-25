@@ -285,6 +285,37 @@ export const VIEW = {
   },
 };
 
+/** 6.8, 6.9: fix login's Eval with a change against a rule of the project, and one a rule
+ * settled at an earlier Eval that has changed since, shown alone among the settled. */
+export const RULED = {
+  ...VIEW, headline: '4 things to look at · 13 settled',
+  items: [
+    ITEMS[1], ITEMS[2],
+    item('w|w_log', 'look', 'Against a rule · the typed email is logged', {
+      dots: [true, true], head: 'Against a rule of this project', big: 'The email typed at sign-in is written to the server log.',
+      why: ['Nothing you asked for says to, and a rule of this project says not to. Your Seal asks about it.'],
+      sure: 'read twice, both agree', windows: ['w_log'],
+      rule: { label: 'AGENTS.md', quote: 'Never write a person’s email or password to a log.' },
+    }),
+    ITEMS[4], ITEMS[5],
+    item('ruled|evl_1|src/auth/retention.ts', 'settled', 'Failed sign-ins kept 90 days · its rule has changed', {
+      dots: [true, true], head: 'Settled · by a rule that has changed since', big: 'Failed sign-ins are kept for 90 days.',
+      why: ['At your Eval of 10 Nov a rule of this project explained it. That rule has changed since, so it may not explain it now.'],
+      sure: 'read twice, both agree', windows: ['w_keep'],
+      rule: { label: 'docs/security.md, as it was on 10 Nov', quote: 'Keep failed sign-ins for 90 days.' },
+    }),
+    ITEMS[6],
+  ],
+  lines: {
+    ...VIEW.lines,
+    w_keep: { path: 'src/auth/retention.ts', lines: [
+      { n: 7, text: ' export const RETENTION = {', lit: false },
+      { n: 8, text: '+  failedSignInsDays: 90,', lit: true },
+      { n: 9, text: ' };', lit: false },
+    ] },
+  },
+};
+
 /** The steps of a running Eval, each done, under way or still to come. */
 const steps = (lights: ('done' | 'now' | 'next')[], names: string[]) => names.map((name, i) => ({ name, light: lights[i] }));
 

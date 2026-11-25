@@ -10,7 +10,7 @@ import { FakeMachine, atlas, project, sessionOf, type Agent, type Detail, type P
 import { pull, swipeLeft } from './touch';
 import { drawWithDom, openAgent } from './open';
 import { person, signIn } from './seed';
-import { CLAUDE, CODEX, CODEX_NEW, DETAILS, RUNNING, SESSIONS, STILL, VIEW, at, large } from './atlas-fixtures';
+import { CLAUDE, CODEX, CODEX_NEW, DETAILS, RULED, RUNNING, SESSIONS, STILL, VIEW, at, large } from './atlas-fixtures';
 
 const OUT = 'gallery';
 
@@ -24,6 +24,28 @@ const SEAL_QUESTIONS = [
   { id: 'q4', ask: 'still_want', behaviour: 'Staying signed in on this device after the browser closes.', why: 'You asked for it; the change does not do it yet.' },
   { id: 'q5', ask: 'what_did_you_mean', behaviour: 'What you meant by “show an error”.', why: 'It can be read two ways.' },
 ];
+/** 17.29, 17.30: the same five, the third against a rule of the project and the fourth a decision asked again since its file changed. */
+const RULED_QUESTIONS = [
+  SEAL_QUESTIONS[0], SEAL_QUESTIONS[1],
+  { id: 'q3', ask: 'did_you_want', behaviour: 'The email typed at sign-in is written to the server log.', why: 'Nothing you asked for says to.',
+    rules: [{ source: './AGENTS.md@3f2a9c1', quote: 'Never write a person’s email or password to a log.' }] },
+  { id: 'q4', ask: 'did_you_want', behaviour: 'A session ends after 1 hour without activity.', why: 'You decided this before.',
+    asked_before: { decision: 'sel_1/d2', seal: 'sel_1', date: '2026-11-03', answer: 'wanted', stale: true, changed: ['src/session.rs'] } },
+  SEAL_QUESTIONS[4],
+];
+/** 9.15: the person's decisions in weft, newest first, one asked again. */
+const decision = (id: string, behaviour: string, answer: string, answer_words: string, tone: string, day: string, files: string[], stale_line: string | null = null) =>
+  ({ id, behaviour, answer, answer_words, tone, day, files, stale: stale_line !== null, stale_line });
+const DECISIONS = {
+  title: 'YOUR DECISIONS', count: '4 · 1 to ask again', changed: 'changed since',
+  list: [
+    decision('sel_2/d1', 'The sign-in button is off while it sends.', 'wanted', 'Wanted', 'teal', '10 Nov', ['src/login.rs']),
+    decision('sel_1/d1', 'Emails are written to the server log.', 'not_wanted', 'Not wanted', 'amber', '3 Nov', ['src/log.rs', 'AGENTS.md']),
+    decision('sel_1/d2', 'A session ends after 1 hour without activity.', 'wanted', 'Wanted', 'teal', '3 Nov', ['src/session.rs'],
+      'src/session.rs has changed since; the next Eval that touches it asks again'),
+    decision('sel_0/d1', 'The health page shows the build number.', 'wanted', 'Wanted', 'teal', '1 Nov', ['plans/weft/plan.md']),
+  ],
+};
 mkdirSync(OUT, { recursive: true });
 /** What the read check found in fab7, as 9.13 and 17.28 draw it. */
 const SKIP_OUTPUT = { kind: 'untracked_bulk', path: 'output/', files: 329, bytes: 4_000_000, commits: 0, kinds_of_files: [['png', 329]], fix: { file: '.gitignore', line: '/output/' } };
@@ -765,6 +787,15 @@ const SCREENS: Screen[] = [
     await button(at, 'What each read said ›').click();
   } },
   { ids: ['M6.7', 'D6.7'], sample: judging, run: (at) => evalView(at, STILL) },
+  // 6.8: a change against a rule of the project; 6.9: one a rule settled before, that rule changed since.
+  ...([['6.8', 'Against a rule · the typed email is logged'], ['6.9', 'Failed sign-ins kept 90 days · its rule has changed']] as const).map(([n, line]): Screen => ({
+    ids: [`M${n}`, `D${n}`],
+    run: async (at) => {
+      await evalView(at, RULED);
+      await itemOf(at, line).click();
+      await expect(at.page.locator('.ev-detail .rule-block')).toBeVisible();
+    },
+  })),
 
   // 07 · A harness not set up: it broke after its agent started (as T3.8).
   { ids: ['M7.1', 'D7.1'], sample: () => {
@@ -812,6 +843,15 @@ const SCREENS: Screen[] = [
       await at.page.getByRole('region', { name: 'FILES AN EVAL SHOULD SKIP' }).scrollIntoViewIfNeeded();
     },
   })),
+  // 9.15: weft's settings, with the person's decisions.
+  { ids: ['M9.15', 'D9.15'], run: async (at) => {
+    at.machine.decisions = { weft: DECISIONS };
+    await settingsOpen(at);
+    await at.page.getByRole('button', { name: "weft's settings" }).first().click();
+    const section = at.page.getByRole('region', { name: 'YOUR DECISIONS' });
+    await expect(section.locator('.dec-changed')).toBeVisible();
+    await section.scrollIntoViewIfNeeded();
+  } },
   { ids: ['M9.2'], run: async (at) => {
     at.machine.vapid = 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U';
     await settingsOpen(at);
@@ -1265,6 +1305,17 @@ const SCREENS: Screen[] = [
     await at.page.locator('.tree-acts').getByRole('button', { name: 'Eval', exact: true }).click();
     await expect(at.page.getByRole('dialog', { name: 'Eval this work?' }).locator('.skip-row--added')).toBeVisible();
   } })),
+  // 17.31: the Eval dialog of fix login, with health endpoint begun on top of it: it reads fix login's own change.
+  ...(['M17.31', 'D17.31'] as const).map((id): Screen => ({ ids: [id], run: async (at) => {
+    const today = (h: number, m: number) => new Date(new Date().setHours(h, m, 0, 0)).toISOString();
+    const reads = { since: 'ask', when: today(9, 12), commits: 2, files: 6, skipped: {}, large: false, until: { ask: 'ask_3', title: 'health endpoint', time: today(10, 40) } };
+    const stage = staged(CLAUDE, 'Eval this work?', 'fix login · 2 Asks\nclaude reads the whole change against what you asked, and reads again only where it is unsure.\nNothing is typed into the agent’s pane.', { word: 'act.eval', warn: false });
+    at.machine.onAct = (m) => stage(m).map((o) => (o.type === 'pending' ? { ...o, reads } : o));
+    await barOn(at);
+    const dialog = at.page.getByRole('dialog', { name: 'Eval this work?' });
+    await expect(dialog.getByText('claude reads this work’s own change', { exact: false })).toBeVisible();
+    await expect(dialog.getByText('health endpoint', { exact: false }).first()).toBeVisible();
+  } })),
   // 17.25: Eval's yes, still opening: its steps, the files read so far and the bar filled by the share done.
   ...(['M17.25', 'D17.25'] as const).map((id): Screen => ({ ids: [id], sample: waiting, run: async (at) => {
     const stage = staged(CODEX, 'Eval this work?', 'health endpoint · 2 Asks\nclaude reads the whole change against what you asked, and reads again only where it is unsure.\nNothing is typed into the agent’s pane.', { word: 'act.eval', warn: false });
@@ -1389,6 +1440,40 @@ const SCREENS: Screen[] = [
       await expect(dialog.getByRole('heading', { name: 'Your answers' })).toBeVisible();
       await dialog.getByRole('radiogroup', { name: 'Decision' }).getByRole('radio', { name: 'Rejected' }).click();
       await dialog.getByRole('radiogroup', { name: 'Why' }).getByRole('radio', { name: 'Not what I asked' }).click();
+    },
+  })),
+  // 17.29: the third question, against a rule of the project, answered; 17.30: the fourth, a decision asked again since its file changed.
+  ...([['M17.29', 3], ['D17.29', 3], ['M17.30', 4], ['D17.30', 4]] as const).map(([id, n]): Screen => ({
+    ids: [id],
+    sample: () => withTree((t) => (t[0].work.units[1].status = { state: 'evaluated', report: reportOf('found') })),
+    run: async (at) => {
+      at.machine.reads.units.ask_3 = health({ state: 'evaluated', report: reportOf('found') }, DRIFTED, null);
+      at.machine.reads.questions = { ask_3: RULED_QUESTIONS };
+      if (at.wide) {
+        await workOpen(at, 'health endpoint');
+        await at.page.locator('.detail-acts').getByRole('button', { name: 'Seal', exact: true }).click();
+      } else {
+        await tree(at);
+        await item(at, 'health endpoint').click();
+        await at.page.locator('.tree-acts').getByRole('button', { name: 'Seal', exact: true }).click();
+      }
+      const dialog = at.page.getByRole('dialog', { name: 'Seal health endpoint' });
+      await expect(dialog).toBeVisible();
+      const next = dialog.getByRole('button', { name: 'Next', exact: true });
+      const pick = async (label: string) => {
+        await dialog.locator('.seal-label').waitFor();
+        await dialog.getByRole('radio', { name: label, exact: true }).click();
+      };
+      await pick('Not wanted');
+      await next.click();
+      await pick('Not wanted');
+      await next.click();
+      await expect(dialog.locator('.seal-rule')).toBeVisible();
+      await pick('Not wanted');
+      if (n === 3) return;
+      await next.click();
+      await expect(dialog.locator('.seal-file')).toHaveText('src/session.rs');
+      await pick('I wanted this');
     },
   })),
   ...(['M17.6', 'D17.6'] as const).map((id): Screen => ({ ids: [id], sample: judging, run: async (at) => {

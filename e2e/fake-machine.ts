@@ -277,6 +277,8 @@ export class FakeMachine {
   skip: Record<string, unknown[]> = {};
   /** How a `skip_check` or a `skip_add` is answered; else `ok` with the project's findings. */
   onSkip: ((m: Record<string, unknown>) => Record<string, unknown>[]) | null = null;
+  /** The person's decisions, by project, as `decisions` answers them; a project with none set is not answered. */
+  decisions: Record<string, unknown> = {};
   /** Answer `pair` with `asking`, then `paired` at once. */
   allowAtOnce = true;
   /** Each agent's conversation, by its id; an agent with none cannot be read. */
@@ -349,6 +351,8 @@ export class FakeMachine {
         } else if (m.type === 'skip_check' || m.type === 'skip_add') {
           const out = this.onSkip ? this.onSkip(m) : [{ type: 'ok', req: m.req, findings: this.skip[String(m.project)] ?? [] }];
           for (const o of out) ws.send(JSON.stringify(o));
+        } else if (m.type === 'decisions' && this.decisions[String(m.project)]) {
+          ws.send(JSON.stringify({ type: 'ok', req: m.req, decisions: this.decisions[String(m.project)] }));
         } else if (m.type === 'follow') {
           const also: { agent: string }[] = Array.isArray(m.also) ? m.also : [];
           this.following.set(ws, new Set([m.agent, ...also.map((a) => a.agent)].filter((a): a is string => typeof a === 'string')));

@@ -20,13 +20,15 @@ export type View =
   /** The Eval view of an Eval (M6.x), at one of its pages. */
   | { name: 'eval'; machine: string; project: string; eval: string; at?: string }
   | { name: 'start'; machine: string; from: string; harness?: string; project?: string }
-  | { name: 'settings' }
-  /** A machine's own settings, on one of its tabs. */
-  | { name: 'machine'; machine: string; tab?: 'general' | 'workflow' | 'ringframe' | 'harnesses' }
+  /** Settings: the open machine's sections and this device's; a phone's list when no section is named. */
+  | { name: 'settings'; machine?: string; section?: Section; practice?: string }
   /** A project's own settings: what differs from every project's. */
   | { name: 'project'; machine: string; project: string }
   /** A file an agent pointed at, over the view it was opened from. */
   | { name: 'file'; machine: string; agent: string; ref: Ref };
+
+/** Settings' sections, by what the person wants to do. */
+export type Section = 'general' | 'eval' | 'rules' | 'apps' | 'you';
 
 export const stack = signal<View[]>([]);
 

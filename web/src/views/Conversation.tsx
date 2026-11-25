@@ -126,7 +126,7 @@ function Message({ row, agent, harness, waiting }: { row: Extract<Row, { kind: '
     return (
       <div class="convo-you" data-row={row.id}>
         <div class="convo-who">
-          <span class="convo-you-name">YOU</span>
+          <span class="convo-you-name">{w('word.you')}</span>
           {at && <span class="convo-time">{at}</span>}
         </div>
         <div class="convo-text"><Said text={row.text} /></div>

@@ -1,34 +1,23 @@
-// A machine's own settings (M9.8, M9.9, D9.8, D9.9), from Settings › Machines:
-// General (its name, every project's Turbo, Start at login and Notifications, and
-// how long ended sessions stay listed) and
-// Workflow (who runs each step, Eval's judges). And a
+// The parts of a machine's settings that Settings' sections share (its name, a
+// setting's control, a reader's row, how long finished sessions stay), and a
 // project's own settings (M9.12, D9.12), from its row's ⋯: what differs from
 // every project's. Each is the machine's, changed there at once; every device
 // is told.
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type * as api from '../api';
 import * as m from '../machine';
-import { back, swap } from '../nav';
-import { ENTRIES, type Entry, HOW_HARD, type HowHard, type JudgeEval, KEEP_KEY, KEYS, ROLES, at, differs, digitsOnly, effortChoices, howHard, judgesIn, keepDays, keepValue, machineName, machineSwitch, modelChoices, reachKey, shownValue, gitNoteOn } from '../settings';
+import { back } from '../nav';
+import { ENTRIES, type Entry, type JudgeEval, KEEP_CHOICES, KEEP_FOREVER, KEEP_KEY, at, differs, digitsOnly, effortChoices, keepChoice, keepDays, keepValue, machineName, modelChoices, shownValue, gitNoteOn } from '../settings';
 import { fill, w } from '../words';
-import { HarnessesTab, ProjectRingFrame, RingFrameTab, ringFrameAddable, useProjectRules, useSupported } from './RingFrameSettings';
+import { ProjectRingFrame, ringFrameAddable, useProjectRules } from './RingFrameSettings';
 import { Mark } from './Tree';
 import { Coming, Saving } from './Wait';
 import { DecisionsSection } from './Decisions';
 import { SkipSection } from './Skip';
 
-type Which = 'turbo' | 'login' | 'notify';
-type Tab = 'general' | 'workflow' | 'ringframe' | 'harnesses';
-
-/** The machine's rows, each a switch the cards draw. */
-const ROWS: [Which, string, string][] = [
-  ['turbo', 'desktop.menu.turbo', 'desktop.settings.turbo_what'],
-  ['login', 'desktop.menu.login', 'web.machine.login_what'],
-  ['notify', 'desktop.settings.notify', 'desktop.settings.notify_what'],
-];
 
 /** The project the machine answers for: any open one says its settings. */
-function useSettings(project: string | undefined) {
+export function useSettings(project: string | undefined) {
   useEffect(() => {
     if (project) void m.askSettings(project);
   }, [project]);
@@ -64,7 +53,7 @@ function effortNone(judge: JudgeEval | undefined, role: string): string {
 /** A setting's control: a choice of harnesses, efforts or models, or a model typed and kept on Enter or leaving. A
  * judge's efforts and models are its harness's (`judge`). A project's own offers every project's value first, which
  * takes its own away. */
-function Control({ e, value, project, scope, every, judge }: { e: Entry; value: string | undefined; project: string; scope: 'machine' | 'project'; every?: string; judge?: JudgeEval }) {
+export function Control({ e, value, project, scope, every, judge }: { e: Entry; value: string | undefined; project: string; scope: 'machine' | 'project'; every?: string; judge?: JudgeEval }) {
   const set = (v: string | null) => void m.setSetting(project, scope, e.key, v === '' ? null : v);
   const [typed, setTyped] = useState(value ?? '');
   useEffect(() => setTyped(value ?? ''), [value]);
@@ -96,90 +85,12 @@ function Control({ e, value, project, scope, every, judge }: { e: Entry; value: 
   );
 }
 
-export function MachineSettings({ machine, wide, tab }: { machine: api.Machine; wide: boolean; tab: Tab }) {
-  const project = m.tree.value[0]?.project;
-  const s = useSettings(project);
-  const named = machineName(s, machine.name);
-  const name = { machine: named };
-  const tabs: [Tab, string][] = [
-    ['general', 'desktop.settings.tab.general'],
-    ['workflow', 'desktop.settings.tab.workflow'],
-    ['ringframe', 'desktop.settings.tab.ringframe'],
-    ['harnesses', 'desktop.settings.tab.harnesses'],
-  ];
-  return (
-    <div class="app">
-      <Bar wide={wide} title={named} backTo={w('web.settings.title')} />
-      <div class={`settings settings--machine${tab === 'ringframe' || tab === 'harnesses' ? ' settings--rf' : ''}`}>
-        {wide && <h1 class="settings-title">{fill('web.machine.title', name)}</h1>}
-        <div class="settings-tabs" role="tablist">
-          {tabs.map(([t, word]) => (
-            <button key={t} class={`settings-tab${t === tab ? ' settings-tab--on' : ''}`} role="tab" aria-selected={t === tab} type="button"
-              onClick={() => swap({ name: 'machine', machine: machine.id, tab: t })}>{w(word)}</button>
-          ))}
-        </div>
-        <Saving />
-        {!project ? (
-          <p class="settings-sub">{fill('web.machine.no_project', name)}</p>
-        ) : !s && (tab === 'general' || tab === 'workflow') ? (
-          // Until the machine says its settings, none is shown as its default.
-          <Coming />
-        ) : tab === 'general' ? (
-          <>
-            <div class="fab7-group settings-group">{w('desktop.settings.this_machine')}</div>
-            <MachineName project={project} listed={machine.name} />
-            <div class="fab7-group settings-group">{w('desktop.settings.every_project')}</div>
-            {ROWS.map(([which, word, what]) => {
-              const on = machineSwitch(s, which);
-              const id = `machine-${which}`;
-              return (
-                <label key={which} for={id} class="settings-row">
-                  <span class="settings-text">
-                    <span>{w(word)}</span>
-                    <span class="settings-sub">{fill(what, name)}</span>
-                  </span>
-                  <span class={`switch${which === 'turbo' ? ' switch--turbo' : ''}`}>
-                    <input id={id} type="checkbox" checked={on} onChange={() => void m.setSetting(project, 'machine', KEYS[which], !on)} class="switch-input" />
-                    <span class="switch-track" aria-hidden="true">
-                      <span class="switch-knob" />
-                    </span>
-                  </span>
-                </label>
-              );
-            })}
-            <KeepSessions project={project} />
-            <div class="settings-foot">
-              <p>{w('web.machine.foot')}</p>
-            </div>
-          </>
-        ) : tab === 'ringframe' ? (
-          <RingFrameTab project={project} />
-        ) : tab === 'harnesses' ? (
-          <HarnessesTab project={project} />
-        ) : (
-          <>
-            <div class="fab7-group settings-group">{w('desktop.settings.acts')}</div>
-            {ENTRIES.slice(0, 3).map((e) => <Row key={e.name} e={e} s={s?.machine} project={project} scope="machine" />)}
-            <div class="fab7-group settings-group">{w('desktop.settings.debate')}</div>
-            <Row e={ENTRIES[3]} s={s?.machine} project={project} scope="machine" />
-            <Judges s={s?.machine} project={project} />
-            <div class="settings-foot">
-              <p class="settings-foot--wide">{w('desktop.settings.workflow_foot')}</p>
-              <p class="settings-foot--phone">{w('web.workflow.foot')}</p>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
 /** A setting field that keeps what is typed: it says what applies on the machine, except while it is
  * typed in, when a change told by the machine waits until it is left. Left, or on Enter, `keep` gets what
  * the field holds then (a quick edit may not be drawn yet) and what applies, and sends it, or sends nothing
  * and the field says what applies again. Once a send is answered, the field says what applies, unless it
  * was typed in since. `only` keeps what may be typed in it. */
-function useSettingField(applies: () => string, keep: (text: string, applies: string) => Promise<unknown> | undefined, only: (text: string) => string = (t) => t) {
+export function useSettingField(applies: () => string, keep: (text: string, applies: string) => Promise<unknown> | undefined, only: (text: string) => string = (t) => t) {
   const said = applies();
   const [typed, setTyped] = useState(said);
   const editing = useRef(false);
@@ -206,7 +117,7 @@ function useSettingField(applies: () => string, keep: (text: string, applies: st
 
 /** The machine's name: what Weft and the person's devices call it, typed and kept on Enter or
  * leaving. Emptied, or the system's own again, it is the system's: the machine forgets it. */
-function MachineName({ project, listed }: { project: string; listed: string }) {
+export function MachineName({ project, listed }: { project: string; listed: string }) {
   const field = useSettingField(
     () => machineName(m.settings.value[project], listed),
     (text, named) => {
@@ -218,74 +129,62 @@ function MachineName({ project, listed }: { project: string; listed: string }) {
     <div class="settings-row settings-row--setting settings-machine-name">
       <label class="settings-text" for="machine-name">
         <span>{w('desktop.settings.name')}</span>
-        <span class="settings-sub">{w('desktop.settings.name_what')}</span>
+        <span class="settings-sub">{w('settings.name_what')}</span>
       </label>
       <input id="machine-name" class="settings-input" autocomplete="off" {...field} />
     </div>
   );
 }
 
-/** How many days an ended session stays listed, typed in digits only and kept on Enter or leaving.
- * Emptied, the machine's default applies again. */
-function KeepSessions({ project }: { project: string }) {
+/** Keep finished sessions: 3 days, a week, a month, Custom or Keep forever, each a number of days.
+ * Custom shows a field of digits, kept on Enter or leaving; emptied, the machine's default applies again. */
+export function KeepSessions({ project }: { project: string }) {
+  const days = keepDays(m.settings.value[project]);
+  // Custom, once shown, stays: a preset value typed or told keeps the field where it was.
+  const [custom, setCustom] = useState(false);
+  useEffect(() => void (keepChoice(days) === 'custom' && setCustom(true)), [days]);
   const field = useSettingField(
     () => String(keepDays(m.settings.value[project])),
-    (text, days) => {
+    (text, said) => {
       const value = keepValue(text);
-      return value === undefined || String(value) === days ? undefined : m.setSetting(project, 'machine', KEEP_KEY, value);
+      return value === undefined || String(value) === said ? undefined : m.setSetting(project, 'machine', KEEP_KEY, value);
     },
     digitsOnly,
   );
+  const choice = custom ? 'custom' : keepChoice(days);
+  const pick = (v: string) => {
+    if (v === 'custom') return setCustom(true);
+    setCustom(false);
+    if (Number(v) !== days) void m.setSetting(project, 'machine', KEEP_KEY, Number(v));
+  };
   return (
     <div class="settings-row settings-row--setting settings-keep">
-      <label class="settings-text" for="machine-keep-days">
-        <span>{w('web.machine.keep_sessions')}</span>
-        <span class="settings-sub">{w('web.machine.keep_sessions_what')}</span>
+      <label class="settings-text" for="machine-keep">
+        <span>{w('settings.keep')}</span>
+        <span class="settings-sub">{w('settings.keep_what')}</span>
       </label>
       <span class="settings-days">
-        <input id="machine-keep-days" class="settings-input" type="text" inputMode="numeric" pattern="[0-9]*" autocomplete="off" {...field} />
-        <span class="settings-unit">{w('web.machine.days')}</span>
+        <span class="settings-pick settings-pick--boxed">
+          <select id="machine-keep" class="settings-select" value={String(choice)} onChange={(ev) => pick((ev.target as HTMLSelectElement).value)}>
+            {KEEP_CHOICES.map(([d, word]) => <option key={d} value={String(d)}>{w(word)}</option>)}
+            <option value="custom">{w('settings.keep.custom')}</option>
+            <option value={String(KEEP_FOREVER)}>{w('settings.keep.forever')}</option>
+          </select>
+        </span>
+        {choice === 'custom' && (
+          <>
+            <input id="machine-keep-days" class="settings-input" type="text" inputMode="numeric" pattern="[0-9]*" autocomplete="off" aria-label={w('settings.days')} {...field} />
+            <span class="settings-unit">{w('settings.days')}</span>
+          </>
+        )}
       </span>
     </div>
   );
 }
 
-/** The three judges' choice, what an effort changes in the harness they run
- * in, and each judge, closed until opened. */
-function Judges({ s, project }: { s: Record<string, unknown> | null | undefined; project: string }) {
-  const supported = useSupported(project);
-  const [open, setOpen] = useState(false);
-  const row = supported?.find((h) => h.harness === judgesIn(s));
-  const judge = row?.eval ?? undefined;
-  const hard = howHard(s);
-  const choose = async (h: Exclude<HowHard, 'custom'>) => {
-    for (const [role] of ROLES) await m.setSetting(project, 'machine', ['eval', 'debate', role, 'effort'], HOW_HARD[h]);
-  };
-  const choices: [Exclude<HowHard, 'custom'>, string][] = [['quick', 'desktop.settings.quick'], ['balanced', 'desktop.settings.balanced'], ['thorough', 'desktop.settings.thorough']];
-  return (
-    <>
-      <div class="settings-row settings-row--setting settings-hard">
-        <span class="settings-text"><span>{w('desktop.settings.how_hard')}</span></span>
-        <span class="settings-seg" role="radiogroup" aria-label={w('desktop.settings.how_hard')}>
-          {choices.map(([h, word]) => (
-            <button key={h} type="button" role="radio" aria-checked={hard === h} class={hard === h ? 'settings-seg--on' : ''} onClick={() => void choose(h)}>{w(word)}</button>
-          ))}
-          {hard === 'custom' && <span class="settings-seg--on" role="radio" aria-checked>{w('desktop.settings.custom')}</span>}
-        </span>
-        <span class="settings-sub settings-reach">{fill(reachKey(judge), { harness: row?.title ?? '' })}</span>
-      </div>
-      <button class={`settings-row settings-judges${open ? ' settings-judges--open' : ''}`} type="button" aria-expanded={open} onClick={() => setOpen(!open)}>
-        <span class="settings-text">{w('desktop.settings.each_judge')}</span>
-        <span class="settings-sub">{open ? '⌄' : '›'}</span>
-      </button>
-      {open && ROLES.map(([role, , word]) => <RoleRow key={role} role={role} word={word} s={s} project={project} judge={judge} />)}
-    </>
-  );
-}
-
 /** A judge on one row: its model and its effort. On a phone the row says its
  * model under its name and its effort beside it, and opens both. */
-function RoleRow({ role, word, s, project, judge }: { role: string; word: string; s: Record<string, unknown> | null | undefined; project: string; judge?: JudgeEval }) {
+export function RoleRow({ role, word, s, project, judge }: { role: string; word: string; s: Record<string, unknown> | null | undefined; project: string; judge?: JudgeEval }) {
   const [open, setOpen] = useState(false);
   const [model, effort] = ['model', 'effort'].map((f) => ENTRIES.find((e) => e.key.join('.') === `eval.debate.${role}.${f}`) as Entry);
   const chosen = at(s, effort.key);
@@ -306,15 +205,16 @@ function RoleRow({ role, word, s, project, judge }: { role: string; word: string
 }
 
 /** One setting's row: its name and what it does, and its control; a project's own also says every project's and Reset. */
-function Row({ e, s, project, scope, every }: { e: Entry; s: Record<string, unknown> | null | undefined; project: string; scope: 'machine' | 'project'; every?: string }) {
+export function Row({ e, s, project, scope, every, named }: { e: Entry; s: Record<string, unknown> | null | undefined; project: string; scope: 'machine' | 'project'; every?: string; named?: [label: string, what: string] }) {
+  const what = named ? named[1] : e.what;
   return (
     <div class="settings-row settings-row--setting">
       <label class="settings-text" for={`${scope}-${e.key.join('-')}`}>
-        <span>{label(e)}</span>
+        <span>{named ? w(named[0]) : label(e)}</span>
         {every !== undefined ? (
           <span class="settings-sub">{fill('desktop.project.every', { value: every })}</span>
         ) : (
-          e.what && <span class="settings-sub">{w(e.what)}</span>
+          what && <span class="settings-sub">{w(what)}</span>
         )}
       </label>
       <Control e={e} value={at(s, e.key)} project={project} scope={scope} every={every} />

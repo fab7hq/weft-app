@@ -41,6 +41,15 @@ export function keepDays(s: Settings | undefined): number {
   return typeof days === 'number' && Number.isInteger(days) && days >= 0 ? days : KEEP_DAYS;
 }
 
+/** Keep finished sessions: the choices, each a number of days; 0 keeps them all. */
+export const KEEP_CHOICES: [days: number, word: string][] = [[3, 'settings.keep.3'], [7, 'settings.keep.7'], [30, 'settings.keep.30']];
+export const KEEP_FOREVER = 0;
+
+/** The choice a number of days reads as: one of the choices, forever, or custom. */
+export function keepChoice(days: number): number | 'custom' {
+  return days === KEEP_FOREVER || KEEP_CHOICES.some(([d]) => d === days) ? days : 'custom';
+}
+
 /** What a typed number of days sets: the number, `null` when emptied (the
  * default again), or nothing for what is not a whole number of days. */
 export function keepValue(text: string): number | null | undefined {

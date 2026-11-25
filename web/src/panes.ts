@@ -12,11 +12,11 @@ import { w } from './words';
 
 const KEPT = 'weft.layout';
 
-function kept(machine: string): L.Layout {
+function kept(machine: string): L.Layout | null {
   try {
-    return L.readLayout(JSON.parse(localStorage.getItem(KEPT) ?? '{}')[machine]) ?? L.fresh();
+    return L.readLayout(JSON.parse(localStorage.getItem(KEPT) ?? '{}')[machine]) ?? null;
   } catch {
-    return L.fresh();
+    return null;
   }
 }
 
@@ -30,6 +30,8 @@ function keep(machine: string, layout: L.Layout): void {
 }
 
 export const layout = signal<L.Layout>(L.fresh());
+/** Whether this browser kept the machine's layout from an earlier visit: its tab in front opens again. */
+export const keptBefore = signal(false);
 /** Where the panes are drawn: what a split must leave room in. */
 export const room = signal<L.Room>({ width: 0, height: 0 });
 /** The most panes: what the machine shows a device, four at most. */
@@ -57,7 +59,11 @@ effect(() => {
   const machine = m.current.value?.id ?? null;
   if (machine === of) return;
   of = machine;
-  layout.value = machine ? kept(machine) : L.fresh();
+  const k = machine ? kept(machine) : null;
+  batch(() => {
+    keptBefore.value = k !== null;
+    layout.value = k ?? L.fresh();
+  });
 });
 
 // Its tabs, the agents running; known only once the machine has said.

@@ -8,7 +8,7 @@ import { type View } from '../nav';
 import { signal } from '@preact/signals';
 import { useEffect, useRef } from 'preact/hooks';
 import * as L from '../layout';
-import { focusPane, held, layout, most, over, room, show } from '../panes';
+import { focusPane, held, keptBefore, layout, most, over, room, show } from '../panes';
 import { Agent } from './Agent';
 import { AskDock } from './Ask';
 import { Details, RoundDetails, SealDetails, UnitDetails } from './Details';
@@ -169,6 +169,12 @@ export function Wide({ login, machine, agent, starting = null, view }: { login: 
   useEffect(() => {
     if (inFront) selectAgent(inFront);
   }, [inFront]);
+  // Back on the tree with the tabs this browser kept, as after a reload: the tab in front opens again.
+  const kept = view.name === 'tree' && keptBefore.value && m.welcomed.value ? L.showing(L.active(layout.value)) : null;
+  const keptRuns = kept !== null && m.agents.value.some((x) => x.agent === kept && x.running);
+  useEffect(() => {
+    if (kept && keptRuns) show(machine.id, kept);
+  }, [kept, keptRuns, machine.id]);
   return (
     <div class="app">
       <div class="appbar">

@@ -154,9 +154,21 @@ test.describe('desktop', () => {
     await expect(boxes(page)).toHaveCount(2);
 
     await page.reload();
-    await openAgent(page, 'codex · health endpoint');
     await expect(boxes(page)).toHaveCount(2);
     await expect(pane(page, 'docs · claude')).toBeVisible();
+    await machine.close();
+  });
+
+  test('after a reload the tab in front opens again, with no click; back online, the agent stays open', async ({ page, context }) => {
+    const machine = await opened(page, context);
+    await tab(page, 'docs · claude').click();
+    await page.reload();
+    await expect(page.getByLabel("The agent's screen")).toBeVisible();
+    await expect(tab(page, 'docs · claude')).toHaveAttribute('aria-current', 'page');
+    await page.evaluate(() => dispatchEvent(new Event('online')));
+    await page.waitForTimeout(300);
+    await expect(page.getByLabel("The agent's screen")).toBeVisible();
+    await expect(tab(page, 'docs · claude')).toHaveAttribute('aria-current', 'page');
     await machine.close();
   });
 
@@ -220,10 +232,9 @@ test.describe('the list', () => {
     // The panes take the width.
     const pane = await page.locator('.pane-box').first().boundingBox();
     expect(pane!.x).toBeLessThan(40);
-    // Kept: the next visit, once an agent is open, hides it again.
+    // Kept: after a reload the tab in front opens again, the list hidden.
     await page.reload();
-    await expect(list).toBeVisible();
-    await openAgent(page, 'codex · health endpoint');
+    await expect(page.getByLabel("The agent's screen")).toBeVisible();
     await expect(list).toHaveCount(0);
     await page.getByRole('button', { name: 'Show the list' }).click();
     await expect(list).toBeVisible();

@@ -82,6 +82,10 @@ export async function lookWho(): Promise<void> {
     const machines = await api.machines();
     account.value = { state: 'signed_in', login: me.login, machines };
     machine.mine.value = machines;
+    // Back online, on a view that still holds: the person stays where they were.
+    const v = here();
+    const holds = v && v.name !== 'signin' && v.name !== 'add' && (!('machine' in v) || machines.some((x) => x.id === v.machine));
+    if (holds && machines.length > 0) return;
     if (machines.length === 0) reset({ name: 'add' });
     else if (machines.length === 1) reset({ name: 'tree', machine: machines[0].id });
     else reset({ name: 'machines' });

@@ -175,6 +175,7 @@ button.rf-name { cursor: pointer; }
   .rf-said--beside, .rf-rule > .rf-link, .rf-remove { display: inline; }
   .rf-link--phone, .rf-chevron { display: none; }
   .rf-harness .rf-name { flex: 1; flex-direction: row; align-items: baseline; gap: 10px; }
+  .rf-deny .rf-name { flex: 1; }
   .rf-open .rf-row, .rf-open .rf-head { padding-left: 26px; }
   .rf-preview { display: flex; align-items: center; gap: 10px; margin-top: 12px; padding: 8px 10px; border: 1px solid var(--fab7-accent); border-radius: var(--weft-radius-control); }
   .rf-preview-name { display: inline; font-weight: 600; }

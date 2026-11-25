@@ -350,6 +350,13 @@ button.set-app { cursor: pointer; }
 .set-route { flex: none; width: 90px; }
 .set-needs { color: var(--fab7-amber-text); font-size: 12px; }
 .settings-pick--boxed { max-width: none; }
+.settings-pick--boxed .settings-select { padding: 7px 26px 7px 10px; border: 1px solid var(--fab7-line); background: var(--fab7-surface); color: var(--fab7-text); text-align: left; text-align-last: left; }
+.settings-pick--boxed::after { content: "▾"; right: 10px; font-size: 9px; }
+/* A phone puts the days under the choice, so the label keeps its width. */
+@media (max-width: 767px) {
+  .settings-keep .settings-days { flex-wrap: wrap; justify-content: flex-end; row-gap: 8px; max-width: 40%; }
+  .settings-keep .settings-pick { flex-basis: 100%; justify-content: flex-end; }
+}
 .menu-machine--here { background: var(--fab7-selected); margin: 0 -16px; padding: 6px 16px; width: auto; }
 @media (min-width: 768px) {
   .set-wrap { flex: 1; min-height: 0; display: flex; justify-content: center; gap: 48px; padding: 32px 16px 20px; }
@@ -384,5 +391,5 @@ button.set-app { cursor: pointer; }
   .set-tag--under { display: none; }
   .set-col .set-app--open { padding: 14px 8px; }
   .set-col .set-privacy { padding: 14px 0; }
-  .set-col .settings-leave { padding: 12px 0; }
+  .set-col .settings-leave { align-self: stretch; width: 100%; padding: 12px 0; border-bottom: 1px solid var(--fab7-line); }
 }

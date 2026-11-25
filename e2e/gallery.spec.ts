@@ -57,6 +57,17 @@ async function settingsOpen(at: At, others: { name: string; address?: string }[]
   await expect(at.page.getByRole('tree', { name: 'Work' })).toBeVisible();
 }
 
+/** Settings at one of its sections: a desktop through ☰ › Settings… and its list, a phone
+ * through ☰ and its list; Advanced settings turned on first when asked. */
+async function settingsAt(at: At, section?: string, advanced = false) {
+  await button(at, 'Menu').click();
+  if (at.wide) await at.page.getByRole('menu').getByRole('button', { name: 'Settings…' }).click();
+  if (advanced) await at.page.getByLabel('Advanced settings').click({ force: true });
+  if (!section) return;
+  const list = at.wide ? at.page.getByRole('navigation', { name: 'Settings' }) : at.page.locator('.set-list');
+  await list.getByRole('button', { name: new RegExp(`^${section}`) }).click();
+}
+
 /** What this browser keeps, as the card shows it: the device's name, notifications on. */
 async function kept(at: At, { name, push }: { name?: string; push?: boolean }) {
   await at.page.evaluate(
@@ -783,40 +794,8 @@ const SCREENS: Screen[] = [
     },
   })),
 
-  // 09 · Settings
-  { ids: ['M9.1'], run: async (at) => {
-    await settingsOpen(at, [{ name: 'laptop' }]);
-    await kept(at, { push: true });
-    await button(at, 'Menu').click();
-    await expect(at.page.getByLabel(/Notifications from studio/)).toBeChecked();
-  } },
-  { ids: ['D9.1'], run: async (at) => {
-    await settingsOpen(at, [{ name: 'laptop' }]);
-    await item(at, 'claude · fix login').click();
-    await kept(at, { name: 'Mac · Chrome', push: true });
-    await button(at, 'Menu').click();
-    await expect(at.page.getByLabel(/Notifications from studio/)).toBeChecked();
-  } },
-  { ids: ['D9.2'], run: async (at) => {
-    await settingsOpen(at);
-    await kept(at, { name: 'Mac · Chrome' });
-    await button(at, 'Menu').click();
-    await button(at, 'Settings…').click();
-  } },
-  // A machine's own settings (M9.8–M9.11) and a project's (M9.12).
-  ...([['9.8', 'General'], ['9.9', 'Workflow'], ['9.10', 'RingFrame'], ['9.11', 'Harnesses']] as const).map(([n, tab]): Screen => ({
-    ids: [`M${n}`, `D${n}`],
-    run: async (at) => {
-      await settingsOpen(at, [{ name: 'laptop' }]);
-      await button(at, 'Menu').click();
-      // A phone's Settings lists the machines; a desktop's ☰ does (D9.1).
-      if (at.wide) await at.page.getByRole('menu').getByRole('button', { name: /studio/ }).click();
-      else await at.page.locator('.settings').getByRole('button', { name: /studio/ }).first().click();
-      await at.page.getByRole('tab', { name: tab }).click();
-      if (tab === 'Harnesses') await expect(at.page.getByText('Route rules · Claude Code')).toBeVisible();
-      if (tab === 'Workflow') await at.page.getByRole('button', { name: /Each reader/ }).click();
-    },
-  })),
+  // 09 · Settings: a project's own (9.12–9.15), starting an agent (9.7), and this device's
+  // notifications and leaving (9.2–9.6), now in Settings › This device & account.
   { ids: ['M9.12', 'D9.12'], run: async (at) => {
     await settingsOpen(at);
     await at.page.getByRole('button', { name: "weft's settings" }).first().click();
@@ -836,8 +815,8 @@ const SCREENS: Screen[] = [
   { ids: ['M9.2'], run: async (at) => {
     at.machine.vapid = 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U';
     await settingsOpen(at);
-    await button(at, 'Menu').click();
-    await at.page.getByLabel(/Notifications from studio/).click();
+    await settingsAt(at, 'This device & account');
+    await at.page.getByLabel(/Notifications on this device/).click();
     await expect(at.page.getByText('Add Weft to your Home Screen first')).toBeVisible();
   } },
   { ids: ['M9.3', 'D9.3'], run: async (at) => {
@@ -848,9 +827,8 @@ const SCREENS: Screen[] = [
       Notification.requestPermission = async () => 'denied';
     });
     await settingsOpen(at);
-    if (at.wide) await item(at, 'claude · fix login').click();
-    await button(at, 'Menu').click();
-    await at.page.getByLabel(/Notifications from studio/).click();
+    await settingsAt(at, 'This device & account');
+    await at.page.getByLabel(/Notifications on this device/).click();
     await expect(at.page.getByText('Notifications are turned off for Weft in this browser.')).toBeVisible();
   } },
   ...([['M9.4', 'Delete my account'], ['M9.5', 'Sign out'], ['M9.6', 'Forget this device'], ['D9.4', 'Delete my account']] as const).map(([id, act]) => ({
@@ -858,8 +836,7 @@ const SCREENS: Screen[] = [
     run: async (at: At) => {
       await settingsOpen(at, at.wide ? [] : [{ name: 'laptop' }]);
       await kept(at, at.wide ? { name: 'Mac · Chrome' } : { push: true });
-      await button(at, 'Menu').click();
-      if (at.wide) await button(at, 'Settings…').click();
+      await settingsAt(at, 'This device & account');
       await button(at, act).click();
       await expect(at.page.getByRole('dialog')).toBeVisible();
     },
@@ -868,6 +845,51 @@ const SCREENS: Screen[] = [
     await tree(at);
     await button(at, 'Start an agent in weft').click();
     await expect(at.page.getByRole('radiogroup', { name: 'Start an agent' })).toBeVisible();
+  } },
+
+  // 19 · Settings for everyone: ☰, then a section; Advanced settings shows the rest in place.
+  { ids: ['M19.1'], run: async (at) => {
+    await settingsOpen(at);
+    await settingsAt(at);
+  } },
+  { ids: ['D19.1'], run: async (at) => {
+    await settingsOpen(at, [{ name: 'laptop' }]);
+    await item(at, 'claude · fix login').click();
+    await button(at, 'Menu').click();
+  } },
+  { ids: ['M19.11'], run: async (at) => {
+    await settingsOpen(at);
+    await settingsAt(at, undefined, true);
+  } },
+  ...([['19.2', 'General', false], ['19.3', 'Eval', false], ['19.4', 'Eval', true], ['19.5', 'Rules', false], ['19.7', 'Agent apps', false]] as const).map(([n, section, advanced]): Screen => ({
+    ids: [`M${n}`, `D${n}`],
+    run: async (at) => {
+      await settingsOpen(at);
+      await settingsAt(at, section, advanced);
+    },
+  })),
+  { ids: ['M19.6'], run: async (at) => {
+    await settingsOpen(at);
+    await settingsAt(at, 'Rules');
+    await at.page.getByRole('button', { name: /^Software development/ }).click();
+  } },
+  ...([['D19.6', 'Rules'], ['D19.8', 'Agent apps']] as const).map(([id, section]): Screen => ({
+    ids: [id],
+    run: async (at) => {
+      await settingsOpen(at);
+      await settingsAt(at, section, true);
+    },
+  })),
+  { ids: ['M19.9', 'D19.9'], run: async (at) => {
+    await settingsOpen(at, at.wide ? [] : [{ name: 'laptop' }]);
+    await kept(at, { name: 'Mac · Chrome', push: true });
+    await settingsAt(at, 'This device & account');
+  } },
+  { ids: ['M19.10', 'D19.10'], run: async (at) => {
+    at.machine.settings = { ...at.machine.settings, effective: { ...(at.machine.settings.effective as object), keep_days: 10 } };
+    await settingsOpen(at);
+    await settingsAt(at, 'General');
+    await expect(at.page.getByRole('textbox', { name: 'days' })).toHaveValue('10');
   } },
 
   // 11 · Agents and rounds: the cards' moment, docs folded.
